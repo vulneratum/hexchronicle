@@ -1,2 +1,223 @@
-# hexchronicle
-This is the HEX map to end all HEX maps
+# HexChronicle
+
+A living sandbox continent for old-school tabletop play, managed as data in this
+repo, advanced by an AI agent (Claude Code), and published as an interactive
+atlas at **hexchronicle.com**.
+
+The core loop: the GM plays a session at the table → logs it as a file → the
+agent updates the world (hexes, settlements, kingdoms, reputations) and advances
+everything else by the elapsed in-game time → the site rebuilds and the map,
+wiki, and rumors reflect the new state of the world.
+
+**This README is the build brief.** Everything below is a settled design
+decision unless marked *(future phase)*.
+
+---
+
+## 1. Game system & tone
+
+- Table rules: **Old-School Essentials (OSE)**.
+- World engine: OSE plus **Rules Cyclopedia-derived campaign machinery**
+  (domain income, dominion events, War Machine-style mass combat) reformulated
+  in our own words — the agent uses these to advance kingdoms. Never reproduce
+  Rules Cyclopedia text (see §10 Licensing).
+- Onboarding: 0-level funnel play per Carcass Crawler #5-style rules.
+- Tone: sword-and-sorcery weird is welcome; **no aliens, no high technology,
+  no spaceships.**
+
+## 2. Map structure & addressing
+
+Three nested scales, **12-across** at each step:
+
+| Level | Hex size | Contains |
+|---|---|---|
+| Continent hex | 432 miles | 12-across field of atlas hexes |
+| Atlas hex ("plate") | 36 miles | 12-across field of subhexes |
+| Subhex | 3 miles (1 league) | the unit of play |
+
+**Addressing (permanent identifiers, never descriptions of position):**
+
+- Atlas hexes are numbered `0001`, `0002`, … in order of creation.
+- Subhexes are numbered row by row within their plate, top-left to
+  bottom-right, zero-padded: `0001-001` … `0001-157`.
+- **Seam ownership rule:** subhexes that geometrically straddle two atlas
+  hexes belong to exactly one parent: the atlas hex whose center is nearest;
+  exact ties go to the **lower-numbered** parent. Computed by code, decided
+  once, never revised. Renumbering or reassigning any existing address is
+  forbidden — the chronicle references addresses forever.
+- Neighbor plates still **render** foreign-owned seam hexes, dimmed and
+  labeled with their true address.
+
+## 3. Presentation: the atlas plate
+
+The primary view is the **plate**: one atlas hex as the page, point-up, drawn
+as its numbered subhexes — styled after classic nested-atlas plates:
+
+- Title cartouche (region name, "36-MILE HEX #NNNN within 432-MILE HEX #N",
+  scale line "1 HEX = 3 MILES (1 LEAGUE)").
+- Sequential subhex numbers, visible past a zoom threshold.
+- Six neighbor chips on the plate edges linking to adjoining plates.
+- Continent view zooms out to the field of atlas hexes (semantic zoom:
+  different information at different scales, not just smaller hexes).
+- **Zoom limits:** maximum zoom is fixed (subhex detail readable); minimum
+  zoom is **computed** to fit the entire current map, so it recedes
+  automatically as the continent grows. Never hardcode it.
+- Renderer: browser-side SVG drawn from compiled world-state JSON. Static
+  hosting only — no server. Mobile-first: touch pan/pinch, tap targets via
+  select-then-open cards, viewport culling.
+- A working prototype of this renderer exists (`hexchronicle-plate-demo.html`
+  from the design conversation) — reuse its approach.
+
+## 4. Data architecture
+
+**The repo is the single source of truth.** The site, the editor, the agent,
+and any future export (Foundry VTT) all read/write the same files.
+
+### File types
+
+- `hexes/` — one file per subhex that has content: terrain, features,
+  line features, names, visibility-flagged sections, chronicle entries,
+  local-memory prose.
+- `plates/` — one file per atlas hex: number, name, canton/realm, summary.
+- `realms/` — kingdoms: ruler, agenda, relations, military posture, domain
+  stats, heraldry ref. Cantons/regions as sub-entries or files.
+- `people/` — notable NPCs and (later) registered PCs.
+- `sessions/` — session logs (see template below).
+- `hooks/` — agent-generated rumors per region, refreshed each world turn.
+- `world/` — the world clock, active tracks (wars, contests, successions),
+  and `world-turn-instructions.md` (the agent's standing rules, versioned
+  like everything else).
+- `theme/` — `terrain.yaml` (type → color + label) and `icons/` (SVG per
+  feature type). See §7 Custom tiles.
+
+### Hard rules
+
+- **Data vs story separation:** machine-updated state and hand-written prose
+  live in separate sections/files. A world-turn update must never bulldoze
+  authored lore; the editor must never touch chronicle or world state.
+- **Visibility:** every content block is `public` or `gm-only`. The site
+  build renders public only. Undiscovered dungeons stay undiscovered until a
+  session log reveals them.
+- **Line features** (streams, canals, rivers, roads by grade, tollpikes,
+  bridges, realm/canton borders) are path data crossing hexes — not per-hex
+  fills.
+- Fetched/derived data is never canon; only logged events and authored
+  content are.
+
+### Session log template
+
+Small enough to fill in ten minutes after a session:
+date played, **in-game dates / elapsed time**, hexes touched (by address),
+events (what actually happened, named consistently), PC/NPC names involved,
+treasure/XP notes. Consistent naming is what powers reputation tracking —
+maintain a name registry.
+
+## 5. The agent (Claude Code) — world turns
+
+After each session log (and on idle time advancement):
+
+1. **Apply local events** to the touched hexes: chronicle entries, feature
+   changes, local-memory rewrites ("the folk of X still talk about…").
+   Reputation may grow or distort over time.
+2. **Advance the world** by the elapsed in-game time using the standing
+   instructions: domain income, dominion events, kingdom agendas, active
+   war/contest/succession tracks.
+3. **Emit hooks:** 2–3 open-question rumors per active region — some tied to
+   continent events, some local. Ignored hooks may escalate on later turns.
+4. **Traceability:** every threat or consequence the agent generates must
+   trace to logged causes (a chronicle-visible chain), never appear vindictive
+   or arbitrary.
+5. Commit with a clear message; the site rebuild does the rest.
+
+Ruler deaths trigger the **succession procedure** (heirs, claimants, a
+succession track, news hooks to neighbors) — a dead king is an input, never
+an endpoint.
+
+## 6. The editor (local web app)
+
+Lives in this repo; shares the renderer and theme modules with the site.
+
+- `npm run editor` → local server → browser UI at localhost. Fully offline;
+  the server's only job is reading/writing repo files and running git.
+- Features: add a new plate (next number auto-assigned, blank/default fill);
+  terrain paint brush; feature stamps; name fields; line tools for
+  rivers/roads/borders; automatic seam-ownership computation.
+- **Scope guard:** the editor may only modify map-data paths. It must be
+  structurally unable to write chronicle, world-state, or session files, and
+  its commits may only include allowed paths.
+- Commit flow: diff view ("plate 0007: 14 hexes changed"), generated or
+  typed commit message, commit + optional push.
+
+## 7. Custom tiles
+
+The editor's palette is built **from the theme registry**, never hardcoded.
+Adding a tile = define name + color (+ optional SVG icon) in `theme/`; it
+appears in the palette, renders on next build, and flows to every consumer.
+Include a "new tile type" form in the editor.
+
+- Type names are **permanent once used** — retire from the palette, never
+  rename or delete a definition that any hex references.
+- Icons are SVG (theme-able, scale-free). Free sources like game-icons.net
+  (CC-BY, credited in the site footer) are acceptable.
+
+## 8. The site (hexchronicle.com)
+
+- Static site on GitHub Pages or Cloudflare Pages, custom domain, HTTPS,
+  auto-rebuild on every commit. $0 hosting.
+- The map is the front door; every hex links to its generated **wiki page**:
+  - *Gazetteer:* terrain, travel info, settlements/features (public only),
+    canton/realm links.
+  - *Chronicle:* dated event history, local memory, notable deaths, storied
+    items, memorials.
+  - *Hooks:* current local rumors and active pressures.
+  - Meta: address, last-updated world date, neighbor links, and a
+    "chronicle a session here" link (pre-filled with the hex address).
+- Auto-cross-link consistent names (NPCs, places, items) across pages.
+- Every page carries a "suggest an edit" link to its source file on GitHub.
+- Images optional garnish: web-compressed, SVG heraldry, icon changes driven
+  by state (burned village = burned icon).
+
+## 9. Build order
+
+1. **Walking skeleton:** file formats for one plate + build script rendering
+   the plate view + deploy to hexchronicle.com. Prove data → build → live site.
+2. **Shared renderer hardened** (plate view, semantic zoom, cards, mobile).
+3. **The editor**, on top of the renderer.
+4. **Author the starting region** through the editor: one canton, a funnel
+   village, a dungeon or two. Continent-level: coastlines and 4–5 named
+   realms with one-line agendas, detailed lazily as play approaches.
+5. **World-turn instructions** written and tested manually before autopilot.
+6. **Play.** First session log through the full loop.
+
+*(Future phases, designed but not built now):* shard/multi-table layer
+(protected entities, contest protocol, war tracker with per-week contribution
+normalization, "nothing with a name dies off-screen", cross-table hostilities
+delivered as threats resolved at the target's table, PC consent flags,
+world clock pegged to real time with future-dated event queues); AL-style
+organized play (character registry as system of record, posted events with
+signups, location/time continuity checks); log submission tiers (GitHub issue
+form → pre-filled Google Form + Apps Script → branded form + serverless
+function); Foundry VTT export (scene image → journal/pin compendium → live
+module reading world-state JSON).
+
+## 10. Licensing
+
+- All world content (continent, realms, NPCs, chronicles) is original IP.
+- Pages reproducing OSE **open game content** carry the OGL declaration and
+  Section 15 notices; nothing declared Product Identity is used.
+- **No Rules Cyclopedia text ever** — RC-derived machinery is reformulated
+  or built from OGL-open equivalents.
+- The OSE third-party compatibility logo/license is optional, later; never
+  imply official Necrotic Gnome status.
+- Icon attribution (e.g., game-icons.net CC-BY) in the site footer.
+
+## 11. Conventions for the agent
+
+- Read this README before structural changes; update it when a decision
+  changes (the README is itself versioned canon).
+- Addresses, type names, and file schemas are append-only in spirit: extend,
+  don't break. Anything the chronicle references must remain resolvable
+  forever.
+- Prefer durable phrasing in chronicle prose; date everything in world time.
+- Small, well-messaged commits — the commit log is the world's history of
+  histories.

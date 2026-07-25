@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HexChronicle — Plate 9.97</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1e2a26;
+    --parchment:#e9e2cf;
+    --brass:#b98d3e;
+    --madder:#9e3d34;
+    --teal:#2e6f6a;
+    --text-dark:#2b2b23;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--ink)}
+  body{font-family:'Alegreya Sans',system-ui,sans-serif;color:var(--parchment)}
+  #map{position:fixed;inset:0;width:100vw;height:100vh;touch-action:none;cursor:grab;display:block}
+  #map:active{cursor:grabbing}
+
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:20;
+    display:flex;align-items:center;gap:.6rem;
+    padding:.55rem .8rem;
+    background:linear-gradient(to bottom, rgba(20,28,25,.92), rgba(20,28,25,.5) 75%, transparent);
+    pointer-events:none;
+  }
+  header *{pointer-events:auto}
+  .brand{display:flex;flex-direction:column;line-height:1.05;margin-right:auto}
+  .brand h1{font-family:'IM Fell English SC',serif;font-weight:400;font-size:1.25rem;color:var(--parchment)}
+  .brand span{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#9fb0a6}
+  .hbtn{
+    appearance:none;border:1px solid #55655c;border-radius:.55rem;cursor:pointer;
+    background:transparent;color:#c9d3ca;font:inherit;font-size:.78rem;font-weight:500;
+    padding:.42rem .65rem;
+  }
+  .hbtn:focus-visible{outline:2px solid var(--brass);outline-offset:-2px}
+  #turnBtn{background:var(--brass);border-color:var(--brass);color:#241d10;font-weight:700}
+  #turnBtn:disabled{background:#6f6350;border-color:#6f6350;color:#2f2a20;cursor:default}
+
+  /* plate title cartouche, styled after classic atlas plates */
+  #plateTitle{
+    position:fixed;top:3.2rem;left:.6rem;z-index:15;
+    background:var(--parchment);color:var(--madder);
+    border:2px solid var(--madder);border-radius:.3rem;
+    padding:.4rem .65rem;max-width:min(62vw,17rem);
+    box-shadow:0 4px 14px rgba(0,0,0,.4);
+  }
+  #plateTitle .t1{font-family:'IM Fell English SC',serif;font-size:.95rem;line-height:1.15}
+  #plateTitle .t2{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--teal);margin-top:.15rem;letter-spacing:.02em}
+  #plateTitle .t3{font-size:.62rem;color:var(--text-dark);font-weight:700;margin-top:.1rem;letter-spacing:.04em}
+
+  #legend{
+    position:fixed;left:.6rem;bottom:.6rem;z-index:15;
+    display:flex;flex-wrap:wrap;gap:.3rem;max-width:78vw;
+  }
+  .chip{
+    display:flex;align-items:center;gap:.32rem;
+    background:rgba(20,28,25,.78);border:1px solid #45544c;border-radius:.45rem;
+    padding:.18rem .45rem;font-size:.64rem;letter-spacing:.03em;color:#cdd6cd;
+  }
+  .chip i{width:.7rem;height:.7rem;border-radius:.15rem;display:inline-block}
+  .chip svg{display:block}
+
+  #toast{
+    position:fixed;top:3.4rem;left:50%;transform:translateX(-50%) translateY(-8px);
+    z-index:30;background:var(--parchment);color:var(--text-dark);
+    border-left:4px solid var(--madder);border-radius:.4rem;
+    padding:.55rem .8rem;font-size:.8rem;max-width:min(92vw,26rem);
+    box-shadow:0 6px 18px rgba(0,0,0,.45);opacity:0;transition:opacity .35s, transform .35s;
+    pointer-events:none;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  #card{
+    position:fixed;left:0;right:0;bottom:0;z-index:25;
+    background:var(--parchment);color:var(--text-dark);
+    border-radius:.9rem .9rem 0 0;
+    box-shadow:0 -8px 28px rgba(0,0,0,.5);
+    max-height:46vh;overflow-y:auto;
+    transform:translateY(105%);transition:transform .3s ease;
+    padding:.8rem 1rem 1.1rem;
+  }
+  #card.open{transform:translateY(0)}
+  #card .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.12em;color:#7c7256;text-transform:uppercase}
+  #card h2{font-family:'IM Fell English SC',serif;font-weight:400;font-size:1.35rem;margin:.1rem 0 .45rem}
+  #card .rows{display:grid;grid-template-columns:auto 1fr;gap:.2rem .8rem;font-size:.85rem;margin-bottom:.6rem}
+  #card .rows dt{color:#7c7256;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;padding-top:.12rem}
+  #card h3{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#7c7256;margin:.55rem 0 .25rem}
+  #card .chron p{font-size:.85rem;line-height:1.4;margin-bottom:.35rem}
+  #card .chron .empty{color:#8b8168;font-style:italic}
+  #card pre{
+    font-family:'IBM Plex Mono',monospace;font-size:.72rem;line-height:1.45;
+    background:#241f15;color:#d8cfae;border-radius:.45rem;padding:.55rem .7rem;overflow-x:auto;
+  }
+  #card .actions{display:flex;gap:.5rem;margin-top:.7rem}
+  #card .actions button{
+    appearance:none;border:1px solid var(--brass);background:var(--brass);color:#241d10;
+    border-radius:.5rem;padding:.4rem .7rem;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;
+  }
+  #cardClose{
+    position:absolute;top:.55rem;right:.7rem;appearance:none;border:0;background:transparent;
+    font-size:1.15rem;line-height:1;color:#7c7256;cursor:pointer;padding:.2rem;
+  }
+  @media (prefers-reduced-motion: reduce){ #card,#toast{transition:none !important} }
+</style>
+</head>
+<body>
+
+<svg id="map" aria-label="Atlas plate 9.97"></svg>
+
+<header>
+  <div class="brand">
+    <h1>HexChronicle</h1>
+    <span>Atlas plate view</span>
+  </div>
+  <button class="hbtn" id="fitBtn">Fit plate</button>
+  <button class="hbtn" id="turnBtn">Run world turn</button>
+</header>
+
+<div id="plateTitle">
+  <div class="t1">Central portion of Harrow Canton, Karvosia</div>
+  <div class="t2">36-MILE HEX #97 · within 432-MILE HEX #9</div>
+  <div class="t3">SCALE: 1 HEX = 3 MILES (1 LEAGUE)</div>
+</div>
+
+<div id="legend" aria-hidden="true"></div>
+<div id="toast" role="status"></div>
+
+<div id="card" role="dialog" aria-modal="false">
+  <button id="cardClose" aria-label="Close panel">✕</button>
+  <div id="cardBody"></div>
+</div>
+
+<script>
+"use strict";
+/* ================= geometry: pointy-top small hexes ================= */
+const SIZE = 26, SQ3 = Math.sqrt(3);
+const RL = 12 * SIZE;                       // plate circumradius: 12 subhexes across the flats
+const axialToPx = (q, r) => ({ x: SQ3 * SIZE * (q + r / 2), y: 1.5 * SIZE * r });
+function pxToAxial(x, y) {
+  const q = (SQ3 / 3 * x - y / 3) / SIZE, r = (2 / 3 * y) / SIZE;
+  const sf = -q - r;
+  let qq = Math.round(q), rr = Math.round(r), ss = Math.round(sf);
+  const dq = Math.abs(qq - q), dr = Math.abs(rr - r), ds = Math.abs(ss - sf);
+  if (dq > dr && dq > ds) qq = -rr - ss; else if (dr > ds) rr = -qq - ss;
+  return { q: qq, r: rr };
+}
+function hexCorners(cx, cy, size) {
+  const pts = [];
+  for (let k = 0; k < 6; k++) {
+    const ang = Math.PI / 180 * (60 * k - 30);
+    pts.push((cx + size * Math.cos(ang)).toFixed(2) + "," + (cy + size * Math.sin(ang)).toFixed(2));
+  }
+  return pts.join(" ");
+}
+function plateCorners(size) {           // point-up big hexagon
+  const pts = [];
+  for (let k = 0; k < 6; k++) {
+    const ang = Math.PI / 180 * (60 * k + 30);
+    pts.push((size * Math.cos(ang)).toFixed(2) + "," + (size * Math.sin(ang)).toFixed(2));
+  }
+  return pts.join(" ");
+}
+const insidePlate = (x, y, R) => {
+  const dx = Math.abs(x), dy = Math.abs(y);
+  return dx <= SQ3 / 2 * R + 0.01 && dy <= R - dx / SQ3 + 0.01;
+};
+const hash = (q, r) => { const s = Math.sin(q * 127.1 + r * 311.7) * 43758.5453; return s - Math.floor(s); };
+
+/* ================= terrain ================= */
+const TERRAIN = {
+  water:    { color: "#93b7b3", label: "Water" },
+  swamp:    { color: "#8a9a77", label: "Swamp" },
+  plains:   { color: "#cdd39c", label: "Plains" },
+  forest:   { color: "#5e8c5e", label: "Forest" },
+  hills:    { color: "#c9ae7b", label: "Hills" },
+  mountains:{ color: "#a2988a", label: "Mountains" }
+};
+const LAKE_C = { x: 34, y: 16 };
+function elevation(px, h) {
+  const d = Math.hypot(px.x - LAKE_C.x, px.y - LAKE_C.y) / RL;
+  let el = 0.20 + 0.58 * d
+    + 0.13 * Math.sin(px.x * 0.014 + 1.1) * Math.cos(px.y * 0.013 - 0.5)
+    + 0.07 * Math.sin((px.x + px.y) * 0.008 + 2.2)
+    + (h - 0.5) * 0.08;
+  el -= Math.max(0, 0.30 - d) * 1.05;      // the lake basin
+  const ridge = Math.max(0, (-(px.x * 0.8 + px.y)) / RL - 0.55); // high country in the north-west
+  el += ridge * 0.9;
+  return el;
+}
+function terrainFor(px, h) {
+  const el = elevation(px, h);
+  const mo = 0.5 + 0.5 * Math.sin(px.x * 0.010 + 0.8) * Math.sin(px.y * 0.011 - 0.4);
+  if (el < 0.34) return "water";
+  if (el < 0.42 && mo > 0.62) return "swamp";
+  if (el < 0.58) return "plains";
+  if (el < 0.74) return mo > 0.42 ? "forest" : "hills";
+  if (el < 0.88) return "hills";
+  return "mountains";
+}
+
+/* ================= build the plate ================= */
+const hexes = new Map(), list = [];
+for (let q = -16; q <= 16; q++) for (let r = -16; r <= 16; r++) {
+  const px = axialToPx(q, r);
+  if (!insidePlate(px.x, px.y, RL)) continue;
+  const h = hash(q, r);
+  const hx = { q, r, key: q + "," + r, px, h, terrain: terrainFor(px, h),
+               feature: null, name: null, status: "ok", chronicle: [], road: false, river: false };
+  hexes.set(hx.key, hx);
+  list.push(hx);
+}
+/* row-by-row numbering, like the reference plate */
+list.sort((a, b) => a.r - b.r || a.px.x - b.px.x);
+list.forEach((h, i) => h.num = i + 1);
+const addr = h => "9.97." + h.num;
+const neighborsOf = h => [[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]]
+  .map(d => hexes.get((h.q + d[0]) + "," + (h.r + d[1]))).filter(Boolean);
+
+/* ================= rivers: walk downhill to the lake ================= */
+const rivers = [];
+const highs = list.filter(h => h.terrain !== "water" && elevation(h.px, h.h) > 0.72)
+                  .sort((a, b) => elevation(b.px, b.h) - elevation(a.px, a.h));
+const used = new Set();
+for (const src of highs.slice(0, 14)) {
+  if (rivers.length >= 3) break;
+  if (used.has(src.key)) continue;
+  let cur = src; const path = [cur]; const seen = new Set([cur.key]);
+  for (let step = 0; step < 60; step++) {
+    const opts = neighborsOf(cur).filter(n => !seen.has(n.key));
+    if (!opts.length) break;
+    opts.sort((a, b) => elevation(a.px, a.h) - elevation(b.px, b.h));
+    cur = opts[0]; path.push(cur); seen.add(cur.key);
+    if (cur.terrain === "water") break;
+  }
+  if (path[path.length - 1].terrain === "water" && path.length >= 4) {
+    path.forEach(h => { h.river = true; used.add(h.key); });
+    rivers.push(path);
+  }
+}
+
+/* ================= settlements ================= */
+const VNAMES = ["Harlow's Ford", "Bracken", "Wyther", "Old Mere", "Stanmoor", "Redthorn"];
+const DNAMES = ["The Undercrag", "Barrow of Kings", "Gloomdelve"];
+const RNAMES = ["Tower of Veyl", "The Hollow Fane", "Wrackstone Ring"];
+const LNAMES = ["Troll Fen", "The Sunken Den"];
+let vi = 0, di = 0, ri = 0, li = 0;
+for (const h of list) {
+  if (h.terrain === "water") continue;
+  const h2 = hash(h.q * 3.7 + 11, h.r * 9.1 - 5);
+  if (h.terrain === "plains" && h2 < 0.09 && vi < VNAMES.length) { h.feature = "village"; h.name = VNAMES[vi++]; }
+  else if ((h.terrain === "hills" || h.terrain === "mountains") && h2 < 0.07 && di < DNAMES.length) { h.feature = "dungeon"; h.name = DNAMES[di++]; }
+  else if (h.terrain === "forest" && h2 < 0.06 && ri < RNAMES.length) { h.feature = "ruin"; h.name = RNAMES[ri++]; }
+  else if (h.terrain === "swamp" && h2 < 0.12 && li < LNAMES.length) { h.feature = "lair"; h.name = LNAMES[li++]; }
+}
+/* the canton seat: a city on the lakeshore */
+let city = null, bd = Infinity;
+for (const h of list) {
+  if (h.terrain === "water" || h.feature) continue;
+  if (!neighborsOf(h).some(n => n.terrain === "water")) continue;
+  const d = Math.hypot(h.px.x - LAKE_C.x, h.px.y - LAKE_C.y);
+  if (d < bd) { bd = d; city = h; }
+}
+if (!city) city = list.find(h => h.terrain !== "water");
+city.feature = "city"; city.name = "Merrowgate";
+city.chronicle = ["1 Harvestmoon 4712 — The canton fair opened under the Reeve's peace; wool prices ran high."];
+/* two towns with clear road lines to the city */
+function hexLine(a, b) {
+  const N = Math.max(1, Math.round((Math.abs(a.q-b.q)+Math.abs(a.r-b.r)+Math.abs((a.q+a.r)-(b.q+b.r)))/2));
+  const out = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const ax = pxToAxial(a.px.x + (b.px.x - a.px.x) * t, a.px.y + (b.px.y - a.px.y) * t);
+    const hh = hexes.get(ax.q + "," + ax.r);
+    if (hh && (!out.length || out[out.length - 1] !== hh)) out.push(hh);
+  }
+  return out;
+}
+const clearLine = p => p.every(h => h.terrain !== "water");
+const TOWNN = ["Adris", "Stonepoint"];
+const towns = [];
+const cands = list.filter(h => !h.feature && (h.terrain === "plains" || h.terrain === "hills"))
+  .map(h => ({ h, d: Math.hypot(h.px.x - city.px.x, h.px.y - city.px.y) }))
+  .filter(o => o.d > SIZE * 6 && o.d < SIZE * 13)
+  .sort((a, b) => hash(a.h.q + 7, a.h.r - 3) - hash(b.h.q + 7, b.h.r - 3));
+for (const o of cands) {
+  if (towns.length >= 2) break;
+  if (towns.some(t => Math.hypot(t.px.x - o.h.px.x, t.px.y - o.h.px.y) < SIZE * 8)) continue;
+  if (!clearLine(hexLine(city, o.h))) continue;
+  o.h.feature = "town"; o.h.name = TOWNN[towns.length];
+  towns.push(o.h);
+}
+/* first village keeps its chronicle from the campaign */
+const firstVillage = list.find(h => h.feature === "village");
+if (firstVillage) firstVillage.chronicle = [
+  "9 Harvestmoon 4712 — Four strangers out of the west lodged at the inn.",
+  "12 Harvestmoon 4712 — The marsh troll of the mill road was slain; its head hangs above the bar. Drinks poured free for Brakka's company."
+];
+/* roads: city to towns, plus villages by path */
+const roads = [], paths = [];
+for (const t of towns) { const p = hexLine(city, t); p.forEach(h => h.road = true); roads.push(p); }
+for (const h of list) {
+  if (h.feature !== "village") continue;
+  const near = [city, ...towns].sort((a, b) =>
+    Math.hypot(a.px.x - h.px.x, a.px.y - h.px.y) - Math.hypot(b.px.x - h.px.x, b.px.y - h.px.y))[0];
+  const p = hexLine(near, h);
+  if (clearLine(p)) paths.push(p);
+}
+
+/* ================= svg ================= */
+const SVGNS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("map");
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const world = el("g", {}, svg);
+const gFill = el("g", {}, world);
+const gWater = el("g", {}, world);
+const gRoad = el("g", {}, world);
+const gIcon = el("g", {}, world);
+const gNum = el("g", { style: "transition:opacity .3s" }, world);
+const gFrame = el("g", {}, world);
+const gSel = el("g", {}, world);
+
+for (const h of list) {
+  el("polygon", {
+    points: hexCorners(h.px.x, h.px.y, SIZE),
+    fill: TERRAIN[h.terrain].color, stroke: "rgba(0,0,0,0.16)", "stroke-width": 1
+  }, gFill);
+}
+function smoothPath(pts) {
+  let d = `M ${pts[0].px.x.toFixed(1)} ${pts[0].px.y.toFixed(1)}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i].px.x + pts[i + 1].px.x) / 2, my = (pts[i].px.y + pts[i + 1].px.y) / 2;
+    d += ` Q ${pts[i].px.x.toFixed(1)} ${pts[i].px.y.toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
+  }
+  const L = pts[pts.length - 1];
+  d += ` L ${L.px.x.toFixed(1)} ${L.px.y.toFixed(1)}`;
+  return d;
+}
+for (const rv of rivers) el("path", { d: smoothPath(rv), fill: "none", stroke: "#7ea6c9", "stroke-width": 3, "stroke-linecap": "round", opacity: 0.9 }, gWater);
+for (const p of paths) el("path", { d: smoothPath(p), fill: "none", stroke: "#6b5138", "stroke-width": 1.8, "stroke-dasharray": "5 4", opacity: 0.9 }, gRoad);
+for (const p of roads) el("path", { d: smoothPath(p), fill: "none", stroke: "#6b5138", "stroke-width": 2.6, "stroke-linecap": "round" }, gRoad);
+
+function drawIcon(parent, feature, cx, cy, scale) {
+  const g = el("g", { transform: `translate(${cx} ${cy}) scale(${scale})` }, parent);
+  if (feature === "village") {
+    el("circle", { r: 4.6, fill: "none", stroke: "#2b2b23", "stroke-width": 2 }, g);
+  } else if (feature === "town") {
+    el("circle", { r: 6, fill: "none", stroke: "#2b2b23", "stroke-width": 2 }, g);
+    el("circle", { r: 2.6, fill: "none", stroke: "#2b2b23", "stroke-width": 1.6 }, g);
+  } else if (feature === "city") {
+    el("circle", { r: 7, fill: "#f0ead2", stroke: "#2b2b23", "stroke-width": 2.2 }, g);
+    el("circle", { r: 2.6, fill: "#2b2b23" }, g);
+  } else if (feature === "burned") {
+    el("circle", { r: 4.6, fill: "none", stroke: "#2c2622", "stroke-width": 2 }, g);
+    el("path", { d: "M 0 -12 C 3 -8 4.5 -7 3.5 -3.5 C 2.5 -1 -2.5 -1 -3.5 -3.5 C -4.5 -7 -3 -8 0 -12 Z", fill: "#b04a2e" }, g);
+  } else if (feature === "ruin") {
+    el("rect", { x: -6, y: -5, width: 3.4, height: 11, fill: "#5c5142" }, g);
+    el("rect", { x: 2, y: -2, width: 3.4, height: 8, fill: "#5c5142", transform: "rotate(14 3.7 2)" }, g);
+  } else if (feature === "dungeon") {
+    el("path", { d: "M -6 6 L -6 -2 A 6 6 0 0 1 6 -2 L 6 6 Z", fill: "#38322b" }, g);
+    el("path", { d: "M -2.2 6 L -2.2 0 A 2.2 2.2 0 0 1 2.2 0 L 2.2 6 Z", fill: "#171412" }, g);
+  } else if (feature === "lair") {
+    el("rect", { x: -5.4, y: -5.4, width: 10.8, height: 10.8, fill: "#f0ead2", stroke: "#9e3d34", "stroke-width": 2, transform: "rotate(45)" }, g);
+    const t = el("text", { "text-anchor": "middle", y: 3.4, "font-size": 9, "font-weight": 700, fill: "#9e3d34", "font-family": "'Alegreya Sans',sans-serif" }, g);
+    t.textContent = "M";
+  }
+  return g;
+}
+for (const h of list) if (h.feature) h.iconEl = drawIcon(gIcon, h.feature, h.px.x, h.px.y, 1);
+/* the city gets its name on the plate */
+const cityLabel = el("text", {
+  x: city.px.x, y: city.px.y + 22, "text-anchor": "middle",
+  "font-family": "'IM Fell English SC',serif", "font-size": 15, fill: "#2b2b23"
+}, gIcon);
+cityLabel.textContent = "Merrowgate";
+
+/* subhex numbers */
+for (const h of list) {
+  const t = el("text", {
+    x: h.px.x, y: h.px.y - SIZE * 0.42, "text-anchor": "middle",
+    "font-family": "'IBM Plex Mono',monospace", "font-size": 8.5, fill: "rgba(43,43,35,0.6)"
+  }, gNum);
+  t.textContent = h.num;
+}
+
+/* plate frame + neighbor chips */
+el("polygon", { points: plateCorners(RL + SIZE * 0.2), fill: "none", stroke: "#2e6f6a", "stroke-width": 4, "stroke-linejoin": "round" }, gFrame);
+const NEI = [
+  { ang: 0,   id: 98  }, { ang: 60,  id: 110 }, { ang: 120, id: 109 },
+  { ang: 180, id: 96  }, { ang: 240, id: 84  }, { ang: 300, id: 85  }
+];
+for (const n of NEI) {
+  const a = Math.PI / 180 * n.ang, R = RL + SIZE * 1.35;
+  const cx = Math.cos(a) * R, cy = Math.sin(a) * R;
+  const g = el("g", { transform: `translate(${cx.toFixed(1)} ${cy.toFixed(1)})`, style: "cursor:pointer" }, gFrame);
+  el("polygon", { points: hexCorners(0, 0, 20), fill: "#e9e2cf", stroke: "#2e6f6a", "stroke-width": 2.5 }, g);
+  const t1 = el("text", { "text-anchor": "middle", y: -2, "font-size": 6.4, fill: "#2e6f6a", "font-family": "'IBM Plex Mono',monospace" }, g);
+  t1.textContent = "36-MI HEX";
+  const t2 = el("text", { "text-anchor": "middle", y: 9, "font-size": 11, "font-weight": 700, fill: "#2e6f6a", "font-family": "'Alegreya Sans',sans-serif" }, g);
+  t2.textContent = n.id;
+  g.addEventListener("click", ev => {
+    ev.stopPropagation();
+    showToast(`Plate 9.${n.id} — the adjoining canton's plate would load here.`);
+  });
+}
+
+/* ================= pan / zoom ================= */
+let s = 1, tx = 0, ty = 0;
+function applyTransform() {
+  world.setAttribute("transform", `translate(${tx} ${ty}) scale(${s})`);
+  gNum.style.opacity = s >= 0.95 ? 1 : 0;
+}
+function viewSize() {
+  const r = svg.getBoundingClientRect();
+  return { w: r.width || innerWidth, h: r.height || innerHeight };
+}
+let interacted = false;
+function fitPlate() {
+  const v = viewSize(), pad = 60;
+  s = Math.min(3, Math.max(0.3, Math.min(
+    (v.w - pad) / (SQ3 * RL + SIZE * 5),
+    (v.h - 170) / (2 * RL + SIZE * 5)
+  )));
+  tx = v.w / 2; ty = v.h / 2 + 14;
+  applyTransform();
+}
+fitPlate();
+window.addEventListener("load", fitPlate);
+window.addEventListener("resize", () => { if (!interacted) fitPlate(); });
+window.addEventListener("orientationchange", () => setTimeout(fitPlate, 250));
+requestAnimationFrame(fitPlate);
+document.getElementById("fitBtn").addEventListener("click", () => { closeCard(); interacted = false; fitPlate(); });
+
+const pointers = new Map();
+let movedFlag = false, lastPinch = 0;
+svg.addEventListener("pointerdown", e => {
+  svg.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 1) movedFlag = false;
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    lastPinch = Math.hypot(a.x - b.x, a.y - b.y);
+  }
+});
+svg.addEventListener("pointermove", e => {
+  if (!pointers.has(e.pointerId)) return;
+  const p = pointers.get(e.pointerId);
+  const dx = e.clientX - p.x, dy = e.clientY - p.y;
+  if (pointers.size === 1) {
+    if (Math.hypot(dx, dy) > 4) { movedFlag = true; interacted = true; }
+    tx += dx; ty += dy; p.x = e.clientX; p.y = e.clientY;
+    applyTransform();
+  } else if (pointers.size === 2) {
+    p.x = e.clientX; p.y = e.clientY;
+    const [a, b] = [...pointers.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (lastPinch > 0) {
+      zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, d / lastPinch);
+      movedFlag = true;
+    }
+    lastPinch = d;
+  }
+});
+svg.addEventListener("pointerup", e => {
+  if (pointers.size === 1 && !movedFlag) tapAt(e.clientX, e.clientY);
+  pointers.delete(e.pointerId); lastPinch = 0;
+});
+svg.addEventListener("pointercancel", e => pointers.delete(e.pointerId));
+svg.addEventListener("wheel", e => {
+  e.preventDefault();
+  zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0016));
+}, { passive: false });
+function zoomAt(cx, cy, k) {
+  interacted = true;
+  const ns = Math.min(3.2, Math.max(0.3, s * k));
+  const real = ns / s;
+  tx = cx - (cx - tx) * real;
+  ty = cy - (cy - ty) * real;
+  s = ns;
+  applyTransform();
+}
+
+/* ================= tap + card ================= */
+let selEl = null;
+function clearSel() { if (selEl) { selEl.remove(); selEl = null; } }
+function tapAt(cx, cy) {
+  const wx = (cx - tx) / s, wy = (cy - ty) / s;
+  const a = pxToAxial(wx, wy);
+  const h = hexes.get(a.q + "," + a.r);
+  if (!h) { closeCard(); return; }
+  clearSel();
+  selEl = el("polygon", { points: hexCorners(h.px.x, h.px.y, SIZE), fill: "none", stroke: "#f3ead0", "stroke-width": 3 }, gSel);
+  const featLabel = h.status === "burned" ? "village (burned)" :
+    (h.feature === "lair" ? "monster lair" : h.feature);
+  const lines = [];
+  if (h.feature) lines.push(`<dt>Feature</dt><dd><b>${h.name}</b> — ${featLabel}</dd>`);
+  const lf = [];
+  if (h.river) lf.push("stream");
+  if (h.road) lf.push("road");
+  if (lf.length) lines.push(`<dt>Line features</dt><dd>${lf.join(", ")}</dd>`);
+  const chron = h.chronicle.length
+    ? h.chronicle.map(x => `<p>${x}</p>`).join("")
+    : `<p class="empty">Nothing chronicled here yet.</p>`;
+  openCard(`
+    <div class="eyebrow">Hex ${addr(h)} · 3-mile · plate #${h.num}</div>
+    <h2>${h.name || TERRAIN[h.terrain].label}</h2>
+    <dl class="rows">
+      <dt>Terrain</dt><dd>${TERRAIN[h.terrain].label}</dd>
+      ${lines.join("")}
+      <dt>Canton</dt><dd>Harrow, Karvosia</dd>
+    </dl>
+    <h3>Chronicle</h3><div class="chron">${chron}</div>
+    <h3>Hex file</h3>
+    <pre>hex: ${addr(h)}
+terrain: ${h.terrain}
+features: [${h.feature ? (h.status === "burned" ? h.feature + " (burned)" : h.feature) : ""}]
+lines: [${lf.join(", ")}]
+canton: harrow
+realm: karvosia</pre>
+  `);
+}
+const card = document.getElementById("card"), cardBody = document.getElementById("cardBody");
+function openCard(html) { cardBody.innerHTML = html; card.classList.add("open"); }
+function closeCard() { card.classList.remove("open"); clearSel(); }
+document.getElementById("cardClose").addEventListener("click", closeCard);
+
+/* ================= world turn ================= */
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(() => t.classList.remove("show"), 6000);
+}
+document.getElementById("turnBtn").addEventListener("click", () => {
+  const btn = document.getElementById("turnBtn");
+  btn.disabled = true; btn.textContent = "World turn complete";
+  const vills = list.filter(h => h.feature === "village" && h.status === "ok");
+  const v = vills.sort((a, b) => b.px.x - a.px.x)[0] || firstVillage;
+  if (v) {
+    v.status = "burned";
+    if (v.iconEl) v.iconEl.remove();
+    v.iconEl = drawIcon(gIcon, "burned", v.px.x, v.px.y, 1);
+    v.chronicle.push(`3 Emberfall 4712 — Riders out of Ashmark crossed the eastern march. ${v.name} burned; its folk fled to Merrowgate.`);
+    showToast(`World turn — Ashmark raiders cross the eastern march. ${v.name} (hex ${addr(v)}) burns. Chronicle updated.`);
+  }
+});
+
+/* ================= legend ================= */
+const legend = document.getElementById("legend");
+function chipSVG(kind) {
+  const s = document.createElementNS(SVGNS, "svg");
+  s.setAttribute("width", 14); s.setAttribute("height", 14); s.setAttribute("viewBox", "-7 -7 14 14");
+  drawIcon(s, kind, 0, 0, 0.85);
+  return s;
+}
+for (const key of ["water", "plains", "forest", "hills", "mountains", "swamp"]) {
+  const chip = document.createElement("div");
+  chip.className = "chip";
+  chip.innerHTML = `<i style="background:${TERRAIN[key].color}"></i>${TERRAIN[key].label}`;
+  legend.appendChild(chip);
+}
+for (const [kind, label] of [["village","Village"],["town","Town"],["city","City"],["dungeon","Dungeon"],["ruin","Ruins"],["lair","Lair"]]) {
+  const chip = document.createElement("div");
+  chip.className = "chip";
+  chip.appendChild(chipSVG(kind));
+  chip.appendChild(document.createTextNode(label));
+  legend.appendChild(chip);
+}
+
+/* ================= intro ================= */
+openCard(`
+  <div class="eyebrow">Atlas plate view</div>
+  <h2>Plate 9.97 — Harrow Canton</h2>
+  <div class="chron">
+    <p><b>One atlas hex is the page.</b> This is 36-mile hex #97 inside 432-mile hex #9, drawn as 3-mile subhexes (1 league), numbered row by row like a classic atlas plate.</p>
+    <p><b>Tap any hex</b> for its card — addresses like <b>9.97.44</b> come straight from the nesting. Streams and roads are line features in the data, not hex fills.</p>
+    <p><b>The teal chips</b> on each edge are the six adjoining plates — in the real site they slide you to the next canton.</p>
+    <p><b>Run world turn</b> to watch a border raid burn a village and write itself into the chronicle.</p>
+  </div>
+  <div class="actions"><button id="introGo">Explore the plate</button></div>
+`);
+document.getElementById("introGo").addEventListener("click", closeCard);
+applyTransform();
+</script>
+</body>
+</html>
