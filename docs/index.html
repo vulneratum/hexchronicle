@@ -222,96 +222,40 @@
   else global.HexGeo = HexGeo;
 })(typeof window !== "undefined" ? window : this);
 </script>
-<script>window.WORLD = {"generatedFrom":"repo data files (README §4)","plate":{"id":"0001","continent_hex":1,"name":"Central Harrow","title":"Central portion of Harrow Canton, Karvosia","canton":"Harrow","realm":"Karvosia","scale_label":"1 HEX = 3 MILES (1 LEAGUE)","summary":"The heart of Harrow canton: a lake-country of plains and low hills about the town of Merrowgate, hemmed by forest and high ground.","default_terrain":"plains","neighbors":{"e":null,"ne":null,"nw":null,"w":null,"sw":null,"se":null}},"registry":{"terrain":{"water":{"color":"#93b7b3","label":"Water"},"swamp":{"color":"#8a9a77","label":"Swamp"},"plains":{"color":"#cdd39c","label":"Plains"},"forest":{"color":"#5e8c5e","label":"Forest"},"hills":{"color":"#c9ae7b","label":"Hills"},"mountains":{"color":"#a2988a","label":"Mountains"}},"features":{"village":{"label":"Village"},"town":{"label":"Town"},"city":{"label":"City"},"dungeon":{"label":"Dungeon"},"ruin":{"label":"Ruins"},"lair":{"label":"Monster lair"},"burned":{"label":"Burned settlement"}}},"terrainByNum":{"100":"hills","101":"plains","102":"plains","103":"plains","104":"swamp","105":"water","106":"swamp","107":"swamp","108":"plains","109":"plains","110":"plains","111":"hills","112":"hills","113":"plains","114":"plains","115":"plains","116":"plains","117":"plains","118":"plains","119":"swamp","120":"plains","121":"plains","122":"plains","123":"mountains","124":"hills","125":"hills","126":"hills","127":"forest","128":"plains","129":"plains","130":"swamp","131":"swamp","132":"plains","133":"plains","134":"plains","135":"hills","136":"mountains","137":"hills","138":"hills","139":"forest","140":"plains","141":"plains","142":"plains","143":"plains","144":"plains","145":"forest","146":"hills","147":"forest","148":"plains","149":"plains","150":"swamp","151":"plains","152":"forest","153":"forest","154":"plains","155":"plains","156":"plains","157":"forest","001":"mountains","002":"mountains","003":"mountains","004":"mountains","005":"hills","006":"mountains","007":"mountains","008":"mountains","009":"hills","010":"forest","011":"hills","012":"forest","013":"mountains","014":"mountains","015":"mountains","016":"hills","017":"hills","018":"plains","019":"plains","020":"hills","021":"hills","022":"hills","023":"mountains","024":"mountains","025":"mountains","026":"mountains","027":"hills","028":"hills","029":"plains","030":"plains","031":"plains","032":"hills","033":"hills","034":"hills","035":"hills","036":"mountains","037":"mountains","038":"hills","039":"forest","040":"plains","041":"plains","042":"plains","043":"plains","044":"plains","045":"hills","046":"hills","047":"forest","048":"mountains","049":"mountains","050":"hills","051":"forest","052":"plains","053":"plains","054":"plains","055":"plains","056":"plains","057":"plains","058":"plains","059":"forest","060":"forest","061":"hills","062":"forest","063":"plains","064":"plains","065":"plains","066":"plains","067":"water","068":"water","069":"plains","070":"plains","071":"plains","072":"plains","073":"hills","074":"forest","075":"plains","076":"plains","077":"plains","078":"plains","079":"water","080":"water","081":"water","082":"plains","083":"plains","084":"plains","085":"plains","086":"forest","087":"forest","088":"plains","089":"plains","090":"plains","091":"water","092":"water","093":"water","094":"plains","095":"plains","096":"plains","097":"plains","098":"hills","099":"hills"},"hexContent":{"104":{"feature":{"type":"city","name":"Merrowgate"},"local_memory":"Merrowgate sits where the lake road meets the water; its wharves take barge traffic from the whole of Harrow.","chronicle":[{"date":"1 Harvestmoon 4712","text":"The canton fair opened under the Reeve's peace; wool prices ran high."}]},"110":{"feature":{"type":"village","name":"Stanmoor"}},"111":{"feature":{"type":"town","name":"Adris"}},"122":{"feature":{"type":"village","name":"Redthorn"}},"152":{"feature":{"type":"ruin","name":"Tower of Veyl"}},"155":{"feature":{"type":"town","name":"Stonepoint"}},"024":{"feature":{"type":"dungeon","name":"The Undercrag"}},"026":{"feature":{"type":"dungeon","name":"Barrow of Kings"}},"027":{"feature":{"type":"dungeon","name":"Gloomdelve"}},"043":{"feature":{"type":"village","name":"Harlow's Ford"},"local_memory":"The folk of Harlow's Ford still talk about the night the troll's head came through the door.","chronicle":[{"date":"9 Harvestmoon 4712","text":"Four strangers out of the west lodged at the inn."},{"date":"12 Harvestmoon 4712","text":"The marsh troll of the mill road was slain; its head hangs above the bar. Drinks poured free for Brakka's company."}]},"057":{"feature":{"type":"village","name":"Bracken"}},"063":{"feature":{"type":"village","name":"Wyther"}},"094":{"feature":{"type":"village","name":"Old Mere"}}},"lines":[{"type":"river","path":["023","036","049","062","075","076","077","078","079"]},{"type":"river","path":["013","025","038","051","064","077","078","079"]},{"type":"river","path":["024","037","050","063","076","077","078","079"]},{"type":"road","path":["104","103","102","114","113","112","111"]},{"type":"road","path":["104","117","129","141","149","155"]},{"type":"road","path":["111","099","087","075","063"]}]};</script>
 <script>/*
- * HexChronicle plate renderer — browser-side SVG drawn from compiled
- * world-state (README §3). Static, no server. Reads two globals:
- *   HexGeo  — shared geometry/numbering (build/geometry.js)
- *   WORLD   — the compiled plate, inlined by the build (build/build.js)
+ * HexChronicle plate draw core — the shared rendering used by BOTH the
+ * published site (build/renderer.js) and the local editor (editor/editor.js),
+ * so the two can never drift (README §6: the editor shares the renderer).
  *
- * Unlike the demo prototype, this renderer INVENTS NOTHING: terrain,
- * features, chronicle, and line features all come from committed data files.
+ * This module draws ONLY. It knows nothing about pan/zoom, taps, cards, or
+ * painting — the site and editor each attach their own interaction to the
+ * `world` group and layers this returns. Depends on HexGeo (shared/geometry.js).
+ *
+ *   PlateDraw.create(svg, model) -> controller
+ *   PlateDraw.drawIcon(parent, type, cx, cy, scale)   // also used for legend chips
+ *
+ * model = {
+ *   geo,           // HexGeo.buildPlateHexes()
+ *   plate,         // { id, default_terrain, neighbors, ... }
+ *   registry,      // { terrain:{key:{color,label}}, features:{key:{label}} }
+ *   terrainByNum,  // { "001": "plains", ... } for all subhexes
+ *   hexContent,    // { "104": { feature:{type,name} }, ... }
+ *   lines,         // [ { type:"river"|"road", path:["023",...] } ]
+ * }
  */
-(function () {
+(function (global) {
   "use strict";
-  const { SIZE, RL, SQ3, hexCorners, plateCorners, pxToAxial } = HexGeo;
-  const T = WORLD.registry.terrain;   // key -> {color,label}
-  const F = WORLD.registry.features;  // key -> {label}
-
-  /* ---- geometry: the canonical subhex layout, indexed by number ---- */
-  const geo = HexGeo.buildPlateHexes();
-  const bySub = new Map(geo.map(h => [h.sub, h]));
-  const byKey = new Map(geo.map(h => [h.key, h]));
-
-  /* merge compiled content onto each geometry hex */
-  for (const h of geo) {
-    h.terrain = WORLD.terrainByNum[h.sub] || WORLD.plate.default_terrain;
-    const c = WORLD.hexContent[h.sub];
-    h.feature = c && c.feature ? c.feature : null;      // {type,name}
-    h.name = h.feature ? h.feature.name : null;
-    h.chronicle = c && c.chronicle ? c.chronicle : [];
-    h.memory = c && c.local_memory ? c.local_memory : null;
-    h.river = false; h.road = false;
-  }
-  /* flag line-feature membership for the card */
-  for (const ln of WORLD.lines) for (const sub of ln.path) {
-    const h = bySub.get(sub); if (!h) continue;
-    if (ln.type === "river") h.river = true; else h.road = true;
-  }
-
-  const addr = h => WORLD.plate.id + "-" + h.sub;
-
-  /* ---- svg scaffold ---- */
+  const G = global.HexGeo || (typeof require !== "undefined" ? require("./geometry.js") : null);
   const SVGNS = "http://www.w3.org/2000/svg";
-  const svg = document.getElementById("map");
+
   function el(tag, attrs, parent) {
     const e = document.createElementNS(SVGNS, tag);
     for (const k in attrs) e.setAttribute(k, attrs[k]);
     if (parent) parent.appendChild(e);
     return e;
   }
-  const world = el("g", {}, svg);
-  const gFill = el("g", {}, world);
-  const gWater = el("g", {}, world);
-  const gRoad = el("g", {}, world);
-  const gIcon = el("g", {}, world);
-  const gNum = el("g", { style: "transition:opacity .3s" }, world);
-  const gFrame = el("g", {}, world);
-  const gSel = el("g", {}, world);
 
-  /* ---- terrain fills ---- */
-  for (const h of geo) {
-    const spec = T[h.terrain] || { color: "#cccccc" };
-    el("polygon", {
-      points: hexCorners(h.x, h.y, SIZE),
-      fill: spec.color, stroke: "rgba(0,0,0,0.16)", "stroke-width": 1
-    }, gFill);
-  }
-
-  /* ---- line features (paths of subhex centers) ---- */
-  function smoothPath(pts) {
-    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-    for (let i = 1; i < pts.length - 1; i++) {
-      const mx = (pts[i].x + pts[i + 1].x) / 2, my = (pts[i].y + pts[i + 1].y) / 2;
-      d += ` Q ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
-    }
-    const L = pts[pts.length - 1];
-    d += ` L ${L.x.toFixed(1)} ${L.y.toFixed(1)}`;
-    return d;
-  }
-  for (const ln of WORLD.lines) {
-    const pts = ln.path.map(s => bySub.get(s)).filter(Boolean);
-    if (pts.length < 2) continue;
-    if (ln.type === "river") {
-      el("path", { d: smoothPath(pts), fill: "none", stroke: "#7ea6c9",
-        "stroke-width": 3, "stroke-linecap": "round", opacity: 0.9 }, gWater);
-    } else {
-      el("path", { d: smoothPath(pts), fill: "none", stroke: "#6b5138",
-        "stroke-width": 2.4, "stroke-linecap": "round" }, gRoad);
-    }
-  }
-
-  /* ---- feature icons (same vocabulary as the prototype) ---- */
+  /* feature icon vocabulary — the single source for map icons and legend chips */
   function drawIcon(parent, feature, cx, cy, scale) {
     const g = el("g", { transform: `translate(${cx} ${cy}) scale(${scale})` }, parent);
     if (feature === "village") {
@@ -338,51 +282,174 @@
     }
     return g;
   }
-  for (const h of geo) if (h.feature) h.iconEl = drawIcon(gIcon, h.feature.type, h.x, h.y, 1);
 
-  /* name the settlements the plate calls out (city + towns) */
-  for (const h of geo) {
-    if (!h.feature) continue;
-    if (h.feature.type === "city" || h.feature.type === "town") {
-      const t = el("text", {
-        x: h.x, y: h.y + 22, "text-anchor": "middle",
-        "font-family": "'IM Fell English SC',serif",
-        "font-size": h.feature.type === "city" ? 15 : 12, fill: "#2b2b23"
-      }, gIcon);
-      t.textContent = h.name;
+  function smoothPath(pts) {
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i].x + pts[i + 1].x) / 2, my = (pts[i].y + pts[i + 1].y) / 2;
+      d += ` Q ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
     }
+    const L = pts[pts.length - 1];
+    d += ` L ${L.x.toFixed(1)} ${L.y.toFixed(1)}`;
+    return d;
   }
 
-  /* ---- subhex numbers (shown past a zoom threshold) ---- */
-  for (const h of geo) {
-    const t = el("text", {
-      x: h.x, y: h.y - SIZE * 0.42, "text-anchor": "middle",
-      "font-family": "'IBM Plex Mono',monospace", "font-size": 8.5, fill: "rgba(43,43,35,0.6)"
-    }, gNum);
-    t.textContent = h.num;
+  function create(svg, model, opts) {
+    opts = opts || {};
+    const { SIZE, RL, hexCorners, plateCorners } = G;
+    const T = model.registry.terrain, F = model.registry.features;
+    const geo = model.geo;
+    const bySub = new Map(geo.map(h => [h.sub, h]));
+
+    const world = el("g", {}, svg);
+    const layers = {
+      fill:  el("g", {}, world),
+      water: el("g", {}, world),
+      road:  el("g", {}, world),
+      icon:  el("g", {}, world),
+      num:   el("g", { style: "transition:opacity .3s" }, world),
+      frame: el("g", {}, world),
+      sel:   el("g", {}, world),
+    };
+
+    /* terrain fills — keep a handle per subhex so a single hex can be recolored */
+    const fillBySub = new Map();
+    for (const h of geo) {
+      const spec = T[model.terrainByNum[h.sub]] || { color: "#cccccc" };
+      const poly = el("polygon", {
+        points: hexCorners(h.x, h.y, SIZE),
+        fill: spec.color, stroke: "rgba(0,0,0,0.16)", "stroke-width": 1
+      }, layers.fill);
+      fillBySub.set(h.sub, poly);
+    }
+
+    function setTerrain(sub, type) {
+      const poly = fillBySub.get(sub);
+      if (!poly) return;
+      const spec = T[type] || { color: "#cccccc" };
+      poly.setAttribute("fill", spec.color);
+      model.terrainByNum[sub] = type;
+    }
+
+    /* line features */
+    function rebuildLines(lines) {
+      layers.water.textContent = "";
+      layers.road.textContent = "";
+      for (const ln of (lines || model.lines)) {
+        const pts = ln.path.map(s => bySub.get(s)).filter(Boolean);
+        if (pts.length < 2) continue;
+        if (ln.type === "river") {
+          el("path", { d: smoothPath(pts), fill: "none", stroke: "#7ea6c9", "stroke-width": 3, "stroke-linecap": "round", opacity: 0.9 }, layers.water);
+        } else {
+          el("path", { d: smoothPath(pts), fill: "none", stroke: "#6b5138", "stroke-width": 2.4, "stroke-linecap": "round" }, layers.road);
+        }
+      }
+    }
+    rebuildLines(model.lines);
+
+    /* feature icons + settlement name labels */
+    function rebuildFeatures(hexContent) {
+      const content = hexContent || model.hexContent;
+      layers.icon.textContent = "";
+      for (const h of geo) {
+        const c = content[h.sub];
+        if (!c || !c.feature) continue;
+        drawIcon(layers.icon, c.feature.type, h.x, h.y, 1);
+        if (c.feature.type === "city" || c.feature.type === "town") {
+          const t = el("text", {
+            x: h.x, y: h.y + 22, "text-anchor": "middle",
+            "font-family": "'IM Fell English SC',serif",
+            "font-size": c.feature.type === "city" ? 15 : 12, fill: "#2b2b23"
+          }, layers.icon);
+          t.textContent = c.feature.name || "";
+        }
+      }
+    }
+    rebuildFeatures(model.hexContent);
+
+    /* subhex numbers */
+    for (const h of geo) {
+      const t = el("text", {
+        x: h.x, y: h.y - SIZE * 0.42, "text-anchor": "middle",
+        "font-family": "'IBM Plex Mono',monospace", "font-size": 8.5, fill: "rgba(43,43,35,0.6)"
+      }, layers.num);
+      t.textContent = h.num;
+    }
+    function setNumbersVisible(v) { layers.num.style.opacity = v ? 1 : 0; }
+
+    /* plate frame + six neighbor chips (interaction attaches click handlers) */
+    el("polygon", { points: plateCorners(RL + SIZE * 0.2), fill: "none", stroke: "#2e6f6a", "stroke-width": 4, "stroke-linejoin": "round" }, layers.frame);
+    const neighborChips = [];
+    const NEI = [
+      { dir: "e", ang: 0 }, { dir: "se", ang: 60 }, { dir: "sw", ang: 120 },
+      { dir: "w", ang: 180 }, { dir: "nw", ang: 240 }, { dir: "ne", ang: 300 }
+    ];
+    const neighbors = model.plate.neighbors || {};
+    for (const n of NEI) {
+      const a = Math.PI / 180 * n.ang, R = RL + SIZE * 1.35;
+      const cx = Math.cos(a) * R, cy = Math.sin(a) * R;
+      const g = el("g", { transform: `translate(${cx.toFixed(1)} ${cy.toFixed(1)})`, style: "cursor:pointer" }, layers.frame);
+      el("polygon", { points: hexCorners(0, 0, 20), fill: "#e9e2cf", stroke: "#2e6f6a", "stroke-width": 2.5 }, g);
+      const t1 = el("text", { "text-anchor": "middle", y: -2, "font-size": 6.4, fill: "#2e6f6a", "font-family": "'IBM Plex Mono',monospace" }, g);
+      t1.textContent = "36-MI HEX";
+      const nid = neighbors[n.dir] || null;
+      const t2 = el("text", { "text-anchor": "middle", y: 9, "font-size": 11, "font-weight": 700, fill: "#2e6f6a", "font-family": "'Alegreya Sans',sans-serif" }, g);
+      t2.textContent = nid ? nid : "—";
+      neighborChips.push({ dir: n.dir, nid, g });
+    }
+
+    return {
+      world, layers, fillBySub, neighborChips,
+      setTerrain, setNumbersVisible, rebuildLines, rebuildFeatures,
+      hexBySub: bySub,
+    };
   }
 
-  /* ---- plate frame + six neighbor chips ---- */
-  el("polygon", { points: plateCorners(RL + SIZE * 0.2), fill: "none",
-    stroke: "#2e6f6a", "stroke-width": 4, "stroke-linejoin": "round" }, gFrame);
-  const NEI = [
-    { dir: "e",  ang: 0 }, { dir: "se", ang: 60 }, { dir: "sw", ang: 120 },
-    { dir: "w",  ang: 180 }, { dir: "nw", ang: 240 }, { dir: "ne", ang: 300 }
-  ];
-  for (const n of NEI) {
-    const a = Math.PI / 180 * n.ang, R = RL + SIZE * 1.35;
-    const cx = Math.cos(a) * R, cy = Math.sin(a) * R;
-    const g = el("g", { transform: `translate(${cx.toFixed(1)} ${cy.toFixed(1)})`, style: "cursor:pointer" }, gFrame);
-    el("polygon", { points: hexCorners(0, 0, 20), fill: "#e9e2cf", stroke: "#2e6f6a", "stroke-width": 2.5 }, g);
-    const t1 = el("text", { "text-anchor": "middle", y: -2, "font-size": 6.4, fill: "#2e6f6a", "font-family": "'IBM Plex Mono',monospace" }, g);
-    t1.textContent = "36-MI HEX";
-    const nid = WORLD.plate.neighbors ? WORLD.plate.neighbors[n.dir] : null;
-    const t2 = el("text", { "text-anchor": "middle", y: 9, "font-size": 11, "font-weight": 700, fill: "#2e6f6a", "font-family": "'Alegreya Sans',sans-serif" }, g);
-    t2.textContent = nid ? nid : "—";
-    g.addEventListener("click", ev => {
+  const PlateDraw = { create, drawIcon, el };
+  if (typeof module !== "undefined" && module.exports) module.exports = PlateDraw;
+  else global.PlateDraw = PlateDraw;
+})(typeof window !== "undefined" ? window : this);
+</script>
+<script>window.WORLD = {"generatedFrom":"repo data files (README §4)","plate":{"id":"0001","continent_hex":1,"name":"Central Harrow","title":"Central portion of Harrow Canton, Karvosia","canton":"Harrow","realm":"Karvosia","scale_label":"1 HEX = 3 MILES (1 LEAGUE)","summary":"The heart of Harrow canton: a lake-country of plains and low hills about the town of Merrowgate, hemmed by forest and high ground.","default_terrain":"plains","neighbors":{"e":null,"ne":null,"nw":null,"w":null,"sw":null,"se":null}},"registry":{"terrain":{"water":{"color":"#93b7b3","label":"Water"},"swamp":{"color":"#8a9a77","label":"Swamp"},"plains":{"color":"#cdd39c","label":"Plains"},"forest":{"color":"#5e8c5e","label":"Forest"},"hills":{"color":"#c9ae7b","label":"Hills"},"mountains":{"color":"#a2988a","label":"Mountains"}},"features":{"village":{"label":"Village"},"town":{"label":"Town"},"city":{"label":"City"},"dungeon":{"label":"Dungeon"},"ruin":{"label":"Ruins"},"lair":{"label":"Monster lair"},"burned":{"label":"Burned settlement"}}},"terrainByNum":{"100":"hills","101":"plains","102":"plains","103":"plains","104":"swamp","105":"water","106":"swamp","107":"swamp","108":"plains","109":"plains","110":"plains","111":"hills","112":"hills","113":"plains","114":"plains","115":"plains","116":"plains","117":"plains","118":"plains","119":"swamp","120":"plains","121":"plains","122":"plains","123":"mountains","124":"hills","125":"hills","126":"hills","127":"forest","128":"plains","129":"plains","130":"swamp","131":"swamp","132":"plains","133":"plains","134":"plains","135":"hills","136":"mountains","137":"hills","138":"hills","139":"forest","140":"plains","141":"plains","142":"plains","143":"plains","144":"plains","145":"forest","146":"hills","147":"forest","148":"plains","149":"plains","150":"swamp","151":"plains","152":"forest","153":"forest","154":"plains","155":"plains","156":"plains","157":"forest","001":"mountains","002":"mountains","003":"mountains","004":"mountains","005":"hills","006":"mountains","007":"mountains","008":"mountains","009":"hills","010":"forest","011":"hills","012":"forest","013":"mountains","014":"mountains","015":"mountains","016":"hills","017":"hills","018":"plains","019":"plains","020":"hills","021":"hills","022":"hills","023":"mountains","024":"mountains","025":"mountains","026":"mountains","027":"hills","028":"hills","029":"plains","030":"plains","031":"plains","032":"hills","033":"hills","034":"hills","035":"hills","036":"mountains","037":"mountains","038":"hills","039":"forest","040":"plains","041":"plains","042":"plains","043":"plains","044":"plains","045":"hills","046":"hills","047":"forest","048":"mountains","049":"mountains","050":"hills","051":"forest","052":"plains","053":"plains","054":"plains","055":"plains","056":"plains","057":"plains","058":"plains","059":"forest","060":"forest","061":"hills","062":"forest","063":"plains","064":"plains","065":"plains","066":"plains","067":"water","068":"water","069":"plains","070":"plains","071":"plains","072":"plains","073":"hills","074":"forest","075":"plains","076":"plains","077":"plains","078":"plains","079":"water","080":"water","081":"water","082":"plains","083":"plains","084":"plains","085":"plains","086":"forest","087":"forest","088":"plains","089":"plains","090":"plains","091":"water","092":"water","093":"water","094":"plains","095":"plains","096":"plains","097":"plains","098":"hills","099":"hills"},"hexContent":{"104":{"feature":{"type":"city","name":"Merrowgate"},"local_memory":"Merrowgate sits where the lake road meets the water; its wharves take barge traffic from the whole of Harrow.","chronicle":[{"date":"1 Harvestmoon 4712","text":"The canton fair opened under the Reeve's peace; wool prices ran high."}]},"110":{"feature":{"type":"village","name":"Stanmoor"}},"111":{"feature":{"type":"town","name":"Adris"}},"122":{"feature":{"type":"village","name":"Redthorn"}},"152":{"feature":{"type":"ruin","name":"Tower of Veyl"}},"155":{"feature":{"type":"town","name":"Stonepoint"}},"024":{"feature":{"type":"dungeon","name":"The Undercrag"}},"026":{"feature":{"type":"dungeon","name":"Barrow of Kings"}},"027":{"feature":{"type":"dungeon","name":"Gloomdelve"}},"043":{"feature":{"type":"village","name":"Harlow's Ford"},"local_memory":"The folk of Harlow's Ford still talk about the night the troll's head came through the door.","chronicle":[{"date":"9 Harvestmoon 4712","text":"Four strangers out of the west lodged at the inn."},{"date":"12 Harvestmoon 4712","text":"The marsh troll of the mill road was slain; its head hangs above the bar. Drinks poured free for Brakka's company."}]},"057":{"feature":{"type":"village","name":"Bracken"}},"063":{"feature":{"type":"village","name":"Wyther"}},"094":{"feature":{"type":"village","name":"Old Mere"}}},"lines":[{"type":"river","path":["023","036","049","062","075","076","077","078","079"]},{"type":"river","path":["013","025","038","051","064","077","078","079"]},{"type":"river","path":["024","037","050","063","076","077","078","079"]},{"type":"road","path":["104","103","102","114","113","112","111"]},{"type":"road","path":["104","117","129","141","149","155"]},{"type":"road","path":["111","099","087","075","063"]}]};</script>
+<script>/*
+ * HexChronicle SITE renderer — interaction layer for the published plate.
+ * Drawing is done by the shared core (shared/plate-draw.js); this file only
+ * adds pan/zoom, tap-to-open-card, cartouche/legend, and the intro. Reads two
+ * globals inlined by the build: HexGeo, WORLD (and uses global PlateDraw).
+ *
+ * INVENTS NOTHING — every value comes from compiled repo data.
+ */
+(function () {
+  "use strict";
+  const { SIZE, RL, SQ3, hexCorners, pxToAxial } = HexGeo;
+  const T = WORLD.registry.terrain, F = WORLD.registry.features;
+
+  const geo = HexGeo.buildPlateHexes();
+  const byKey = new Map(geo.map(h => [h.key, h]));
+  const model = {
+    geo,
+    plate: WORLD.plate,
+    registry: WORLD.registry,
+    terrainByNum: WORLD.terrainByNum,
+    hexContent: WORLD.hexContent,
+    lines: WORLD.lines,
+  };
+
+  /* line-feature membership per subhex, for the card */
+  const riverSubs = new Set(), roadSubs = new Set();
+  for (const ln of WORLD.lines) for (const s of ln.path) (ln.type === "river" ? riverSubs : roadSubs).add(s);
+
+  const svg = document.getElementById("map");
+  const pd = PlateDraw.create(svg, model);
+  const world = pd.world;
+  const addr = h => WORLD.plate.id + "-" + h.sub;
+
+  /* neighbor chips: navigate (only "—" placeholders for now) */
+  for (const chip of pd.neighborChips) {
+    chip.g.addEventListener("click", ev => {
       ev.stopPropagation();
-      if (nid) showToast(`Plate ${nid} — the adjoining plate would load here.`);
-      else showToast(`No plate to the ${n.dir.toUpperCase()} yet. It gets created and numbered when the map grows.`);
+      if (chip.nid) showToast(`Plate ${chip.nid} — the adjoining plate would load here.`);
+      else showToast(`No plate to the ${chip.dir.toUpperCase()} yet. It gets created and numbered when the map grows.`);
     });
   }
 
@@ -390,7 +457,7 @@
   let s = 1, tx = 0, ty = 0;
   function applyTransform() {
     world.setAttribute("transform", `translate(${tx} ${ty}) scale(${s})`);
-    gNum.style.opacity = s >= 0.95 ? 1 : 0;    // numbers past a zoom threshold (README §3)
+    pd.setNumbersVisible(s >= 0.95);
   }
   function viewSize() {
     const r = svg.getBoundingClientRect();
@@ -470,26 +537,28 @@
     const h = byKey.get(a.q + "," + a.r);
     if (!h) { closeCard(); return; }
     clearSel();
-    selEl = el("polygon", { points: hexCorners(h.x, h.y, SIZE), fill: "none", stroke: "#f3ead0", "stroke-width": 3 }, gSel);
+    selEl = PlateDraw.el("polygon", { points: hexCorners(h.x, h.y, SIZE), fill: "none", stroke: "#f3ead0", "stroke-width": 3 }, pd.layers.sel);
+    const c = WORLD.hexContent[h.sub] || {};
     const rows = [];
-    if (h.feature) {
-      const flabel = (F[h.feature.type] && F[h.feature.type].label) || h.feature.type;
-      rows.push(`<dt>Feature</dt><dd><b>${esc(h.name)}</b> — ${esc(flabel)}</dd>`);
+    if (c.feature) {
+      const flabel = (F[c.feature.type] && F[c.feature.type].label) || c.feature.type;
+      rows.push(`<dt>Feature</dt><dd><b>${esc(c.feature.name)}</b> — ${esc(flabel)}</dd>`);
     }
     const lf = [];
-    if (h.river) lf.push("stream");
-    if (h.road) lf.push("road");
+    if (riverSubs.has(h.sub)) lf.push("stream");
+    if (roadSubs.has(h.sub)) lf.push("road");
     if (lf.length) rows.push(`<dt>Line features</dt><dd>${lf.join(", ")}</dd>`);
-    const chron = h.chronicle.length
-      ? h.chronicle.map(x => `<p><b>${esc(x.date)}</b> — ${esc(x.text)}</p>`).join("")
+    const chronicle = c.chronicle || [];
+    const chron = chronicle.length
+      ? chronicle.map(x => `<p><b>${esc(x.date)}</b> — ${esc(x.text)}</p>`).join("")
       : `<p class="empty">Nothing chronicled here yet.</p>`;
-    const mem = h.memory ? `<h3>Local memory</h3><div class="chron"><p>${esc(h.memory)}</p></div>` : "";
-    const tspec = T[h.terrain] || { label: h.terrain };
-    const srcFile = h.feature || h.chronicle.length || h.memory
+    const mem = c.local_memory ? `<h3>Local memory</h3><div class="chron"><p>${esc(c.local_memory)}</p></div>` : "";
+    const tspec = T[WORLD.terrainByNum[h.sub]] || { label: WORLD.terrainByNum[h.sub] };
+    const srcFile = c.feature || chronicle.length || c.local_memory
       ? `hexes/${addr(h)}.yaml` : `plates/${WORLD.plate.id}.yaml (terrain grid)`;
     openCard(`
       <div class="eyebrow">Hex ${esc(addr(h))} · 3-mile · plate ${esc(WORLD.plate.id)} · #${h.num}</div>
-      <h2>${esc(h.name || tspec.label)}</h2>
+      <h2>${esc((c.feature && c.feature.name) || tspec.label)}</h2>
       <dl class="rows">
         <dt>Terrain</dt><dd>${esc(tspec.label)}</dd>
         ${rows.join("")}
@@ -515,24 +584,22 @@
     showToast._h = setTimeout(() => t.classList.remove("show"), 6000);
   }
 
-  /* ---- cartouche + legend, populated from the compiled plate ---- */
-  const P = WORLD.plate;
-  document.getElementById("t-title").textContent = P.title || P.name;
-  document.getElementById("t-addr").textContent =
-    `36-MILE HEX #${P.id} · within 432-MILE HEX #${P.continent_hex}`;
-  document.getElementById("t-scale").textContent = `SCALE: ${P.scale_label}`;
-  svg.setAttribute("aria-label", `Atlas plate ${P.id} — ${P.name}`);
-  document.title = `HexChronicle — Plate ${P.id} · ${P.name}`;
+  /* ---- cartouche + legend ---- */
+  const PL = WORLD.plate;
+  document.getElementById("t-title").textContent = PL.title || PL.name;
+  document.getElementById("t-addr").textContent = `36-MILE HEX #${PL.id} · within 432-MILE HEX #${PL.continent_hex}`;
+  document.getElementById("t-scale").textContent = `SCALE: ${PL.scale_label}`;
+  svg.setAttribute("aria-label", `Atlas plate ${PL.id} — ${PL.name}`);
+  document.title = `HexChronicle — Plate ${PL.id} · ${PL.name}`;
 
   const legend = document.getElementById("legend");
   function chipSVG(kind) {
-    const sv = document.createElementNS(SVGNS, "svg");
+    const sv = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     sv.setAttribute("width", 14); sv.setAttribute("height", 14); sv.setAttribute("viewBox", "-7 -7 14 14");
-    drawIcon(sv, kind, 0, 0, 0.85);
+    PlateDraw.drawIcon(sv, kind, 0, 0, 0.85);
     return sv;
   }
-  // terrain swatches: only the types actually present on this plate
-  const present = new Set(geo.map(h => h.terrain));
+  const present = new Set(geo.map(h => WORLD.terrainByNum[h.sub]));
   for (const key of Object.keys(T)) {
     if (!present.has(key)) continue;
     const chip = document.createElement("div");
@@ -540,7 +607,7 @@
     chip.innerHTML = `<i style="background:${T[key].color}"></i>${esc(T[key].label)}`;
     legend.appendChild(chip);
   }
-  const presentFeatures = new Set(geo.filter(h => h.feature).map(h => h.feature.type));
+  const presentFeatures = new Set(Object.values(WORLD.hexContent).filter(c => c.feature).map(c => c.feature.type));
   for (const key of Object.keys(F)) {
     if (!presentFeatures.has(key)) continue;
     const chip = document.createElement("div");
@@ -553,10 +620,10 @@
   /* ---- intro card ---- */
   openCard(`
     <div class="eyebrow">Atlas plate view</div>
-    <h2>Plate ${esc(P.id)} — ${esc(P.name)}</h2>
+    <h2>Plate ${esc(PL.id)} — ${esc(PL.name)}</h2>
     <div class="chron">
-      <p><b>One atlas hex is the page.</b> This is 36-mile hex #${esc(P.id)} inside 432-mile hex #${esc(P.continent_hex)}, drawn as 3-mile subhexes (1 league), numbered row by row.</p>
-      <p><b>Tap any hex</b> for its card — addresses like <b>${esc(P.id)}-104</b> come straight from the nesting. Everything you see was compiled from the repo's data files, not generated in the browser.</p>
+      <p><b>One atlas hex is the page.</b> This is 36-mile hex #${esc(PL.id)} inside 432-mile hex #${esc(PL.continent_hex)}, drawn as 3-mile subhexes (1 league), numbered row by row.</p>
+      <p><b>Tap any hex</b> for its card — addresses like <b>${esc(PL.id)}-104</b> come straight from the nesting. Everything you see was compiled from the repo's data files, not generated in the browser.</p>
       <p><b>The teal chips</b> on each edge are the six adjoining plates; none exist yet, so they show “—”.</p>
     </div>
     <div class="actions"><button id="introGo">Explore the plate</button></div>

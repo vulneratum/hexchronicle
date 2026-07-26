@@ -16,7 +16,7 @@
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
-const HexGeo = require("./geometry.js");
+const HexGeo = require("../shared/geometry.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const P = (...p) => path.join(ROOT, ...p);
@@ -125,7 +125,8 @@ const WORLD = {
 
 /* ---------- render docs/ (self-contained: everything inlined) ---------- */
 const template = fs.readFileSync(P("build", "template.html"), "utf8");
-const geometryJs = fs.readFileSync(P("build", "geometry.js"), "utf8");
+const geometryJs = fs.readFileSync(P("shared", "geometry.js"), "utf8");
+const plateDrawJs = fs.readFileSync(P("shared", "plate-draw.js"), "utf8");
 const rendererJs = fs.readFileSync(P("build", "renderer.js"), "utf8");
 
 // Guard the JSON against an accidental </script> in future prose content.
@@ -133,6 +134,7 @@ const dataJson = JSON.stringify(WORLD, null, 0).replace(/<\//g, "<\\/");
 
 const html = template
   .replace("/*__GEOMETRY_JS__*/", () => geometryJs)
+  .replace("/*__PLATEDRAW_JS__*/", () => plateDrawJs)
   .replace("/*__WORLD_DATA__*/", () => dataJson)
   .replace("/*__RENDERER_JS__*/", () => rendererJs);
 
