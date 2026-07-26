@@ -71,4 +71,31 @@ ok("terrain write keeps comments, quotes keys, drops removed, sorts", () => {
   assert.ok(out.includes("path:"), "lines block clobbered");
 });
 
+ok("lines write keeps surrounding comments, quotes subs", () => {
+  const tmp = path.join(os.tmpdir(), "hc-lines-test-" + process.pid + ".yaml");
+  fs.writeFileSync(tmp, [
+    "default_terrain: plains",
+    "terrain:",
+    '  "001": water',
+    "",
+    "# Line features (README §4)",
+    "lines:",
+    "  - type: river",
+    '    path: ["001", "002"]',
+    "",
+  ].join("\n"));
+  yamlIo.writePlateLines(tmp, [
+    { type: "road", path: ["005", "006", "007"] },
+    { type: "stream", path: ["010", "011"] },
+  ]);
+  const out = fs.readFileSync(tmp, "utf8");
+  fs.unlinkSync(tmp);
+  assert.ok(out.includes("# Line features (README §4)"), "lines comment lost");
+  assert.ok(/  - type: road/.test(out), "road line not written");
+  assert.ok(/    path: \["005", "006", "007"\]/.test(out), "road path not written as quoted flow seq");
+  assert.ok(/  - type: stream/.test(out), "stream line not written");
+  assert.ok(!/type: river/.test(out), "old river line should be replaced");
+  assert.ok(/terrain:/.test(out) && /"001": water/.test(out), "terrain block clobbered");
+});
+
 console.log(`\n${pass} checks passed.`);

@@ -36,7 +36,7 @@ function die(msg) {
 
 /* ---------- load registries + plate + hexes ---------- */
 const theme = readYaml(P("theme", "terrain.yaml"));
-const registry = { terrain: theme.types || {}, features: theme.features || {} };
+const registry = { terrain: theme.types || {}, features: theme.features || {}, lines: theme.lines || {} };
 
 // For the skeleton we build the one plate 0001. (Multi-plate discovery is a
 // later step; the loop below is already written to generalize.)

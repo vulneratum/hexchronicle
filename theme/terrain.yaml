@@ -27,3 +27,13 @@ features:
   ruin:    { label: "Ruins" }
   lair:    { label: "Monster lair" }
   burned:  { label: "Burned settlement" }
+
+# Line-feature types (README §3, §4) — path data crossing subhexes, not fills.
+# `category` groups grades for the editor (water | road); style drives rendering.
+# Add a grade here and it appears in the editor's line palette automatically.
+lines:
+  stream: { category: water, label: "Stream",     color: "#7ea6c9", width: 2.0 }
+  river:  { category: water, label: "River",      color: "#7ea6c9", width: 3.0 }
+  path:   { category: road,  label: "Path",       color: "#6b5138", width: 1.6, dash: "5 4" }
+  road:   { category: road,  label: "Road",       color: "#6b5138", width: 2.4 }
+  paved:  { category: road,  label: "Paved road", color: "#6b5138", width: 3.2 }

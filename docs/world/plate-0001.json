@@ -11,8 +11,8 @@
     "summary": "The heart of Harrow canton: a lake-country of plains and low hills about the town of Merrowgate, hemmed by forest and high ground.",
     "default_terrain": "plains",
     "neighbors": {
-      "e": null,
-      "ne": null,
+      "e": "0002",
+      "ne": "0003",
       "nw": null,
       "w": null,
       "sw": null,
@@ -67,6 +67,39 @@
       },
       "burned": {
         "label": "Burned settlement"
+      }
+    },
+    "lines": {
+      "stream": {
+        "category": "water",
+        "label": "Stream",
+        "color": "#7ea6c9",
+        "width": 2
+      },
+      "river": {
+        "category": "water",
+        "label": "River",
+        "color": "#7ea6c9",
+        "width": 3
+      },
+      "path": {
+        "category": "road",
+        "label": "Path",
+        "color": "#6b5138",
+        "width": 1.6,
+        "dash": "5 4"
+      },
+      "road": {
+        "category": "road",
+        "label": "Road",
+        "color": "#6b5138",
+        "width": 2.4
+      },
+      "paved": {
+        "category": "road",
+        "label": "Paved road",
+        "color": "#6b5138",
+        "width": 3.2
       }
     }
   },
@@ -399,6 +432,16 @@
         "087",
         "075",
         "063"
+      ]
+    },
+    {
+      "type": "road",
+      "path": [
+        "012",
+        "011",
+        "020",
+        "031",
+        "043"
       ]
     }
   ]

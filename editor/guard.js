@@ -10,6 +10,7 @@
  */
 "use strict";
 const path = require("path");
+const fs = require("fs");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 
@@ -52,6 +53,18 @@ function isAllowedCommitPath(relPath) {
   try { assertInScope(relPath); return true; } catch { return false; }
 }
 
+/*
+ * Like assertInScope, but additionally refuses to return a path that already
+ * exists. Creating a new plate must never overwrite an old one, and "check then
+ * write" can race, so callers pair this with the `wx` flag on the actual write.
+ * Belt and braces: the check gives a good error message, the flag is the truth.
+ */
+function assertCreatable(relPath) {
+  const abs = assertInScope(relPath);
+  if (fs.existsSync(abs)) throw new ScopeError(`refusing to overwrite existing file: ${toPosix(relPath)}`);
+  return abs;
+}
+
 // Assert an object of YAML fields contains no forbidden (story) keys.
 function assertHexFieldsAllowed(keys) {
   for (const k of keys) {
@@ -62,5 +75,5 @@ function assertHexFieldsAllowed(keys) {
 
 module.exports = {
   REPO_ROOT, ALLOWED_ROOTS, HEX_ALLOWED_KEYS, HEX_FORBIDDEN_KEYS,
-  ScopeError, assertInScope, isAllowedCommitPath, assertHexFieldsAllowed,
+  ScopeError, assertInScope, assertCreatable, isAllowedCommitPath, assertHexFieldsAllowed,
 };

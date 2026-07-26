@@ -16,8 +16,8 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
-  ne: null
+  e: "0002"
+  ne: "0003"
   nw: null
   w: null
   sw: null
@@ -126,3 +126,5 @@ lines:
     path: ["104", "117", "129", "141", "149", "155"]
   - type: road
     path: ["111", "099", "087", "075", "063"]
+  - type: road
+    path: ["012", "011", "020", "031", "043"]

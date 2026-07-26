@@ -107,18 +107,28 @@
       model.terrainByNum[sub] = type;
     }
 
-    /* line features */
+    /* line features — style driven by the theme's line registry (by grade) */
+    const LINES = model.registry.lines || {};
+    function lineStyle(type) {
+      const spec = LINES[type];
+      if (spec) return spec;
+      // fallback for data predating the registry
+      return type === "river" || type === "stream"
+        ? { category: "water", color: "#7ea6c9", width: type === "stream" ? 2 : 3 }
+        : { category: "road", color: "#6b5138", width: 2.4 };
+    }
     function rebuildLines(lines) {
       layers.water.textContent = "";
       layers.road.textContent = "";
       for (const ln of (lines || model.lines)) {
         const pts = ln.path.map(s => bySub.get(s)).filter(Boolean);
         if (pts.length < 2) continue;
-        if (ln.type === "river") {
-          el("path", { d: smoothPath(pts), fill: "none", stroke: "#7ea6c9", "stroke-width": 3, "stroke-linecap": "round", opacity: 0.9 }, layers.water);
-        } else {
-          el("path", { d: smoothPath(pts), fill: "none", stroke: "#6b5138", "stroke-width": 2.4, "stroke-linecap": "round" }, layers.road);
-        }
+        const st = lineStyle(ln.type);
+        const attrs = { d: smoothPath(pts), fill: "none", stroke: st.color, "stroke-width": st.width, "stroke-linecap": "round" };
+        if (st.dash) attrs["stroke-dasharray"] = st.dash;
+        const layer = st.category === "water" ? layers.water : layers.road;
+        if (st.category === "water") attrs.opacity = 0.9;
+        el("path", attrs, layer);
       }
     }
     rebuildLines(model.lines);
@@ -177,7 +187,7 @@
     return {
       world, layers, fillBySub, neighborChips,
       setTerrain, setNumbersVisible, rebuildLines, rebuildFeatures,
-      hexBySub: bySub,
+      lineStyle, hexBySub: bySub,
     };
   }
 

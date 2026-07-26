@@ -16,7 +16,7 @@
   <div class="brand"><h1>HexChronicle</h1><span>Editor · plate <b id="plateId">—</b></span></div>
   <div class="tools">
     <button class="tool active" data-tool="paint" title="Paint terrain (B)">Paint</button>
-    <button class="tool" data-tool="pan" title="Pan (V, or hold Space)">Pan</button>
+    <button class="tool" data-tool="lines" title="Line tools (L)">Lines</button>
     <span class="sep"></span>
     <button id="undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
     <button id="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button>
@@ -32,6 +32,50 @@
   <div id="swatches"></div>
   <p class="hint">Click or drag hexes to paint. Painting to the default terrain clears the override.</p>
 </aside>
+
+<aside id="linePanel" hidden>
+  <h4>Line tools</h4>
+  <div id="lineTypes"></div>
+  <button id="newLine" class="wide">+ New line</button>
+  <h5>Lines on this plate</h5>
+  <div id="lineList"></div>
+  <div id="lineEdit" hidden>
+    <div id="editInfo"></div>
+    <div class="editbtns">
+      <button id="finishLine" class="primary">Finish</button>
+      <button id="cancelLine">Cancel</button>
+      <button id="deleteLine" class="danger" hidden>Delete</button>
+    </div>
+    <p class="hint">Click hexes to append · <b>Backspace</b> removes last · Enter finishes · Esc cancels.</p>
+  </div>
+  <p class="hint" id="lineIdleHint">Pick a type then <b>+ New line</b>, or click a line below (or on the map) to extend, reroute, retype, or delete it.</p>
+</aside>
+
+<div id="addModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+    <h3 id="addTitle">New 36-mile hex</h3>
+    <p class="sub" id="addWhere"></p>
+
+    <div class="preview"><svg id="addPreview" viewBox="-340 -340 680 680" aria-label="Generated terrain preview"></svg></div>
+    <p class="sub" id="addStats">&nbsp;</p>
+
+    <label>Name<input id="addName" type="text" placeholder="Unnamed plate" autocomplete="off"></label>
+    <label>432-mile hex #<input id="addContinent" type="number" min="1" step="1" autocomplete="off"></label>
+    <label>Character
+      <select id="addProfile"></select>
+    </label>
+    <label>Seed<input id="addSeed" type="text" autocomplete="off" spellcheck="false"></label>
+    <label class="check"><input id="addBlend" type="checkbox" checked> Match terrain to neighbouring plates at the border</label>
+
+    <div class="sheetbtns">
+      <button id="addReroll">Re-roll</button>
+      <span class="grow"></span>
+      <button id="addCancel">Cancel</button>
+      <button id="addCreate" class="primary">Create plate</button>
+    </div>
+    <p class="hint">Nothing is written until you press Create. Neighbouring plates are read for their border terrain but never modified.</p>
+  </div>
+</div>
 
 <script>window.EDITOR_TOKEN = "__EDITOR_TOKEN__";</script>
 <script src="/shared/geometry.js"></script>
