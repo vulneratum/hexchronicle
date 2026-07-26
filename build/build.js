@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * HexChronicle build — the walking skeleton (README §9 step 1).
+ * HexChronicle build — the walking skeleton (README §10 step 1).
  *
  * Reads the repo's data files (the single source of truth, README §4),
  * compiles them into a world-state object, and emits a self-contained
@@ -22,7 +22,7 @@ const ROOT = path.resolve(__dirname, "..");
 const P = (...p) => path.join(ROOT, ...p);
 
 // Custom domain for GitHub Pages. Emitted as docs/CNAME on every build so a
-// rebuild never drops it (README §8). Change here if the domain ever changes.
+// rebuild never drops it (README §9). Change here if the domain ever changes.
 const CUSTOM_DOMAIN = "hexchronicle.com";
 
 function readYaml(file) {

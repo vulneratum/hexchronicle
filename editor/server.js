@@ -207,15 +207,16 @@ function buildAtlas(originId) {
   for (const [id] of plates) {
     if (!coord.has(id)) continue;                 // not reachable from the origin
     const doc = readYaml(`plates/${id}.yaml`);
+    // Summary only — the heavy per-hex terrain/lines/features are fetched per
+    // plate on demand via /api/plate/:id/detail, so the atlas payload stays
+    // O(plates) rather than O(plates × 157) as the map grows.
     out.push({
       id,
       name: doc.name || null,
       realm: doc.realm || null,
+      continent_hex: doc.continent_hex != null ? doc.continent_hex : null,
       coord: coord.get(id),
       default_terrain: doc.default_terrain,
-      terrain: doc.terrain || {},
-      lines: doc.lines || [],
-      features: readFeatures(id),
     });
   }
 
@@ -236,6 +237,23 @@ function buildAtlas(originId) {
 
   const orphans = plateIds().filter(id => !coord.has(id));
   return { origin: originId, plates: out, empty, conflicts, orphans, dangling, profiles: plateGen.PROFILES };
+}
+
+/*
+ * One plate's full interior — the heavy data the atlas summary omits. Fetched
+ * on demand when a plate crosses into detail LOD and is on screen, then cached
+ * client-side. Read-only.
+ */
+function plateDetail(id) {
+  if (!fs.existsSync(R(`plates/${id}.yaml`))) throw new HttpError(404, `no such plate ${id}`);
+  const doc = readYaml(`plates/${id}.yaml`);
+  return {
+    id,
+    default_terrain: doc.default_terrain,
+    terrain: doc.terrain || {},
+    lines: doc.lines || [],
+    features: readFeatures(id),
+  };
 }
 
 /* ---------- write op: create a plate (Phase 3), guarded ---------- */
@@ -397,6 +415,12 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && p === "/api/model") {
       const id = u.searchParams.get("plate") || "0001";
       return send(res, 200, buildModel(id));
+    }
+
+    // API: one plate's full interior (detail LOD, fetched on demand)
+    let dm;
+    if (req.method === "GET" && (dm = /^\/api\/plate\/(\d{4})\/detail$/.exec(p))) {
+      return send(res, 200, plateDetail(dm[1]));
     }
 
     // API: mutating — require the token

@@ -7,7 +7,9 @@
   "scripts": {
     "build": "node build/build.js",
     "editor": "node editor/server.js",
-    "test:guard": "node editor/guard.test.js"
+    "test:guard": "node editor/guard.test.js",
+    "test:gen": "node editor/plate-gen.test.js",
+    "test": "node editor/guard.test.js && node editor/plate-gen.test.js"
   },
   "dependencies": {
     "js-yaml": "^4.1.0",

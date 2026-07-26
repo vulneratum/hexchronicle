@@ -20,7 +20,7 @@ decision unless marked *(future phase)*.
 - World engine: OSE plus **Rules Cyclopedia-derived campaign machinery**
   (domain income, dominion events, War Machine-style mass combat) reformulated
   in our own words — the agent uses these to advance kingdoms. Never reproduce
-  Rules Cyclopedia text (see §10 Licensing).
+  Rules Cyclopedia text (see §11 Licensing).
 - Onboarding: 0-level funnel play per Carcass Crawler #5-style rules.
 - Tone: sword-and-sorcery weird is welcome; **no aliens, no high technology,
   no spaceships.**
@@ -160,7 +160,54 @@ Include a "new tile type" form in the editor.
 - Icons are SVG (theme-able, scale-free). Free sources like game-icons.net
   (CC-BY, credited in the site footer) are acceptable.
 
-## 8. The site (hexchronicle.com)
+## 8. The editor, as built
+
+The design brief is §6; this is how the local editor actually works, so changes
+don't break its invariants. `npm run editor` serves the plate view and a narrow,
+semantic API from `127.0.0.1` only; every write funnels through the
+`editor/guard.js` scope guard (writes limited to `plates/`, `hexes/` map fields,
+and `theme/` — never chronicle, world state, or sessions).
+
+- **The plate lattice.** Plates declare neighbours by id, not position, so there
+  is no world coordinate system on disk. The server derives one on demand by
+  walking the declared-neighbour graph from an origin plate, assigning axial
+  coordinates in the **same convention as subhexes** (`shared/geometry.js`): `e`
+  is `[1,0]`, `se` is `[0,1]`, and so on — the subhex layout scaled up from
+  subhex circumradius `SIZE` to plate circumradius `RL`. This is what lets a new
+  plate discover and back-link *every* plate it touches, not just the one it was
+  grown from.
+- **Active plate at world origin (invariant).** The plate being edited always
+  sits at `(0,0)`; the surrounding atlas is drawn relative to it. `hexAt()` maps
+  a screen point straight to a subhex in the active plate's map, so painting,
+  line drawing, undo, and Save assume the origin and need no offset. **Switching
+  plates re-origins the atlas rather than moving the active plate** (slippy-map
+  style, no page reload): the new plate is mounted at origin, the incoming
+  plate's world position is subtracted from every atlas entry, and the camera is
+  compensated (`tx += wx·s`, `ty += wy·s`) so nothing appears to move. Zoom and
+  the detail cache survive the switch.
+- **Summary / detail atlas split.** `/api/atlas` returns only lightweight
+  per-plate summaries (id, name, realm, continent hex, coord, default terrain),
+  so its payload stays `O(plates)` rather than `O(plates × 157)` as the map
+  grows. A plate's full interior (terrain grid, lines, features) is fetched on
+  demand from `/api/plate/:id/detail` and cached client-side (`detailCache`),
+  reused across pans and switches.
+- **LOD + viewport culling.** Only plates whose bounds intersect the viewport
+  (plus a margin) are built; off-screen plates are never fetched or built and are
+  torn down when they leave, so node count stays bounded. Above `DETAIL_ZOOM` the
+  `MAX_FULL` nearest on-screen plates render as full subhex grids (fetching
+  detail if needed); everything else — and everything below `DETAIL_ZOOM` —
+  renders as a single flat-coloured hexagon. LOD flips cross-fade rather than
+  pop, and plate-id labels are counter-scaled (`1/s`) so they stay a constant
+  size at any zoom.
+- **SVG click limitation.** `pointerdown` calls `preventDefault()` and sets
+  pointer capture, which suppresses the DOM `click` event for everything inside
+  the map SVG. So **no element inside the map carries a click listener**; all map
+  interaction (paint, line taps, plate switching, opening the add-plate dialog)
+  routes through `endPointer()`'s hit test (`atlasAt`), which resolves screen
+  coordinates to a plate or an empty slot in world space. Add new map
+  interactions there, never via per-element listeners.
+
+## 9. The site (hexchronicle.com)
 
 - Static site on GitHub Pages or Cloudflare Pages, custom domain, HTTPS,
   auto-rebuild on every commit. $0 hosting.
@@ -177,7 +224,7 @@ Include a "new tile type" form in the editor.
 - Images optional garnish: web-compressed, SVG heraldry, icon changes driven
   by state (burned village = burned icon).
 
-## 9. Build order
+## 10. Build order
 
 1. **Walking skeleton:** file formats for one plate + build script rendering
    the plate view + deploy to hexchronicle.com. Prove data → build → live site.
@@ -200,7 +247,7 @@ form → pre-filled Google Form + Apps Script → branded form + serverless
 function); Foundry VTT export (scene image → journal/pin compendium → live
 module reading world-state JSON).
 
-## 10. Licensing
+## 11. Licensing
 
 - All world content (continent, realms, NPCs, chronicles) is original IP.
 - Pages reproducing OSE **open game content** carry the OGL declaration and
@@ -211,7 +258,7 @@ module reading world-state JSON).
   imply official Necrotic Gnome status.
 - Icon attribution (e.g., game-icons.net CC-BY) in the site footer.
 
-## 11. Conventions for the agent
+## 12. Conventions for the agent
 
 - Read this README before structural changes; update it when a decision
   changes (the README is itself versioned canon).
