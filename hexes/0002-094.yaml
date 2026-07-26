@@ -1,0 +1,8 @@
+# Subhex 0002-094 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+
+address: "0002-094"
+visibility: public          # public | gm-only (README §4)
+name: "Old Island Fortress"
+feature:
+  type: dungeon

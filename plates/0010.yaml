@@ -1,0 +1,116 @@
+# Atlas plate 0010 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0010-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile lowland · seed "0001-nw-tvf4gz" · 36 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0010"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0010"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0010"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0003"
+  ne: "0014"
+  nw: "0015"
+  w: "0016"
+  sw: "0009"
+  se: "0001"
+
+default_terrain: plains
+terrain:                     # subhex number -> terrain type (non-default only)
+  "002": hills
+  "006": forest
+  "007": forest
+  "008": hills
+  "011": swamp
+  "012": swamp
+  "013": hills
+  "014": forest
+  "015": forest
+  "016": hills
+  "017": hills
+  "020": swamp
+  "021": swamp
+  "022": swamp
+  "023": hills
+  "024": hills
+  "025": hills
+  "026": forest
+  "027": hills
+  "028": hills
+  "031": swamp
+  "032": swamp
+  "033": swamp
+  "036": hills
+  "037": hills
+  "038": hills
+  "039": hills
+  "040": hills
+  "041": hills
+  "048": hills
+  "049": hills
+  "050": hills
+  "053": hills
+  "061": hills
+  "062": hills
+  "063": water
+  "064": water
+  "075": water
+  "076": water
+  "077": water
+  "087": forest
+  "088": forest
+  "089": water
+  "090": forest
+  "100": forest
+  "101": forest
+  "102": forest
+  "106": forest
+  "107": forest
+  "108": forest
+  "111": hills
+  "112": swamp
+  "113": forest
+  "114": forest
+  "118": forest
+  "119": forest
+  "120": forest
+  "121": mountains
+  "122": mountains
+  "124": hills
+  "125": swamp
+  "126": hills
+  "129": hills
+  "130": hills
+  "131": hills
+  "132": mountains
+  "133": mountains
+  "134": mountains
+  "137": hills
+  "138": hills
+  "140": hills
+  "141": mountains
+  "142": mountains
+  "143": mountains
+  "144": mountains
+  "147": hills
+  "149": mountains
+  "150": mountains
+  "151": mountains
+  "154": mountains
+  "155": mountains
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

@@ -1,0 +1,8 @@
+# Subhex 0003-034 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+
+address: "0003-034"
+visibility: public          # public | gm-only (README §4)
+name: "SlateHolm"
+feature:
+  type: town

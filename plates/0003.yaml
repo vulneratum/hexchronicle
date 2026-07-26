@@ -19,10 +19,10 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
-  ne: null
-  nw: null
-  w: null
+  e: "0004"
+  ne: "0006"
+  nw: "0014"
+  w: "0010"
   sw: "0001"
   se: "0002"
 
@@ -38,15 +38,15 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "014": plains
   "015": plains
   "016": plains
-  "022": hills
+  "022": water
   "023": plains
   "024": plains
   "025": plains
   "026": plains
   "027": plains
   "028": plains
-  "034": hills
-  "035": hills
+  "034": water
+  "035": water
   "036": plains
   "037": plains
   "038": plains
@@ -119,8 +119,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "141": hills
   "142": hills
   "143": swamp
-  "144": swamp
-  "145": hills
   "146": hills
   "147": hills
   "148": hills
@@ -128,11 +126,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "150": hills
   "153": hills
   "154": hills
-  "155": hills
-  "156": hills
-  "157": hills
 
 # Line features (README §4): paths crossing subhexes, not per-hex fills.
 lines:
-  - type: road
-    path: ["127", "146"]

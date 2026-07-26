@@ -18,10 +18,10 @@ summary: >
 neighbors:
   e: "0002"
   ne: "0003"
-  nw: null
-  w: null
-  sw: null
-  se: null
+  nw: "0010"
+  w: "0009"
+  sw: "0008"
+  se: "0007"
 
 default_terrain: plains
 terrain:                     # subhex number -> terrain type (non-default only)
@@ -54,7 +54,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "032": hills
   "033": hills
   "034": hills
-  "035": hills
+  "035": forest
   "036": mountains
   "037": mountains
   "038": hills
@@ -114,17 +114,15 @@ terrain:                     # subhex number -> terrain type (non-default only)
 
 # Line features (README §4): paths crossing subhexes, not per-hex fills.
 lines:
-  - type: river
-    path: ["023", "036", "049", "062", "075", "076", "077", "078", "079"]
-  - type: river
-    path: ["013", "025", "038", "051", "064", "077", "078", "079"]
-  - type: river
-    path: ["024", "037", "050", "063", "076", "077", "078", "079"]
   - type: road
     path: ["104", "103", "102", "114", "113", "112", "111"]
   - type: road
     path: ["104", "117", "129", "141", "149", "155"]
   - type: road
     path: ["111", "099", "087", "075", "063"]
-  - type: road
-    path: ["012", "011", "020", "031", "043"]
+  - type: stream
+    path: ["024", "037", "050", "051", "064", "077", "078", "091"]
+  - type: stream
+    path: ["026", "038", "051"]
+  - type: stream
+    path: ["027", "040", "039", "052", "064"]
