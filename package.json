@@ -5,9 +5,12 @@
   "description": "A living sandbox continent for old-school tabletop play, managed as data and published as an interactive atlas.",
   "type": "commonjs",
   "scripts": {
-    "build": "node build/build.js"
+    "build": "node build/build.js",
+    "editor": "node editor/server.js",
+    "test:guard": "node editor/guard.test.js"
   },
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "yaml": "^2.9.0"
   }
 }

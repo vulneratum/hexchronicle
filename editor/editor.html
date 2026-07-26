@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HexChronicle — Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/editor.css">
+</head>
+<body>
+<svg id="map" aria-label="Plate editor"></svg>
+
+<header id="bar">
+  <div class="brand"><h1>HexChronicle</h1><span>Editor · plate <b id="plateId">—</b></span></div>
+  <div class="tools">
+    <button class="tool active" data-tool="paint" title="Paint terrain (B)">Paint</button>
+    <button class="tool" data-tool="pan" title="Pan (V, or hold Space)">Pan</button>
+    <span class="sep"></span>
+    <button id="undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+    <button id="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button>
+    <button id="fit" title="Fit plate">Fit</button>
+    <span class="sep"></span>
+    <button id="save" class="primary" disabled>Save</button>
+    <span id="status" role="status"></span>
+  </div>
+</header>
+
+<aside id="palette">
+  <h4>Terrain brush</h4>
+  <div id="swatches"></div>
+  <p class="hint">Click or drag hexes to paint. Painting to the default terrain clears the override.</p>
+</aside>
+
+<script>window.EDITOR_TOKEN = "__EDITOR_TOKEN__";</script>
+<script src="/shared/geometry.js"></script>
+<script src="/shared/plate-draw.js"></script>
+<script src="/editor.js"></script>
+</body>
+</html>
