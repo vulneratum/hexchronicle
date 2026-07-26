@@ -147,6 +147,171 @@ function writeNewPlate(absPath, spec) {
   fs.writeFileSync(absPath, L.join(spec.eol || "\n"), { flag: "wx" });
 }
 
+/* ---- structured hex-file writers (Phase 5: per-subhex metadata) ---- */
+/*
+ * This is the case the eemeli Document helpers above were kept for. A plate's
+ * terrain grid is a machine-owned block, so we rewrite it surgically; a hex file
+ * is the opposite — hand-written prose with comments, folded scalars, and a
+ * chronicle owned by the living-world agent. So: parse the document, mutate only
+ * the nodes named in `fields`, serialise. Everything else is carried through.
+ *
+ * `fields` holds MAP fields only — the caller has already put its key set
+ * through guard.assertHexFieldsAllowed(), so chronicle/local_memory cannot
+ * reach here. A null value DELETES the key.
+ */
+function updateHexFields(absPath, fields) {
+  const raw = fs.readFileSync(absPath, "utf8");
+  const doc = loadDoc(absPath);
+  for (const [key, value] of Object.entries(fields)) {
+    if (value === null) { doc.delete(key); continue; }
+    if (key === "feature") {
+      let node = doc.get("feature", true);
+      if (!node || typeof node.set !== "function") { doc.set("feature", {}); node = doc.get("feature", true); }
+      setValue(node, "type", value.type, false);
+      if (value.name == null) node.delete("name");
+      else setValue(node, "name", value.name, true);
+      continue;
+    }
+    setValue(doc, key, value, key === "name" || key === "address");
+  }
+  fs.writeFileSync(absPath, matchOriginalFormatting(doc.toString({ lineWidth: 0, flowCollectionPadding: false }), raw));
+}
+
+/*
+ * Undo the two cosmetic things an eemeli round-trip does to lines it was not
+ * asked to touch (the module header calls both out): it emits LF regardless of
+ * the file's line endings, and it collapses the whitespace before an inline
+ * comment to a single space — turning
+ *
+ *   visibility: public          # public | gm-only (README §4)
+ * into
+ *   visibility: public # public | gm-only (README §4)
+ *
+ * Neither is a content change, but both show up as a diff on every line of a
+ * hand-written file, which is exactly what README §6 asks us not to do.
+ */
+function matchOriginalFormatting(out, raw) {
+  const INLINE = /^(\s*)([\w-]+:)([^#\n]*?)(\s+)(#.*)$/;
+  const padByKey = new Map();
+  for (const line of raw.split(/\r?\n/)) {
+    const m = INLINE.exec(line);
+    if (m) padByKey.set(m[1] + m[2], m[4]);
+  }
+  let text = out.split("\n").map(line => {
+    const m = INLINE.exec(line);
+    if (!m) return line;
+    const pad = padByKey.get(m[1] + m[2]);
+    return pad ? m[1] + m[2] + m[3] + pad + m[5] : line;
+  }).join("\n");
+  if (raw.includes("\r\n")) text = text.replace(/\r?\n/g, "\r\n");
+  return text;
+}
+
+/*
+ * Change a scalar IN PLACE when the key already exists. Reusing the node keeps
+ * its inline comment and quoting style — `visibility: public   # public |
+ * gm-only (README §4)` survives a visibility change, where doc.set() would
+ * replace the node and drop the comment with it.
+ */
+function setValue(map, key, value, quote) {
+  const node = map.get(key, true);
+  if (node && typeof node === "object" && "value" in node) { node.value = value; return; }
+  map.set(key, quote ? quotedKey(value) : value);
+}
+
+/*
+ * A hex file that does not exist yet, rendered from a template mirroring the
+ * hand-written ones (hexes/0001-104.yaml) so the two are indistinguishable.
+ * Written with `wx` so it can never clobber, even if something raced the
+ * guard.assertCreatable() check. No chronicle, no local_memory — a new hex
+ * carries map data only; the living-world agent adds the story.
+ */
+function writeNewHex(absPath, spec) {
+  const q = s => `"${String(s).replace(/"/g, '\\"')}"`;
+  const f = spec.fields || {};
+  const L = [];
+  L.push(`# Subhex ${spec.address} — content file (README §4). Terrain comes from the`);
+  L.push(`# plate grid; this file carries features, names, and chronicle.`);
+  L.push(``);
+  L.push(`address: ${q(spec.address)}`);
+  L.push(`visibility: ${f.visibility || "public"}          # public | gm-only (README §4)`);
+  if (f.name) L.push(`name: ${q(f.name)}`);
+  if (f.feature && f.feature.type) {
+    L.push(`feature:`);
+    L.push(`  type: ${f.feature.type}`);
+    if (f.feature.name) L.push(`  name: ${q(f.feature.name)}`);
+  }
+  L.push(``);
+  fs.writeFileSync(absPath, L.join(spec.eol || "\n"), { flag: "wx" });
+}
+
+/* ---- surgical plate-meta writer ---- */
+/*
+ * The plate's descriptive top-level fields: name, title, canton, realm,
+ * summary, continent_hex, scale_label. Same surgical strategy as the terrain
+ * grid, and for the same reason — everything else in the file (the header
+ * comments, the neighbours block, the terrain grid, the lines) must come out
+ * byte-for-byte identical, and a full round-trip cannot promise that.
+ *
+ * A scalar is rewritten in place, keeping its inline comment. `summary` is a
+ * folded block, so its indented body is replaced wholesale. A field that is not
+ * in the file yet is inserted just above `default_terrain:`, which is where the
+ * descriptive block ends in every plate file the generator writes.
+ *
+ * The caller has already put the key set through guard.assertPlateMetaAllowed(),
+ * so id / terrain / lines / neighbors cannot reach here.
+ */
+function updatePlateMeta(absPath, fields) {
+  const raw = fs.readFileSync(absPath, "utf8");
+  const nl = raw.includes("\r\n") ? "\r\n" : "\n";
+  const lines = raw.split(/\r?\n/);
+  const q = s => `"${String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  const QUOTED = new Set(["name", "title", "scale_label"]);
+
+  const findKey = key => lines.findIndex(l => new RegExp(`^${key}:(\\s|$)`).test(l));
+
+  for (const [key, value] of Object.entries(fields)) {
+    const at = findKey(key);
+
+    if (key === "summary") {
+      const body = String(value == null ? "" : value).trim();
+      const block = [">"].concat(body ? body.split(/\n/).map(s => "  " + s.trim()) : ["  "]);
+      if (at === -1) {
+        insertBefore(lines, "default_terrain:", ["summary: " + block[0]].concat(block.slice(1)));
+      } else {
+        let end = at + 1;
+        while (end < lines.length && /^\s+\S/.test(lines[end])) end++;
+        lines.splice(at, end - at, "summary: " + block[0], ...block.slice(1));
+      }
+      continue;
+    }
+
+    // a null or empty value removes an optional key rather than writing ""
+    const drop = value == null || value === "";
+    if (at === -1) {
+      if (drop) continue;
+      const text = `${key}: ${QUOTED.has(key) ? q(value) : value}`;
+      insertBefore(lines, "default_terrain:", [text]);
+      continue;
+    }
+    if (drop) { lines.splice(at, 1); continue; }
+    const m = /^([\w-]+:\s*)(?:"(?:[^"\\]|\\.)*"|'[^']*'|[^#]*?)(\s*#.*)?$/.exec(lines[at]);
+    const tail = (m && m[2]) || "";
+    lines[at] = `${key}: ${QUOTED.has(key) ? q(value) : value}${tail}`;
+  }
+
+  fs.writeFileSync(absPath, lines.join(nl));
+}
+
+/* insert `block` immediately above the first line starting with `anchor` */
+function insertBefore(lines, anchor, block) {
+  let at = lines.findIndex(l => l.startsWith(anchor));
+  if (at === -1) at = lines.length;
+  // keep the blank line that separates the descriptive block from what follows
+  while (at > 0 && lines[at - 1].trim() === "") at--;
+  lines.splice(at, 0, ...block);
+}
+
 /* ---- surgical neighbour back-reference (Phase 3) ---- */
 /*
  * Point one key of an existing plate's `neighbors:` block at `plateId`. This is
@@ -182,4 +347,5 @@ function setPlateNeighbor(absPath, dir, plateId) {
 module.exports = {
   loadDoc, saveDoc, quotedKey,
   writePlateTerrain, writePlateLines, writeNewPlate, setPlateNeighbor,
+  updateHexFields, writeNewHex, updatePlateMeta,
 };

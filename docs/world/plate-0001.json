@@ -1,109 +1,14 @@
 {
-  "generatedFrom": "repo data files (README §4)",
-  "plate": {
-    "id": "0001",
-    "continent_hex": 1,
-    "name": "Central Harrow",
-    "title": "Central portion of Harrow Canton, Karvosia",
-    "canton": "Harrow",
-    "realm": "Karvosia",
-    "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
-    "summary": "The heart of Harrow canton: a lake-country of plains and low hills about the town of Merrowgate, hemmed by forest and high ground.",
-    "default_terrain": "plains",
-    "neighbors": {
-      "e": "0002",
-      "ne": "0003",
-      "nw": null,
-      "w": null,
-      "sw": null,
-      "se": null
-    }
-  },
-  "registry": {
-    "terrain": {
-      "water": {
-        "color": "#93b7b3",
-        "label": "Water"
-      },
-      "swamp": {
-        "color": "#8a9a77",
-        "label": "Swamp"
-      },
-      "plains": {
-        "color": "#cdd39c",
-        "label": "Plains"
-      },
-      "forest": {
-        "color": "#5e8c5e",
-        "label": "Forest"
-      },
-      "hills": {
-        "color": "#c9ae7b",
-        "label": "Hills"
-      },
-      "mountains": {
-        "color": "#a2988a",
-        "label": "Mountains"
-      }
-    },
-    "features": {
-      "village": {
-        "label": "Village"
-      },
-      "town": {
-        "label": "Town"
-      },
-      "city": {
-        "label": "City"
-      },
-      "dungeon": {
-        "label": "Dungeon"
-      },
-      "ruin": {
-        "label": "Ruins"
-      },
-      "lair": {
-        "label": "Monster lair"
-      },
-      "burned": {
-        "label": "Burned settlement"
-      }
-    },
-    "lines": {
-      "stream": {
-        "category": "water",
-        "label": "Stream",
-        "color": "#7ea6c9",
-        "width": 2
-      },
-      "river": {
-        "category": "water",
-        "label": "River",
-        "color": "#7ea6c9",
-        "width": 3
-      },
-      "path": {
-        "category": "road",
-        "label": "Path",
-        "color": "#6b5138",
-        "width": 1.6,
-        "dash": "5 4"
-      },
-      "road": {
-        "category": "road",
-        "label": "Road",
-        "color": "#6b5138",
-        "width": 2.4
-      },
-      "paved": {
-        "category": "road",
-        "label": "Paved road",
-        "color": "#6b5138",
-        "width": 3.2
-      }
-    }
-  },
-  "terrainByNum": {
+  "id": "0001",
+  "name": "Central Harrow",
+  "title": "Central portion of Harrow Canton, Karvosia",
+  "canton": "Harrow",
+  "realm": "Karvosia",
+  "summary": "The heart of Harrow canton: a lake-country of plains and low hills about the town of Merrowgate, hemmed by forest and high ground.",
+  "continent_hex": 1,
+  "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+  "default_terrain": "plains",
+  "terrain": {
     "100": "hills",
     "101": "plains",
     "102": "plains",
@@ -196,7 +101,7 @@
     "032": "hills",
     "033": "hills",
     "034": "hills",
-    "035": "hills",
+    "035": "forest",
     "036": "mountains",
     "037": "mountains",
     "038": "hills",
@@ -262,145 +167,7 @@
     "098": "hills",
     "099": "hills"
   },
-  "hexContent": {
-    "104": {
-      "feature": {
-        "type": "city",
-        "name": "Merrowgate"
-      },
-      "local_memory": "Merrowgate sits where the lake road meets the water; its wharves take barge traffic from the whole of Harrow.",
-      "chronicle": [
-        {
-          "date": "1 Harvestmoon 4712",
-          "text": "The canton fair opened under the Reeve's peace; wool prices ran high."
-        }
-      ]
-    },
-    "110": {
-      "feature": {
-        "type": "village",
-        "name": "Stanmoor"
-      }
-    },
-    "111": {
-      "feature": {
-        "type": "town",
-        "name": "Adris"
-      }
-    },
-    "122": {
-      "feature": {
-        "type": "village",
-        "name": "Redthorn"
-      }
-    },
-    "152": {
-      "feature": {
-        "type": "ruin",
-        "name": "Tower of Veyl"
-      }
-    },
-    "155": {
-      "feature": {
-        "type": "town",
-        "name": "Stonepoint"
-      }
-    },
-    "024": {
-      "feature": {
-        "type": "dungeon",
-        "name": "The Undercrag"
-      }
-    },
-    "026": {
-      "feature": {
-        "type": "dungeon",
-        "name": "Barrow of Kings"
-      }
-    },
-    "027": {
-      "feature": {
-        "type": "dungeon",
-        "name": "Gloomdelve"
-      }
-    },
-    "043": {
-      "feature": {
-        "type": "village",
-        "name": "Harlow's Ford"
-      },
-      "local_memory": "The folk of Harlow's Ford still talk about the night the troll's head came through the door.",
-      "chronicle": [
-        {
-          "date": "9 Harvestmoon 4712",
-          "text": "Four strangers out of the west lodged at the inn."
-        },
-        {
-          "date": "12 Harvestmoon 4712",
-          "text": "The marsh troll of the mill road was slain; its head hangs above the bar. Drinks poured free for Brakka's company."
-        }
-      ]
-    },
-    "057": {
-      "feature": {
-        "type": "village",
-        "name": "Bracken"
-      }
-    },
-    "063": {
-      "feature": {
-        "type": "village",
-        "name": "Wyther"
-      }
-    },
-    "094": {
-      "feature": {
-        "type": "village",
-        "name": "Old Mere"
-      }
-    }
-  },
   "lines": [
-    {
-      "type": "river",
-      "path": [
-        "023",
-        "036",
-        "049",
-        "062",
-        "075",
-        "076",
-        "077",
-        "078",
-        "079"
-      ]
-    },
-    {
-      "type": "river",
-      "path": [
-        "013",
-        "025",
-        "038",
-        "051",
-        "064",
-        "077",
-        "078",
-        "079"
-      ]
-    },
-    {
-      "type": "river",
-      "path": [
-        "024",
-        "037",
-        "050",
-        "063",
-        "076",
-        "077",
-        "078",
-        "079"
-      ]
-    },
     {
       "type": "road",
       "path": [
@@ -435,14 +202,147 @@
       ]
     },
     {
-      "type": "road",
+      "type": "stream",
       "path": [
-        "012",
-        "011",
-        "020",
-        "031",
-        "043"
+        "024",
+        "037",
+        "050",
+        "051",
+        "064",
+        "077",
+        "078",
+        "091"
+      ]
+    },
+    {
+      "type": "stream",
+      "path": [
+        "026",
+        "038",
+        "051"
+      ]
+    },
+    {
+      "type": "stream",
+      "path": [
+        "027",
+        "040",
+        "039",
+        "052",
+        "064"
       ]
     }
-  ]
+  ],
+  "hexes": {
+    "104": {
+      "address": "0001-104",
+      "feature": {
+        "type": "city",
+        "name": "Merrowgate"
+      },
+      "local_memory": "Merrowgate sits where the lake road meets the water; its wharves take barge traffic from the whole of Harrow.",
+      "chronicle": [
+        {
+          "date": "1 Harvestmoon 4712",
+          "text": "The canton fair opened under the Reeve's peace; wool prices ran high."
+        }
+      ]
+    },
+    "110": {
+      "address": "0001-110",
+      "feature": {
+        "type": "village",
+        "name": "Stanmoor"
+      }
+    },
+    "111": {
+      "address": "0001-111",
+      "feature": {
+        "type": "town",
+        "name": "Adris"
+      }
+    },
+    "122": {
+      "address": "0001-122",
+      "feature": {
+        "type": "village",
+        "name": "Redthorn"
+      }
+    },
+    "152": {
+      "address": "0001-152",
+      "feature": {
+        "type": "ruin",
+        "name": "Tower of Veyl"
+      }
+    },
+    "155": {
+      "address": "0001-155",
+      "feature": {
+        "type": "town",
+        "name": "Stonepoint"
+      }
+    },
+    "024": {
+      "address": "0001-024",
+      "feature": {
+        "type": "dungeon",
+        "name": "The Undercrag"
+      }
+    },
+    "026": {
+      "address": "0001-026",
+      "feature": {
+        "type": "dungeon",
+        "name": "Barrow of Kings"
+      }
+    },
+    "027": {
+      "address": "0001-027",
+      "feature": {
+        "type": "dungeon",
+        "name": "Gloomdelve"
+      }
+    },
+    "043": {
+      "address": "0001-043",
+      "feature": {
+        "type": "village",
+        "name": "Harlow's Ford"
+      },
+      "local_memory": "The folk of Harlow's Ford still talk about the night the troll's head came through the door.",
+      "chronicle": [
+        {
+          "date": "9 Harvestmoon 4712",
+          "text": "Four strangers out of the west lodged at the inn."
+        },
+        {
+          "date": "12 Harvestmoon 4712",
+          "text": "The marsh troll of the mill road was slain; its head hangs above the bar. Drinks poured free for Brakka's company."
+        }
+      ]
+    },
+    "057": {
+      "address": "0001-057",
+      "feature": {
+        "type": "village",
+        "name": "Bracken"
+      }
+    },
+    "063": {
+      "address": "0001-063",
+      "feature": {
+        "type": "village",
+        "name": "Wyther"
+      }
+    },
+    "094": {
+      "address": "0001-094",
+      "feature": {
+        "type": "village",
+        "name": "Old Mere"
+      }
+    }
+  },
+  "borrowed": {}
 }

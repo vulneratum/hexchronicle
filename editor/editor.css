@@ -94,6 +94,51 @@ button.wide{width:100%;justify-content:center;margin-bottom:.2rem}
 #linePanel button.primary{background:var(--brass);border-color:var(--brass);color:#241d10;font-weight:700}
 #linePanel button.danger{border-color:#7c463f;color:#e0a19a}
 #linePanel button.danger:hover{background:rgba(158,61,52,.2)}
+/* metadata panel (shares #palette / #linePanel positioning) */
+#metaPanel{
+  position:fixed;top:3.4rem;left:.6rem;z-index:15;width:13.5rem;
+  background:var(--panel);border:1px solid #3a4842;border-radius:.6rem;padding:.6rem .7rem;
+  box-shadow:0 6px 18px rgba(0,0,0,.4);max-height:calc(100vh - 4.2rem);overflow-y:auto;
+}
+#metaPanel h4{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#9fb0a6;margin-bottom:.5rem}
+#metaPanel h5{
+  font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:#7f9089;
+  margin:.75rem 0 .35rem;border-top:1px solid #3a4842;padding-top:.55rem;
+}
+#metaAddr{
+  font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:#e7d9ad;
+  letter-spacing:.04em;margin-bottom:.4rem;
+}
+.ro-tag{
+  font-family:'IBM Plex Mono',monospace;font-size:.55rem;letter-spacing:.06em;
+  color:#8a9a92;border:1px solid #4a5a52;border-radius:.25rem;padding:.05rem .25rem;margin-left:.3rem;
+}
+dl.ro{display:grid;grid-template-columns:auto 1fr;gap:.1rem .5rem;font-size:.66rem;margin:0}
+dl.ro dt{color:#7f9089}
+dl.ro dd{color:#c9d3ca;margin:0;overflow-wrap:anywhere}
+#metaPanel label{display:block;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:#7f9089;margin-bottom:.45rem}
+#metaPanel input,#metaPanel select,#metaPanel textarea{
+  display:block;width:100%;margin-top:.15rem;font:inherit;font-size:.78rem;
+  background:#1d2622;color:#dfe6df;border:1px solid #4a5a52;border-radius:.35rem;padding:.25rem .35rem;
+}
+#metaPanel textarea{resize:vertical;line-height:1.35}
+#metaPanel input:focus,#metaPanel select:focus,#metaPanel textarea:focus{outline:none;border-color:var(--brass)}
+/*
+ * Empty lattice positions: the glyph and its label, nothing else — no outline,
+ * no fill. The hit target is the whole 36-mile hexagon and is geometric, so
+ * hover is the only thing that has to make it findable.
+ */
+.addmark{cursor:pointer}
+.addmark text{fill:#4b6a63;transition:fill .15s ease}
+.addmark.hot text{fill:#a8ddd0}
+
+.lineitem .sub{display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:#7f9089}
+#editInfo .sub{display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:#9fb0a6}
+#metaStory{font-size:.68rem;color:#b8c3ba;line-height:1.4}
+#metaStory .mem{font-style:italic;color:#a9b6ac;margin-bottom:.4rem}
+#metaStory .cx{border-left:2px solid #3a4842;padding-left:.4rem;margin-bottom:.35rem}
+#metaStory .cx b{display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:#8a9a92;font-weight:500}
+#metaStory .empty{color:#8a9a92;font-style:italic}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 
 /* ---- neighbour chips: navigate to a plate, or create one ---- */

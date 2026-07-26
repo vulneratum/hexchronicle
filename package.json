@@ -9,7 +9,9 @@
     "editor": "node editor/server.js",
     "test:guard": "node editor/guard.test.js",
     "test:gen": "node editor/plate-gen.test.js",
-    "test": "node editor/guard.test.js && node editor/plate-gen.test.js"
+    "test:draw": "node editor/plate-draw.test.js",
+    "test:seam": "node editor/seam.test.js",
+    "test": "node editor/guard.test.js && node editor/plate-gen.test.js && node editor/plate-draw.test.js && node editor/seam.test.js"
   },
   "dependencies": {
     "js-yaml": "^4.1.0",

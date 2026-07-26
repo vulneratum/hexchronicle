@@ -3,11 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>HexChronicle — Atlas plate</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>HexChronicle — the atlas</title>
 <style>
+  /*
+   * FONTS ARE SERVED FROM THIS ORIGIN. They used to come from Google, which
+   * cost a render-blocking stylesheet from a third party, a second DNS+TLS
+   * handshake, and leaked every visitor's IP to a host that has nothing to do
+   * with the map. These files are the same faces, fetched once and committed;
+   * the site now makes NO third-party request at all.
+   *
+   * IBM Plex Mono is SUBSET to the 98 characters the map can render in it —
+   * printable ASCII plus · … — because it draws addresses, the cartouche line,
+   * the card eyebrow and file paths, all of which are bounded. 9 KB instead of
+   * 29 KB across two weights, one of which was never used.
+   *
+   * The other two are shipped as the FULL Latin set on purpose. They render
+   * place names, which are still being written: a tighter subset would silently
+   * fall back to a system font the first time a name used a character that had
+   * been left out.
+   *
+   * font-display: swap everywhere, so text paints immediately in the fallback
+   * and reflows when the face arrives, rather than holding the first paint.
+   */
+  @font-face{font-family:'IM Fell English SC';font-style:normal;font-weight:400;font-display:swap;
+    src:url(fonts/im-fell-english-sc-400.woff2) format('woff2')}
+  @font-face{font-family:'Alegreya Sans';font-style:normal;font-weight:400;font-display:swap;
+    src:url(fonts/alegreya-sans-400.woff2) format('woff2')}
+  @font-face{font-family:'Alegreya Sans';font-style:normal;font-weight:500;font-display:swap;
+    src:url(fonts/alegreya-sans-500.woff2) format('woff2')}
+  @font-face{font-family:'Alegreya Sans';font-style:normal;font-weight:700;font-display:swap;
+    src:url(fonts/alegreya-sans-700.woff2) format('woff2')}
+  @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;
+    src:url(fonts/ibm-plex-mono-400.woff2) format('woff2')}
+
   :root{
     --ink:#1e2a26;
     --parchment:#e9e2cf;
@@ -112,14 +140,14 @@
 </head>
 <body>
 
-<svg id="map" aria-label="Atlas plate"></svg>
+<svg id="map" aria-label="The atlas"></svg>
 
 <header>
   <div class="brand">
     <h1>HexChronicle</h1>
-    <span>Atlas plate view</span>
+    <span>The atlas</span>
   </div>
-  <button class="hbtn" id="fitBtn">Fit plate</button>
+  <button class="hbtn" id="fitBtn">Fit map</button>
 </header>
 
 <div id="plateTitle">
@@ -136,7 +164,10 @@
   <div id="cardBody"></div>
 </div>
 
-<!-- Compiled by build/build.js — do not edit docs/ by hand; edit the data files and rebuild. -->
+<!-- Compiled by build/build.js — do not edit docs/ by hand; edit the data files and rebuild.
+     The map DATA is not inlined: world/atlas.json is the summary, and each
+     36-mile hex's interior is fetched from world/plate-NNNN.json only when it
+     scrolls into view. -->
 <script>/*
  * HexChronicle plate geometry — the single source of truth for subhex
  * positions and numbering. Loaded by the Node build (via require) AND inlined
@@ -212,10 +243,138 @@
 
   const neighborDirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
 
+  /*
+   * The PLATE lattice. Plates tile the same way subhexes do, one scale up, so
+   * the axial convention is identical: `e` is [1,0], `se` is [0,1], and so on.
+   * plateToPx gives a plate's centre offset from the origin plate, which is what
+   * lets one plate draw something positioned on another.
+   */
+  const PLATE_DIR = { e: [1, 0], se: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [0, -1], ne: [1, -1] };
+  const plateToPx = (q, r) => ({ x: SQ3 * RL * (q + r / 2), y: 1.5 * RL * r });
+
+  /*
+   * Subhex addresses (README §2). "023" is shorthand for "subhex 023 of whatever
+   * plate is being talked about"; "0002-023" is the full permanent address and
+   * means the same hex no matter who is reading it. Anywhere a path may leave
+   * its own plate — a road crossing a boundary — the qualified form is required.
+   * Returns { plate: "0002"|null, sub: "023" }, or null if it is not an address.
+   */
+  const ADDR_RE = /^(?:(\d{4})-)?(\d{3})$/;
+  function parseAddr(entry) {
+    const m = ADDR_RE.exec(String(entry == null ? "" : entry).trim());
+    return m ? { plate: m[1] || null, sub: m[2] } : null;
+  }
+  // Resolve a path entry to its full address, given the plate that owns the path.
+  function fullAddr(entry, ownerPlateId) {
+    const a = parseAddr(entry);
+    return a ? (a.plate || ownerPlateId) + "-" + a.sub : null;
+  }
+
+  /* ============================================================= *
+   * SEAM OWNERSHIP — one physical hex, one identity
+   *
+   * Hexagons do not tile into larger hexagons. A plate is 12 subhexes across,
+   * so its boundary runs exactly THROUGH a line of subhex centres rather than
+   * between them, and insidePlate()'s tolerance lets both neighbours claim them.
+   * Measured, not assumed: 5 positions on every edge, 30 per plate, and the
+   * lattices align exactly — a plate offset is precisely 12 subhex steps, so the
+   * duplicates are the SAME lattice point, not a near miss. A corner position is
+   * claimed by three plates.
+   *
+   *   plate (dq,dr)  ->  subhex offset (12dq, 12dr)      PLATE_SPAN below
+   *
+   * Every shared position is exactly equidistant from the claiming plates'
+   * centres — they are all at distance RL — so README §2's "nearest parent
+   * centre, ties to the lower number" reduces entirely to the tie-break: the
+   * plate with the LOWER numeric id, the one created first, owns it.
+   *
+   * Ownership is therefore derivable from POSITION ALONE and never stored, and
+   * it is stable as the map grows: plate ids are handed out in creation order,
+   * so a new plate always has the highest id and can never take a seam from an
+   * existing one.
+   *
+   * The numbering itself is untouched (README §2 forbids renumbering): all 157
+   * subhexes still exist on every plate. This is an ownership layer on top —
+   * a borrowed position is still addressable as "0002-001", it just resolves to
+   * "0003-135" for everything that reads or writes it.
+   * ============================================================= */
+  const PLATE_SPAN = 12;
+
+  /*
+   * Build the ownership index for a set of plates at known lattice coords —
+   * `{ "0001": [q,r], … }` or a Map of the same. Coordinates may be relative to
+   * any origin: ownership compares positions with each other, so shifting the
+   * whole lattice changes nothing.
+   */
+  function plateOwnership(plateCoords) {
+    const entries = (plateCoords instanceof Map ? [...plateCoords] : Object.entries(plateCoords || {}))
+      .filter(e => Array.isArray(e[1]))
+      .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));   // lower id first
+    const coords = new Map(entries);
+    const hexes = buildPlateHexes();
+    const bySub = new Map(hexes.map(h => [h.sub, h]));
+
+    // every claim on every position; the entries are in ascending id order, so
+    // the FIRST claim on a position is the canonical one
+    const claims = new Map();                     // world key -> [{ plateId, sub }, …]
+    for (const [id, c] of entries) {
+      for (const h of hexes) {
+        const k = (h.q + PLATE_SPAN * c[0]) + "," + (h.r + PLATE_SPAN * c[1]);
+        const list = claims.get(k);
+        if (list) list.push({ plateId: id, sub: h.sub });
+        else claims.set(k, [{ plateId: id, sub: h.sub }]);
+      }
+    }
+
+    /* the world lattice position of one subhex, or null if the plate is not placed */
+    function worldKey(plateId, sub) {
+      const c = coords.get(plateId), h = bySub.get(sub);
+      if (!c || !h) return null;
+      return (h.q + PLATE_SPAN * c[0]) + "," + (h.r + PLATE_SPAN * c[1]);
+    }
+
+    /*
+     * The canonical identity of a hex. Falls back to the address as given when
+     * the plate is not on this lattice — an unplaced plate borrows from nobody,
+     * so answering "itself" is both safe and true.
+     */
+    function ownerOf(plateId, sub) {
+      const k = worldKey(plateId, sub);
+      const list = k && claims.get(k);
+      return (list && list[0]) || { plateId, sub };
+    }
+    /*
+     * EVERY plate that shows this position, owner first — up to three at a
+     * corner. One physical hex has one value, so an edit has to reach all of
+     * them, even though only the owner's file is written.
+     */
+    function sharersOf(plateId, sub) {
+      const k = worldKey(plateId, sub);
+      return (k && claims.get(k)) || [{ plateId, sub }];
+    }
+    const isBorrowed = (plateId, sub) => ownerOf(plateId, sub).plateId !== plateId;
+    const addressOf = (plateId, sub) => {
+      const o = ownerOf(plateId, sub);
+      return o.plateId + "-" + o.sub;
+    };
+    /* every subhex of `plateId` that belongs to somebody else */
+    function borrowedSubs(plateId) {
+      const out = [];
+      for (const h of hexes) if (isBorrowed(plateId, h.sub)) out.push(h.sub);
+      return out;
+    }
+
+    return {
+      coords, worldKey, ownerOf, sharersOf, isBorrowed, addressOf, borrowedSubs,
+      placed: id => coords.has(id),
+    };
+  }
+
   const HexGeo = {
-    SQ3, SIZE, RL,
+    SQ3, SIZE, RL, PLATE_SPAN,
     axialToPx, pxToAxial, hexCorners, plateCorners, insidePlate,
     buildPlateHexes, neighborDirs,
+    PLATE_DIR, plateToPx, parseAddr, fullAddr, plateOwnership,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = HexGeo;
@@ -231,16 +390,21 @@
  * painting — the site and editor each attach their own interaction to the
  * `world` group and layers this returns. Depends on HexGeo (shared/geometry.js).
  *
- *   PlateDraw.create(svg, model) -> controller
+ *   PlateDraw.createAtlas(svg, opts) -> controller for the WHOLE map
  *   PlateDraw.drawIcon(parent, type, cx, cy, scale)   // also used for legend chips
  *
- * model = {
- *   geo,           // HexGeo.buildPlateHexes()
- *   plate,         // { id, default_terrain, neighbors, ... }
- *   registry,      // { terrain:{key:{color,label}}, features:{key:{label}} }
- *   terrainByNum,  // { "001": "plains", ... } for all subhexes
- *   hexContent,    // { "104": { feature:{type,name} }, ... }
- *   lines,         // [ { type:"river"|"road", path:["023",...] } ]
+ * There is ONE renderer and one entry point. A second single-plate controller
+ * used to live here for the published page; it is gone, because the site is now
+ * the same atlas as the editor. Two renderers would drift, and drift in this
+ * file means a hex belonging to one plate in the editor and a different plate on
+ * the site — the map disagreeing with itself.
+ *
+ * opts = {
+ *   registry,           // { terrain:{key:{color,label}}, features, lines }
+ *   stateOf(id),        // a plate's interior, or null while it is loading
+ *   request(id),        // "please load this one" — the caller does the fetching
+ *   viewportRect(),     // the visible world rect, for culling
+ *   linesOf(id, st),    // optional: which of a plate's lines to draw
  * }
  */
 (function (global) {
@@ -283,217 +447,1336 @@
     return g;
   }
 
-  function smoothPath(pts) {
-    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-    for (let i = 1; i < pts.length - 1; i++) {
-      const mx = (pts[i].x + pts[i + 1].x) / 2, my = (pts[i].y + pts[i + 1].y) / 2;
-      d += ` Q ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
+  /*
+   * A line's path is a list of subhex addresses (README §2). A bare "023" means
+   * this plate; "0003-023" names any plate — that is how a road, river or path
+   * crosses a plate boundary while remaining ONE line feature in ONE file.
+   *
+   * Returns RUNS of points: maximal stretches of consecutive resolvable
+   * addresses. An address on a plate we cannot place (not adjacent, not built)
+   * ENDS the run rather than being skipped, so a partially-known path draws the
+   * stretches it knows instead of a wrong straight line across the gap.
+   *
+   * Each point carries BOTH the hex's true centre (x, y) and its anchor (ax, ay).
+   * Edge midpoints are computed from the centres so neighbouring hexes agree on
+   * their shared boundary point; only the in-hex routing follows the anchor.
+   * `anchorFor(sub, plate)` may return null — a hex on another plate has no
+   * anchor here, because this plate does not know that plate's terrain.
+   */
+  function resolveRuns(path, bySub, offsetFor, anchorFor) {
+    const runs = [];
+    let run = [];
+    for (const entry of (path || [])) {
+      const a = G.parseAddr(entry);
+      const h = a && bySub.get(a.sub);
+      const off = a && (a.plate ? offsetFor(a.plate) : { x: 0, y: 0 });
+      if (!h || !off) { if (run.length) runs.push(run); run = []; continue; }
+      const x = h.x + off.x, y = h.y + off.y;
+      const an = anchorFor ? anchorFor(a.sub, a.plate) : null;
+      // Position IS the identity. "023" and "0001-023" name the same hex, and a
+      // hex reached from two different plates resolves to one point — so keying
+      // on the resolved centre joins them without threading an owner id around.
+      run.push({
+        x, y, plate: a.plate || null,
+        ax: an ? an.x + off.x : x, ay: an ? an.y + off.y : y,
+        key: x.toFixed(2) + "," + y.toFixed(2),
+      });
     }
-    const L = pts[pts.length - 1];
+    if (run.length) runs.push(run);
+    return runs;
+  }
+
+  /* ============================================================= *
+   * Terrain mesh — smooth shorelines
+   *
+   * A coastline drawn on hex boundaries is a zigzag; drawn as per-hex sectors
+   * it is a many-sided polygon with a visible angle at every sector boundary.
+   * Neither reads as a shore. So the water is treated as ONE REGION:
+   *
+   *   1. Build the water area per hex as before — a small central core plus the
+   *      sectors facing water — but collect the EDGES of those sub-shapes
+   *      instead of drawing them.
+   *   2. An edge shared by two water sub-shapes appears twice and is interior;
+   *      an edge appearing once is on the boundary. Chain the survivors into
+   *      closed rings.
+   *   3. Smooth each ring with Chaikin corner-cutting and fill them all as one
+   *      path with fill-rule evenodd, so an enclosed island punches a hole.
+   *
+   * Smoothing moves the water edge off the sector boundaries, so the land can
+   * no longer be drawn to meet it. Instead the land is drawn COMPLETE beneath
+   * and the water is painted over the top — there is then no seam to misalign,
+   * however far the smoothing moves the edge.
+   *
+   * Only the literal `water` key does this. Land — swamp included — is a plain
+   * hexagon, and nothing bleeds outward into it.
+   *
+   * All of it is deterministic: same terrain data, same coastline, every render,
+   * in both the editor and the published site.
+   * ============================================================= */
+  const WATER = "water";
+  const CORE_R = 0.45;          // water core, as a fraction of the subhex circumradius
+  const SHORE_PASSES = 2;       // Chaikin iterations: 2 is a natural shore, 3 very soft
+  const EPS = 1e3;              // edge keys are rounded to 1/EPS so float noise cannot
+                                // split one shared edge into two distinct ones
+
+  /*
+   * Which axial neighbour each sector faces. hexCorners() places corner k at
+   * (60k - 30) degrees, so sector k — spanning corner k to corner k+1 — faces
+   * outward along 60k degrees. DERIVED from the geometry rather than written
+   * down: HexGeo.neighborDirs is in a different order, and an off-by-one here
+   * puts the coastline on the wrong side of every hex while still looking
+   * entirely plausible.
+   */
+  function sectorDirs() {
+    const dirs = [];
+    for (let k = 0; k < 6; k++) {
+      const a0 = Math.PI / 180 * (60 * k - 30), a1 = Math.PI / 180 * (60 * (k + 1) - 30);
+      const mx = (Math.cos(a0) + Math.cos(a1)) / 2, my = (Math.sin(a0) + Math.sin(a1)) / 2;
+      let best = null, bestDot = -Infinity;
+      for (const d of G.neighborDirs) {
+        const p = G.axialToPx(d[0], d[1]);
+        const len = Math.hypot(p.x, p.y) || 1;
+        const dot = (p.x / len) * mx + (p.y / len) * my;
+        if (dot > bestDot) { bestDot = dot; best = d; }
+      }
+      dirs.push(best);
+    }
+    return dirs;
+  }
+
+  const f1 = n => n.toFixed(2);
+
+  const ringPath = pts => "M " + pts.map(p => f1(p[0]) + "," + f1(p[1])).join(" L ") + " Z";
+
+  /*
+   * Per-hex geometry, computed once for a plate's frozen lattice. Numeric point
+   * arrays (`outer`, `inner`) as well as ready-made subpath strings, because the
+   * boundary walk needs coordinates and the fills need strings.
+   *
+   *   full      the whole hexagon           (land fill, and the grid stroke)
+   *   core      the small central hexagon
+   *   sector[k] the ring piece facing neighbour k — the hexagon MINUS the core
+   */
+  function terrainMesh(geo) {
+    const dirs = sectorDirs();
+    const S = G.SIZE;
+    const cells = geo.map(h => {
+      const outer = [], inner = [];
+      for (let k = 0; k < 6; k++) {
+        const a = Math.PI / 180 * (60 * k - 30);
+        const cos = Math.cos(a), sin = Math.sin(a);
+        outer.push([h.x + S * cos, h.y + S * sin]);
+        inner.push([h.x + S * CORE_R * cos, h.y + S * CORE_R * sin]);
+      }
+      const sectors = [], sectorPts = [];
+      for (let k = 0; k < 6; k++) {
+        const j = (k + 1) % 6;
+        const quad = [inner[k], outer[k], outer[j], inner[j]];
+        sectorPts.push(quad);
+        sectors.push(ringPath(quad));
+      }
+      return {
+        sub: h.sub, q: h.q, r: h.r, x: h.x, y: h.y, outer, inner, sectorPts,
+        full: ringPath(outer), core: ringPath(inner), sectors,
+      };
+    });
+    return { cells, dirs, byKey: new Map(cells.map(c => [c.q + "," + c.r, c])) };
+  }
+
+  /* the neighbour cell across sector k, or null at the plate rim */
+  function neighbourOf(mesh, c, k) {
+    const d = mesh.dirs[k];
+    return mesh.byKey.get((c.q + d[0]) + "," + (c.r + d[1])) || null;
+  }
+  /* is the water region extended across sector k? off-plate counts as water so
+   * the plate rim keeps a hard edge rather than dissolving into the background */
+  function waterAcross(mesh, c, k, terrainOf) {
+    const n = neighbourOf(mesh, c, k);
+    return !n || terrainOf(n.sub) === WATER;
+  }
+
+  /*
+   * THE WATER REGION, as closed rings of raw (unsmoothed) points.
+   *
+   * Every water hex contributes its core plus the sectors facing water. Edges
+   * are counted: shared by two sub-shapes -> interior, discard; seen once -> on
+   * the boundary. Keys are rounded so the same edge computed from two different
+   * hex centres is recognised as one.
+   *
+   * Multiple rings are expected and correct: separate lakes each give one, and
+   * land entirely enclosed by water gives an interior ring.
+   */
+  function waterBoundary(mesh, terrainOf) {
+    const key = p => Math.round(p[0] * EPS) + "," + Math.round(p[1] * EPS);
+    const seen = new Map();       // edge key -> { a, b, count }
+    const addEdge = (p, q) => {
+      const ka = key(p), kb = key(q);
+      if (ka === kb) return;
+      const ek = ka < kb ? ka + "|" + kb : kb + "|" + ka;
+      const rec = seen.get(ek);
+      if (rec) rec.count++;
+      else seen.set(ek, { a: ka, b: kb, pa: p, pb: q, count: 1 });
+    };
+    const addShape = pts => { for (let i = 0; i < pts.length; i++) addEdge(pts[i], pts[(i + 1) % pts.length]); };
+
+    for (const c of mesh.cells) {
+      if (terrainOf(c.sub) !== WATER) continue;
+      addShape(c.inner);
+      for (let k = 0; k < 6; k++) if (waterAcross(mesh, c, k, terrainOf)) addShape(c.sectorPts[k]);
+    }
+
+    // boundary edges only, indexed by endpoint
+    const edges = [], at = new Map(), pos = new Map();
+    for (const e of seen.values()) {
+      if (e.count !== 1) continue;
+      const i = edges.length;
+      edges.push(e);
+      pos.set(e.a, e.pa); pos.set(e.b, e.pb);
+      if (!at.has(e.a)) at.set(e.a, []);
+      if (!at.has(e.b)) at.set(e.b, []);
+      at.get(e.a).push(i); at.get(e.b).push(i);
+    }
+
+    // walk endpoint to endpoint until we return to the start
+    const used = new Set(), rings = [];
+    for (let i = 0; i < edges.length; i++) {
+      if (used.has(i)) continue;
+      used.add(i);
+      const start = edges[i].a;
+      let cur = edges[i].b;
+      const ring = [pos.get(start), pos.get(cur)];
+      while (cur !== start) {
+        const next = (at.get(cur) || []).find(j => !used.has(j));
+        if (next === undefined) break;               // open chain: malformed input
+        used.add(next);
+        cur = edges[next].a === cur ? edges[next].b : edges[next].a;
+        ring.push(pos.get(cur));
+      }
+      if (ring.length > 2) rings.push(ring);
+    }
+    return rings;
+  }
+
+  /*
+   * Chaikin corner-cutting on a CLOSED ring: every edge is replaced by points at
+   * 25% and 75% along it. Purely a function of the input points — no jitter, no
+   * randomness — so the same terrain always yields the same shore.
+   */
+  function smoothRing(ring, passes) {
+    let pts = ring;
+    // rings carry an explicit closing point; drop it so the wrap-around edge is
+    // not a zero-length one, which Chaikin would turn into coincident points
+    const a = pts[0], z = pts[pts.length - 1];
+    if (pts.length > 1 && Math.abs(a[0] - z[0]) < 1e-9 && Math.abs(a[1] - z[1]) < 1e-9) {
+      pts = pts.slice(0, -1);
+    }
+    for (let n = 0; n < (passes == null ? SHORE_PASSES : passes); n++) {
+      const out = [];
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i], q = pts[(i + 1) % pts.length];
+        out.push([p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25]);
+        out.push([p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75]);
+      }
+      pts = out;
+    }
+    return pts;
+  }
+
+  /* every smoothed ring as ONE path string; evenodd makes enclosed land a hole */
+  function waterOverlayPath(mesh, terrainOf, passes) {
+    return waterBoundary(mesh, terrainOf)
+      .map(r => ringPath(smoothRing(r, passes))).join(" ");
+  }
+
+  /* ============================================================= *
+   * Hex ANCHORS — where a hex's FEATURE sits
+   *
+   * The shoreline is smoothed, so it cuts THROUGH hexes: a "water" hex may be
+   * two-thirds dry land on screen, and a land hex may have water lapping into a
+   * corner. Drawing a city or a dungeon at the hex centre therefore drops it in
+   * open water often enough to matter.
+   *
+   * So a hex WITH A FEATURE gets an ANCHOR: a point inside its land part, where
+   * the icon, its label, and any road reaching it are drawn. The hex itself does
+   * not move — selection and hit-testing stay geometric on the hexagon, so a
+   * displaced icon is still picked up by clicking anywhere in its hex.
+   *
+   * A hex with NO feature is never displaced: its anchor is its centre, full
+   * stop. That is not an optimisation, it is the rule. An anchor exists to place
+   * an icon; a hex with nothing to place has no reason to move, and displacing
+   * it would drag whatever passes through — a river running into a lake would be
+   * pulled back onto the bank instead of meeting the water.
+   *
+   * The anchor is computed against the SMOOTHED rings, not against which sectors
+   * were filled with water — Chaikin moves the shore off the sector boundaries,
+   * so sector membership no longer says what is land ON SCREEN, which is the
+   * only thing the icon cares about.
+   *
+   * Method: sample a fixed lattice, drop the samples inside the water region
+   * (same evenodd rule the fill uses), and keep the survivor FURTHEST from the
+   * shore. Sampling is crude but it needs no polygon clipping and it cannot be
+   * fooled by a concave shore; features are sparse and anchors are computed
+   * lazily, so the cost is irrelevant. Nothing here is random — the lattice is
+   * fixed and ties break towards the hex centre, so the editor and the site
+   * produce the same anchor for the same terrain, every render.
+   * ============================================================= */
+
+  const ICON_R = 8;            // bounding radius of the largest feature icon, px
+  const ANCHOR_STEP = 0.274;   // lattice spacing as a fraction of the free radius:
+                               // ~40 samples, which is plenty at this hex size
+  const ANCHOR_REACH = 2;      // hexes: how far from a water hex the smoothed
+                               // shore can possibly stray (one hex, with slack)
+
+  /*
+   * The candidate offsets from a hex centre, computed once for the frozen hex
+   * size. Generated inside the hexagon ERODED by the icon radius, which is what
+   * keeps a displaced icon from hanging over the hex boundary — the clamp is the
+   * candidate set, so there is no separate clamping step to get wrong.
+   *
+   * Sorted by distance from the centre, so equally-clear candidates resolve to
+   * the one nearest the centre: the anchor moves as little as the terrain allows.
+   */
+  let LATTICE = null;
+  function anchorLattice() {
+    if (LATTICE) return LATTICE;
+    const R = G.SIZE - ICON_R * 2 / G.SQ3;     // erode by ICON_R measured on the flats
+    const s = R * ANCHOR_STEP;
+    const n = Math.ceil(R / s) + 1;
+    const pts = [];
+    for (let j = -n; j <= n; j++) {
+      for (let i = -n; i <= n; i++) {
+        const x = s * (i + j / 2), y = s * (G.SQ3 / 2) * j;   // triangular lattice
+        if (G.insidePlate(x, y, R)) pts.push([x, y]);          // same point-up hexagon test
+      }
+    }
+    pts.sort((a, b) =>
+      (a[0] * a[0] + a[1] * a[1]) - (b[0] * b[0] + b[1] * b[1]) || a[1] - b[1] || a[0] - b[0]);
+    return (LATTICE = pts);
+  }
+
+  /* crossing test on ONE ring (smoothed rings carry no duplicate closing point) */
+  function insideRing(x, y, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const a = ring[i], b = ring[j];
+      if ((a[1] > y) !== (b[1] > y) &&
+          x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
+    }
+    return inside;
+  }
+  /* inside the water REGION: odd number of rings — the evenodd rule the fill uses,
+   * so an enclosed island reads as land here exactly as it is painted */
+  function inWater(x, y, rings) {
+    let n = 0;
+    for (const r of rings) if (insideRing(x, y, r)) n++;
+    return (n & 1) === 1;
+  }
+
+  function distToSeg(x, y, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay, len = dx * dx + dy * dy;
+    let t = len ? ((x - ax) * dx + (y - ay) * dy) / len : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    return Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
+  }
+  /* distance from a point to the nearest shoreline segment */
+  function shoreClearance(x, y, rings) {
+    let best = Infinity;
+    for (const r of rings) {
+      for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+        const d = distToSeg(x, y, r[j][0], r[j][1], r[i][0], r[i][1]);
+        if (d < best) best = d;
+      }
+    }
+    return best;
+  }
+
+  /* Is any water near enough for the shore to reach this hex? Purely a cheap
+   * reject so inland hexes never pay for sampling — a hex it lets through is
+   * still decided by the samples. Off-plate is NOT water here: the rim only
+   * carries a boundary where the rim hex itself is water. */
+  function nearWater(mesh, c, terrainOf) {
+    for (let dq = -ANCHOR_REACH; dq <= ANCHOR_REACH; dq++) {
+      const lo = Math.max(-ANCHOR_REACH, -dq - ANCHOR_REACH);
+      const hi = Math.min(ANCHOR_REACH, -dq + ANCHOR_REACH);
+      for (let dr = lo; dr <= hi; dr++) {
+        const n = mesh.byKey.get((c.q + dq) + "," + (c.r + dr));
+        if (n && terrainOf(n.sub) === WATER) return true;
+      }
+    }
+    return false;
+  }
+
+  /*
+   * A lazy anchor lookup for one plate: `.of(sub) -> {x, y}`.
+   *
+   * `hasFeature(sub)` decides which hexes may be displaced at all — only those
+   * with something to place. Everything else answers with its own centre without
+   * touching the geometry.
+   *
+   * The rings are built on the first query that needs them and the answers are
+   * memoised, so a plate with no coastal features does no work at all. Terrain
+   * AND the feature set are inputs: when either changes, build a new index
+   * rather than poking this one.
+   */
+  function anchorIndex(mesh, terrainOf, hasFeature, opts) {
+    const cells = new Map(mesh.cells.map(c => [c.sub, c]));
+    const cache = new Map();
+    let rings = null;
+
+    function compute(c) {
+      const home = { x: c.x, y: c.y };
+      if (!hasFeature(c.sub)) return home;          // nothing to place: never displaced
+      if (!nearWater(mesh, c, terrainOf)) return home;
+      if (rings === null) {
+        rings = waterBoundary(mesh, terrainOf)
+          .map(r => smoothRing(r, opts && opts.passes));
+      }
+      if (!rings.length) return home;
+
+      let wet = 0, best = null, bestClear = -Infinity;
+      for (const [dx, dy] of anchorLattice()) {
+        const x = c.x + dx, y = c.y + dy;
+        if (inWater(x, y, rings)) { wet++; continue; }
+        const d = shoreClearance(x, y, rings);
+        if (d > bestClear) { bestClear = d; best = { x, y }; }
+      }
+      // untouched by water, or nothing but water: the centre, unmoved
+      if (!wet || !best) return home;
+      return best;
+    }
+
+    return {
+      of(sub) {
+        if (cache.has(sub)) return cache.get(sub);
+        const c = cells.get(sub);
+        const a = c ? compute(c) : null;
+        cache.set(sub, a);
+        return a;
+      },
+    };
+  }
+
+  /*
+   * THE LAND UNDERLAY: every hex filled, so the smoothed water has something
+   * complete to sit on. Land hexes take their own colour. A water hex is filled
+   * per sector with the neighbour's colour across that side; where that
+   * neighbour is water there is no land colour to borrow, so it falls back to
+   * this hex's own nearest land neighbour, and failing that to water (open water
+   * is covered by the overlay regardless).
+   */
+  function meshSubpaths(mesh, terrainOf, owns) {
+    const byType = new Map();
+    const push = (type, d) => {
+      let a = byType.get(type);
+      if (!a) byType.set(type, a = []);
+      a.push(d);
+    };
+    const grid = [];
+    for (const c of mesh.cells) {
+      // ONE PHYSICAL HEX, ONE PAINTING. A plate's rim runs through subhex
+      // centres, so 30 of its positions are also positions on a neighbour. Only
+      // the OWNER fills and strokes them; a plate that merely borrows a position
+      // skips it entirely, or every seam would carry two stacked fills and a
+      // double-weight grid line. Nothing is left unpainted: those positions sit
+      // exactly RL from the owner's centre, so whenever one is on screen the
+      // owner is inside the cull margin and has been built.
+      if (owns && !owns(c.sub)) continue;
+      grid.push(c.full);
+      const here = terrainOf(c.sub);
+      if (here !== WATER) { push(here, c.full); continue; }
+
+      let fallback = null;
+      for (let k = 0; k < 6 && !fallback; k++) {
+        const n = neighbourOf(mesh, c, k);
+        const t = n && terrainOf(n.sub);
+        if (t && t !== WATER) fallback = t;
+      }
+      if (!fallback) fallback = WATER;
+
+      push(fallback, c.core);
+      for (let k = 0; k < 6; k++) {
+        const n = neighbourOf(mesh, c, k);
+        const nt = n ? terrainOf(n.sub) : null;
+        push(nt && nt !== WATER ? nt : fallback, c.sectors[k]);
+      }
+    }
+    return { byType, grid: grid.join(" ") };
+  }
+
+  /* stable, so a rebuild never reshuffles the paths */
+  function typeDrawOrder(byType) {
+    return [...byType.keys()].sort((a, b) => (a === WATER ? 1 : 0) - (b === WATER ? 1 : 0));
+  }
+
+  /*
+   * The whole terrain stack, in the one order that has no seams:
+   *   a. land underlay — every hex filled, one <path> per terrain type
+   *   b. water overlay — the smoothed rings, one <path>
+   *   c. hex grid      — the lattice stroke, one <path>, over both so grid lines
+   *                      stay visible across water exactly as they do on land
+   *
+   * `opts.overlayInto` splits the stack: the underlay goes to `parent` and the
+   * overlay plus grid to that element instead. The caller can then slip a layer
+   * BETWEEN them, which is how rivers get covered by the lake they run into.
+   */
+  function renderTerrainInto(parent, mesh, terrainOf, colorOf, opts) {
+    opts = opts || {};
+    const over = opts.overlayInto || parent;
+    // `opts.owns` filters the land underlay and the grid to the positions this
+    // plate owns. The WATER REGION is deliberately not filtered: it is computed
+    // from the full terrain grid so the shoreline runs continuously to the rim
+    // and meets its neighbour's, and its fill is opaque, so the overlap costs
+    // nothing. Skipping borrowed positions there would tear the coast at seams.
+    const { byType, grid } = meshSubpaths(mesh, terrainOf, opts.owns);
+    for (const type of typeDrawOrder(byType)) {
+      el("path", { d: byType.get(type).join(" "), fill: colorOf(type), stroke: "none" }, parent);
+    }
+    const water = waterOverlayPath(mesh, terrainOf, opts.passes);
+    if (water) el("path", { d: water, fill: colorOf(WATER), "fill-rule": "evenodd", stroke: "none" }, over);
+    el("path", {
+      d: grid, fill: "none",
+      stroke: opts.gridStroke || "rgba(0,0,0,0.16)", "stroke-width": opts.gridWidth || 1,
+    }, over);
+  }
+
+  /*
+   * A chain of hexes -> a curve that passes through the EDGE MIDPOINTS and bends
+   * around the interior hexes, starting and ending exactly on the first and last
+   * hex.
+   *
+   * That is the right shape for a RUN, whose interior vertices are all
+   * pass-throughs and whose ends are junctions or termini. It was only ever
+   * wrong when applied to a whole line, because a line may run straight through
+   * a hex where something else joins — and there the curve bends around the
+   * centre instead of touching it, so the two lines never met.
+   *
+   * IN-HEX the route follows the ANCHOR: the ends land on it and a pass-through
+   * takes it as the curve's control point, so a road runs to the relocated
+   * feature rather than to empty water. The edge midpoints stay midway between
+   * the true CENTRES — they are what two neighbouring runs agree on, and moving
+   * them would tear the network apart at the hex boundaries.
+   */
+  const anchorOfPt = p => ({ x: p.ax == null ? p.x : p.ax, y: p.ay == null ? p.y : p.ay });
+
+  function smoothPath(pts) {
+    const a0 = anchorOfPt(pts[0]);
+    let d = `M ${a0.x.toFixed(1)} ${a0.y.toFixed(1)}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const c = anchorOfPt(pts[i]);
+      const mx = (pts[i].x + pts[i + 1].x) / 2, my = (pts[i].y + pts[i + 1].y) / 2;
+      d += ` Q ${c.x.toFixed(1)} ${c.y.toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
+    }
+    const L = anchorOfPt(pts[pts.length - 1]);
     d += ` L ${L.x.toFixed(1)} ${L.y.toFixed(1)}`;
     return d;
   }
 
-  function create(svg, model, opts) {
-    opts = opts || {};
-    const { SIZE, RL, hexCorners, plateCorners } = G;
-    const T = model.registry.terrain, F = model.registry.features;
-    const geo = model.geo;
+  /* ============================================================= *
+   * Line features as a NETWORK, not a list of lines
+   *
+   * Rivers and streams that meet merge into one waterway; paths, roads and
+   * paved roads that meet join. Two things make that work:
+   *
+   *  - ONE GRAPH PER CATEGORY. Every line contributes undirected edges between
+   *    consecutive hexes, and an edge shared by several lines is kept once at
+   *    the heaviest grade using it. Three rivers down one valley used to stroke
+   *    the shared tail three times, which — with water at 0.9 opacity — made it
+   *    darker and fatter than the branches feeding it, the visual opposite of a
+   *    merge.
+   *
+   *  - RUNS, not lines, are the drawing unit. A run is a maximal chain of
+   *    same-grade edges whose interior vertices all have degree 2, and it
+   *    terminates at the CENTRE of the junction or terminus at either end. So
+   *    every branch of a junction ends on the same point and they genuinely
+   *    touch; pass-through hexes keep the old smooth bend. A run is one <path>,
+   *    which also keeps a dashed grade's pattern continuous along its length
+   *    instead of restarting it at every hex.
+   *
+   * Water and road are SEPARATE graphs, so a road crossing a river shares no
+   * vertex: no merge, no cap, and the layer order draws the road over the water
+   * like a bridge.
+   * ============================================================= */
+
+  // Water is drawn slightly transparent. It goes on the category's GROUP, not on
+  // each path: group opacity flattens first, so strokes that overlap inside a
+  // run — or where two runs meet at a junction — never double-darken.
+  const CATEGORY_OPACITY = { water: 0.9 };
+  const CATEGORY_ORDER = ["water", "road"];      // water beneath road
+
+  const edgeKey = (a, b) => (a < b ? a + " " + b : b + " " + a);
+
+  /* Extend a trail from `to`, away from `from`, through degree-2 vertices that
+   * continue the same grade. Consumes the edges it walks. */
+  function extendRun(g, from, to, type, seen) {
+    const chain = [from, to];
+    let prev = from, cur = to;
+    for (;;) {
+      const nb = g.adj.get(cur);
+      if (!nb || nb.size !== 2) break;                    // junction or terminus: stop
+      let next = null;
+      for (const n of nb) if (n !== prev) next = n;
+      if (next == null) break;
+      const k = edgeKey(cur, next);
+      if (seen.has(k) || g.edge.get(k) !== type) break;   // already drawn, or the grade changes
+      seen.add(k);
+      chain.push(next);
+      prev = cur; cur = next;
+    }
+    return chain;
+  }
+
+  function buildCategoryGraphs(lines, bySub, offsetFor, styleOf, anchorFor) {
+    const graphs = new Map();
+    for (const ln of (lines || [])) {
+      const st = styleOf(ln.type);
+      const cat = st.category || "road";
+      let g = graphs.get(cat);
+      if (!g) graphs.set(cat, g = { pos: new Map(), adj: new Map(), edge: new Map() });
+      // Only ROADS follow anchors — that is what anchors are for, a road reaching
+      // a relocated settlement. A river's business is being IN the water, so it
+      // routes through centres and runs on into the subhex it ends in.
+      const anchored = cat === "road" ? anchorFor : null;
+      for (const run of resolveRuns(ln.path, bySub, offsetFor, anchored)) {
+        for (let i = 0; i < run.length; i++) {
+          const n = run[i];
+          g.pos.set(n.key, n);
+          if (!g.adj.has(n.key)) g.adj.set(n.key, new Set());
+          if (i === 0) continue;
+          const a = run[i - 1].key, b = n.key;
+          if (a === b) continue;                          // a repeated hex is not an edge
+          g.adj.get(a).add(b);
+          g.adj.get(b).add(a);
+          const k = edgeKey(a, b);
+          const cur = g.edge.get(k);
+          // heaviest grade wins: paved > road > path, river > stream
+          if (!cur || st.width > styleOf(cur).width) g.edge.set(k, ln.type);
+        }
+      }
+    }
+    return graphs;
+  }
+
+  /*
+   * Draw `lines` as one network per category into whatever the caller nominates.
+   * ctx = {
+   *   bySub, offsetFor, styleOf,
+   *   anchorFor(sub, plate) -> {x,y}|null,
+   *   layerFor(category, plateId) -> parent element | null,
+   *   localOrigin(plateId) -> {x,y}          // optional
+   * }
+   *
+   * ONE GRAPH MAY SPAN PLATES. The site draws a single plate and takes the
+   * simple path: layerFor ignores the plate and nothing is shifted. The editor
+   * builds one graph across the whole atlas — which is what makes a road on one
+   * plate junction with a road on its neighbour at a shared seam hex — and hands
+   * back a different layer per plate, because a river has to sit under ITS OWN
+   * plate's water overlay. `localOrigin` is then subtracted so the run lands
+   * correctly inside that already-positioned layer.
+   *
+   * A run is drawn by the first plate along it that HAS a layer, so a run
+   * reaching in from an off-screen plate is still drawn rather than dropped.
+   */
+  function drawLineNetwork(lines, ctx) {
+    const { bySub, offsetFor, styleOf, layerFor, anchorFor, localOrigin } = ctx;
+    const graphs = buildCategoryGraphs(lines, bySub, offsetFor, styleOf, anchorFor);
+
+    const cats = [...graphs.keys()].sort((a, b) => {
+      const ia = CATEGORY_ORDER.indexOf(a), ib = CATEGORY_ORDER.indexOf(b);
+      return (ia < 0 ? CATEGORY_ORDER.length : ia) - (ib < 0 ? CATEGORY_ORDER.length : ib);
+    });
+
+    for (const cat of cats) {
+      const g = graphs.get(cat);
+      // one <g> per (category, plate), so category opacity still flattens
+      const boxes = new Map();
+      const boxFor = plate => {
+        const k = String(plate);
+        if (!boxes.has(k)) {
+          const parent = layerFor(cat, plate);
+          boxes.set(k, parent ? el("g", CATEGORY_OPACITY[cat] ? { opacity: CATEGORY_OPACITY[cat] } : {}, parent) : null);
+        }
+        return boxes.get(k);
+      };
+      /* the first node along `keys` whose plate has somewhere to draw */
+      const placement = keys => {
+        for (const key of keys) {
+          const plate = g.pos.get(key).plate;
+          const box = boxFor(plate);
+          if (box) return { box, shift: (localOrigin && localOrigin(plate)) || { x: 0, y: 0 } };
+        }
+        return null;
+      };
+
+      // every edge exactly once, grown into the longest run it belongs to
+      const seen = new Set();
+      for (const [k, type] of g.edge) {
+        if (seen.has(k)) continue;
+        seen.add(k);
+        const i = k.indexOf(" ");
+        const a = k.slice(0, i), b = k.slice(i + 1);
+        const fwd = extendRun(g, a, b, type, seen);       // [a, b, …]
+        const back = extendRun(g, b, a, type, seen);      // [b, a, …] the other way
+        const chain = back.slice(2).reverse().concat(fwd);
+
+        const place = placement(chain);
+        if (!place) continue;
+        const { x: sx, y: sy } = place.shift;
+        const pts = chain.map(key => {
+          const p = g.pos.get(key);
+          return { x: p.x - sx, y: p.y - sy, ax: p.ax - sx, ay: p.ay - sy };
+        });
+
+        const st = styleOf(type);
+        const attrs = {
+          d: smoothPath(pts),
+          fill: "none", stroke: st.color, "stroke-width": st.width,
+          "stroke-linecap": "round", "stroke-linejoin": "round",
+        };
+        if (st.dash) attrs["stroke-dasharray"] = st.dash;
+        el("path", attrs, place.box);
+      }
+
+      /*
+       * A junction gets a filled round cap on the hex ANCHOR, sized to the
+       * heaviest grade meeting there, so the join reads as solid water or a
+       * solid fork rather than as separate strokes abutting. Branches keep
+       * their own widths, so a stream visibly feeds into a river.
+       *
+       * A degree-2 vertex where the GRADE changes gets one too — it is where a
+       * stream becomes a river, and the cap hides the width step.
+       */
+      for (const [key, nb] of g.adj) {
+        if (!nb.size) continue;
+        let heaviest = null, mixed = false;
+        for (const n of nb) {
+          const type = g.edge.get(edgeKey(key, n));
+          if (!type) continue;
+          if (heaviest == null) heaviest = type;
+          else if (type !== heaviest) {
+            mixed = true;
+            if (styleOf(type).width > styleOf(heaviest).width) heaviest = type;
+          }
+        }
+        if (heaviest == null || (nb.size < 3 && !mixed)) continue;
+        const place = placement([key]);
+        if (!place) continue;
+        const st = styleOf(heaviest), p = anchorOfPt(g.pos.get(key));
+        el("circle", {
+          cx: (p.x - place.shift.x).toFixed(1), cy: (p.y - place.shift.y).toFixed(1),
+          r: (st.width / 2).toFixed(2), fill: st.color,
+        }, place.box);
+      }
+    }
+  }
+
+  /* ============================================================= *
+   * THE PLATE LATTICE — one line per seam, not one frame per plate
+   *
+   * Three separate faults produced the doubled boundaries, and each needed its
+   * own fix. Measured, not guessed:
+   *
+   * 1. THE RADIUS WAS WRONG. The frame was stroked at RL + SIZE*0.2 = 317.20,
+   *    but adjacent plate centres are SQ3*RL = 540.40 apart and a hexagon of
+   *    radius 317.20 needs 549.41 to tile. Every pair of neighbours overlapped
+   *    by 9.01px before stroke width even counted. The radius is now exactly
+   *    RL, so adjacent frames share their seam exactly.
+   *
+   * 2. EACH SEAM WAS STROKED TWICE. Even at the right radius, both plates drew
+   *    their shared edge, so interior seams came out at double weight against a
+   *    single-weight outer border. So the lattice is not a frame per plate at
+   *    all: every plate's six edges go into one set, an edge claimed by two
+   *    plates is kept ONCE, and the whole thing is stroked as a single path.
+   *    Interior and outer edges then render identically, and the entire map
+   *    boundary costs ONE node.
+   *
+   * 3. THE FRAME CANNOT CONTAIN THE SUBHEXES, and no radius will fix that. The
+   *    furthest subhex CORNER is 338.00 from the plate centre — RL + 26.00 —
+   *    because a hexagonal plate boundary and a hexagonal subhex footprint are
+   *    not the same shape, and buildPlateHexes() is frozen (README §2).
+   *
+   *    THE CHOICE, made deliberately: the boundary stays an IDEALISED hexagon
+   *    at RL, drawn ABOVE the terrain, and subhexes are allowed to straddle it.
+   *    That is what the line means — "this is the 36-mile hex" — and it stays a
+   *    clean, legible hexagon at every zoom. The alternative, tracing the union
+   *    outline of the subhexes each plate actually owns, would be truthful to
+   *    the data but would replace the hexagon with a jagged 30-odd segment path
+   *    that reads as noise. Which subhex belongs to which plate is answered
+   *    exactly, and visibly, by the seam-ownership rule and the addresses
+   *    printed on the hexes — not by this line.
+   * ============================================================= */
+
+  /*
+   * Every edge of every plate hexagon, each kept once. `plates` is a list of
+   * { x, y } centres in world coordinates. Endpoints are rounded before keying
+   * so that the same corner arrived at from two different plate centres is
+   * recognised as one point rather than two a float apart.
+   */
+  function plateBoundaryEdges(plates) {
+    const key = p => Math.round(p[0] * 100) + "," + Math.round(p[1] * 100);
+    const seen = new Map();
+    for (const e of (plates || [])) {
+      const corners = [];
+      for (let k = 0; k < 6; k++) {
+        const ang = Math.PI / 180 * (60 * k + 30);        // plateCorners' own angles
+        corners.push([e.x + G.RL * Math.cos(ang), e.y + G.RL * Math.sin(ang)]);
+      }
+      for (let k = 0; k < 6; k++) {
+        const a = corners[k], b = corners[(k + 1) % 6];
+        const ka = key(a), kb = key(b);
+        const ek = ka < kb ? ka + "|" + kb : kb + "|" + ka;
+        const rec = seen.get(ek);
+        if (rec) rec.count++;
+        else seen.set(ek, { a, b, count: 1 });
+      }
+    }
+    return [...seen.values()];
+  }
+  /* the whole map's boundary as ONE path: 6n edges less one per shared seam */
+  const plateBoundaryPath = plates => plateBoundaryEdges(plates)
+    .map(e => `M ${f1(e.a[0])} ${f1(e.a[1])} L ${f1(e.b[0])} ${f1(e.b[1])}`).join(" ");
+
+  /* ============================================================= *
+   * THE ATLAS — every plate on one canvas
+   *
+   * There is no "current plate". Plates are not a mode you enter; they are just
+   * where a subhex happens to live. So this draws the whole map at once, culls
+   * to the viewport, and answers "which subhex is under this point" — and both
+   * the editor and the published site are built on it, which is the only way the
+   * two can be guaranteed to look the same.
+   *
+   * LAYER ORDER is global, not per plate, and it is load-bearing:
+   *
+   *   under   every plate's land underlay
+   *   water   rivers and streams        ── under the lake fill, so a river
+   *   shore   water overlay + hex grid     running into a lake merges with it
+   *   road    paths, roads, paved       ── over the water, so a crossing reads
+   *   content icons, names, numbers        as a bridge
+   *   frame   the plate lattice: ONE path for the whole map, above the terrain
+   *           it crosses, so the line is clean and unbroken (see THE PLATE
+   *           LATTICE above for why it is drawn there and at that radius)
+   *   ui      empty, for whatever the CALLER draws on top
+   *
+   * `ui` is the one layer this module never puts anything in. It is where a
+   * caller's own overlay goes — the site's selected-hex outline, the editor's
+   * selection, its in-progress line, its empty-position markers. This module
+   * knows about none of those: it draws the MAP. Anything that exists only
+   * because you can edit the world is the editor's to draw, in the editor's own
+   * code, so it cannot leak onto the published site by accident.
+   *
+   * Because the layers are global rather than per plate, a river crossing a
+   * boundary is never painted over by the neighbour's terrain, and the LINE
+   * NETWORK can be one graph across the whole atlas — which is what lets two
+   * plates' roads junction at a shared seam hex.
+   *
+   * The caller supplies the data through `stateOf(id)` (null while a plate is
+   * still loading) and is told what to fetch through `request(id)`. Nothing here
+   * knows about HTTP, files, or editing.
+   * ============================================================= */
+
+  const ATLAS_DEFAULTS = {
+    gridStroke: "rgba(0,0,0,0.16)",
+    cullMargin: G.RL * 0.6,          // build a little beyond the viewport so panning does not pop
+    iconLo: 0.16, iconHi: 0.42,      // zoom band over which icons and names fade in
+    numLo: 0.75, numHi: 1.05,        // zoom band over which subhex numbers fade in
+  };
+
+  function createAtlas(svg, opts) {
+    opts = Object.assign({}, ATLAS_DEFAULTS, opts);
+    const geo = opts.geo || G.buildPlateHexes();
     const bySub = new Map(geo.map(h => [h.sub, h]));
-
-    const world = el("g", {}, svg);
-    const layers = {
-      fill:  el("g", {}, world),
-      water: el("g", {}, world),
-      road:  el("g", {}, world),
-      icon:  el("g", {}, world),
-      num:   el("g", { style: "transition:opacity .3s" }, world),
-      frame: el("g", {}, world),
-      sel:   el("g", {}, world),
-    };
-
-    /* terrain fills — keep a handle per subhex so a single hex can be recolored */
-    const fillBySub = new Map();
-    for (const h of geo) {
-      const spec = T[model.terrainByNum[h.sub]] || { color: "#cccccc" };
-      const poly = el("polygon", {
-        points: hexCorners(h.x, h.y, SIZE),
-        fill: spec.color, stroke: "rgba(0,0,0,0.16)", "stroke-width": 1
-      }, layers.fill);
-      fillBySub.set(h.sub, poly);
-    }
-
-    function setTerrain(sub, type) {
-      const poly = fillBySub.get(sub);
-      if (!poly) return;
-      const spec = T[type] || { color: "#cccccc" };
-      poly.setAttribute("fill", spec.color);
-      model.terrainByNum[sub] = type;
-    }
-
-    /* line features — style driven by the theme's line registry (by grade) */
-    const LINES = model.registry.lines || {};
+    const byKey = new Map(geo.map(h => [h.q + "," + h.r, h]));
+    const mesh = terrainMesh(geo);
+    const LABEL_Y = -(G.RL - G.SIZE * 0.55);
+    const registry = opts.registry || {};
+    const T = registry.terrain || {}, LN = registry.lines || {};
+    const stateOf = opts.stateOf || (() => null);
+    const request = opts.request || (() => {});
+    const colorOf = type => (T[type] || { color: "#cccccc" }).color;
     function lineStyle(type) {
-      const spec = LINES[type];
+      const spec = LN[type];
       if (spec) return spec;
-      // fallback for data predating the registry
       return type === "river" || type === "stream"
         ? { category: "water", color: "#7ea6c9", width: type === "stream" ? 2 : 3 }
         : { category: "road", color: "#6b5138", width: 2.4 };
     }
-    function rebuildLines(lines) {
-      layers.water.textContent = "";
-      layers.road.textContent = "";
-      for (const ln of (lines || model.lines)) {
-        const pts = ln.path.map(s => bySub.get(s)).filter(Boolean);
-        if (pts.length < 2) continue;
-        const st = lineStyle(ln.type);
-        const attrs = { d: smoothPath(pts), fill: "none", stroke: st.color, "stroke-width": st.width, "stroke-linecap": "round" };
-        if (st.dash) attrs["stroke-dasharray"] = st.dash;
-        const layer = st.category === "water" ? layers.water : layers.road;
-        if (st.category === "water") attrs.opacity = 0.9;
-        el("path", attrs, layer);
-      }
-    }
-    rebuildLines(model.lines);
 
-    /* feature icons + settlement name labels */
-    function rebuildFeatures(hexContent) {
-      const content = hexContent || model.hexContent;
-      layers.icon.textContent = "";
+    const world = el("g", {}, svg);
+    const layers = {
+      under:   el("g", {}, world),
+      water:   el("g", {}, world),
+      shore:   el("g", {}, world),
+      road:    el("g", {}, world),
+      content: el("g", {}, world),
+      frame:   el("g", {}, world),
+      ui:      el("g", {}, world),
+    };
+
+    let plates = [];                       // [{ id, name, coord, x, y, … }]
+    let own = G.plateOwnership({});
+    const recs = new Map();                // id -> render record
+    let view = { tx: 0, ty: 0, s: 1 };
+
+    const posOf = id => { const e = plates.find(p => p.id === id); return e ? { x: e.x, y: e.y } : null; };
+    const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+    const iconOpacity = () => clamp01((view.s - opts.iconLo) / (opts.iconHi - opts.iconLo));
+    const numOpacity = () => clamp01((view.s - opts.numLo) / (opts.numHi - opts.numLo));
+
+    /*
+     * The lattice is anchored on the LOWEST plate id at (0,0) and never moves
+     * again. Nothing re-origins, so a world coordinate means the same thing for
+     * the whole session — and seam ownership, which is derived from relative
+     * position, is unaffected by the choice either way.
+     */
+    function setPlates(list) {
+      const coords = {};
+      for (const p of list) coords[p.id] = p.coord;
+      own = G.plateOwnership(coords);
+      plates = list.map(p => {
+        const o = G.plateToPx(p.coord[0], p.coord[1]);
+        return Object.assign({}, p, { x: o.x, y: o.y });
+      });
+      drawBoundary();
+      // positions are absolute, so anything already built is thrown away and
+      // the viewport pass rebuilds only what is actually on screen
+      for (const id of [...recs.keys()]) drop(id);
+      update();
+    }
+
+    /* The whole map's boundary, once. Not culled and not per plate: it is a
+     * single path of a few dozen segments however large the atlas grows. */
+    function drawBoundary() {
+      layers.frame.textContent = "";
+      const d = plateBoundaryPath(plates);
+      if (!d) return;
+      el("path", {
+        d, fill: "none",
+        stroke: opts.frameStroke || "#3f5c56",
+        "stroke-width": opts.frameWidth || 3,
+        "stroke-linecap": "round", "stroke-linejoin": "round",
+      }, layers.frame);
+    }
+
+    /* ---------- per-plate records ---------- */
+    function createRec(e) {
+      const at = { transform: `translate(${e.x.toFixed(1)} ${e.y.toFixed(1)})` };
+      const rec = {
+        id: e.id, entry: e,
+        gUnder: el("g", at, layers.under),
+        gShore: el("g", at, layers.shore),
+        gWater: el("g", at, layers.water),      // this plate's share of the water network
+        gRoad:  el("g", at, layers.road),       // …and of the road network
+        gContent: el("g", at, layers.content),
+        built: false, numsBuilt: false, anchors: null,
+      };
+      rec.gIcons = el("g", {}, rec.gContent);
+      rec.gNum = el("g", {}, rec.gContent);
+      rec.label = el("text", {
+        "text-anchor": "middle", "font-size": 30,
+        "font-family": "'IM Fell English SC',serif", fill: "rgba(43,43,35,0.6)",
+      }, rec.gContent);
+      // its NAME if it has one, else its id — at a constant 30 screen px these
+      // sit shoulder to shoulder across a row of plates, so keep them short
+      rec.label.textContent = e.name || e.id;
+      // NO per-plate frame here: the boundary is one path for the whole map
+      // (drawBoundary), because a frame per plate strokes every interior seam
+      // twice. The plate's name is its label; the tooltip went with the frame.
+      const title = document.createElementNS(SVGNS, "title");
+      title.textContent = `36-mile hex ${e.id}${e.name ? " (" + e.name + ")" : ""}`;
+      rec.gContent.appendChild(title);
+      recs.set(e.id, rec);
+      return rec;
+    }
+    function drop(id) {
+      const rec = recs.get(id);
+      if (!rec) return;
+      for (const g of [rec.gUnder, rec.gShore, rec.gWater, rec.gRoad, rec.gContent]) g.remove();
+      recs.delete(id);
+    }
+
+    function paint(rec, st) {
+      rec.gUnder.textContent = "";
+      rec.gShore.textContent = "";
+      rec.anchors = null;
+      renderTerrainInto(rec.gUnder, mesh, s => st.terrain[s] || st.defaultTerrain, colorOf, {
+        gridStroke: opts.gridStroke, overlayInto: rec.gShore,
+        // a borrowed seam position is the OWNER's to paint, and only theirs
+        owns: sub => !own.isBorrowed(rec.id, sub),
+      });
+      rec.built = true;
+      drawIcons(rec, st);
+      if (rec.numsBuilt) drawNumbers(rec);
+    }
+
+    /* where a plate's FEATURES sit — a hex with one that the shoreline cuts
+     * through takes a point inside its land part (see anchorIndex) */
+    function anchorsFor(rec, st) {
+      if (!rec.anchors) {
+        rec.anchors = anchorIndex(mesh,
+          s => st.terrain[s] || st.defaultTerrain,
+          s => { const c = (st.hexes || {})[s]; return !!(c && c.feature); });
+      }
+      return rec.anchors;
+    }
+
+    function drawIcons(rec, st) {
+      rec.gIcons.textContent = "";
+      const anchors = anchorsFor(rec, st);
       for (const h of geo) {
-        const c = content[h.sub];
+        const c = (st.hexes || {})[h.sub];
         if (!c || !c.feature) continue;
-        drawIcon(layers.icon, c.feature.type, h.x, h.y, 1);
+        const a = anchors.of(h.sub) || h;
+        drawIcon(rec.gIcons, c.feature.type, a.x, a.y, 1);
         if (c.feature.type === "city" || c.feature.type === "town") {
           const t = el("text", {
-            x: h.x, y: h.y + 22, "text-anchor": "middle",
+            x: a.x, y: a.y + 22, "text-anchor": "middle",
             "font-family": "'IM Fell English SC',serif",
-            "font-size": c.feature.type === "city" ? 15 : 12, fill: "#2b2b23"
-          }, layers.icon);
+            "font-size": c.feature.type === "city" ? 15 : 12, fill: "#2b2b23",
+          }, rec.gIcons);
           t.textContent = c.feature.name || "";
         }
       }
     }
-    rebuildFeatures(model.hexContent);
 
-    /* subhex numbers */
-    for (const h of geo) {
-      const t = el("text", {
-        x: h.x, y: h.y - SIZE * 0.42, "text-anchor": "middle",
-        "font-family": "'IBM Plex Mono',monospace", "font-size": 8.5, fill: "rgba(43,43,35,0.6)"
-      }, layers.num);
-      t.textContent = h.num;
+    /* the FULL address, and on a seam position that is the owner's — the two
+     * plates meeting there print one address, not two names for one hex */
+    function drawNumbers(rec) {
+      rec.gNum.textContent = "";
+      for (const h of geo) {
+        const t = el("text", {
+          x: h.x, y: h.y - G.SIZE * 0.42, "text-anchor": "middle",
+          "font-family": "'IBM Plex Mono',monospace", "font-size": 6.5, fill: "rgba(30,30,24,0.85)",
+        }, rec.gNum);
+        t.textContent = own.addressOf(rec.id, h.sub);
+      }
+      rec.numsBuilt = true;
     }
-    function setNumbersVisible(v) { layers.num.style.opacity = v ? 1 : 0; }
 
-    /* plate frame + six neighbor chips (interaction attaches click handlers) */
-    el("polygon", { points: plateCorners(RL + SIZE * 0.2), fill: "none", stroke: "#2e6f6a", "stroke-width": 4, "stroke-linejoin": "round" }, layers.frame);
-    const neighborChips = [];
-    const NEI = [
-      { dir: "e", ang: 0 }, { dir: "se", ang: 60 }, { dir: "sw", ang: 120 },
-      { dir: "w", ang: 180 }, { dir: "nw", ang: 240 }, { dir: "ne", ang: 300 }
-    ];
-    const neighbors = model.plate.neighbors || {};
-    for (const n of NEI) {
-      const a = Math.PI / 180 * n.ang, R = RL + SIZE * 1.35;
-      const cx = Math.cos(a) * R, cy = Math.sin(a) * R;
-      const g = el("g", { transform: `translate(${cx.toFixed(1)} ${cy.toFixed(1)})`, style: "cursor:pointer" }, layers.frame);
-      el("polygon", { points: hexCorners(0, 0, 20), fill: "#e9e2cf", stroke: "#2e6f6a", "stroke-width": 2.5 }, g);
-      const t1 = el("text", { "text-anchor": "middle", y: -2, "font-size": 6.4, fill: "#2e6f6a", "font-family": "'IBM Plex Mono',monospace" }, g);
-      t1.textContent = "36-MI HEX";
-      const nid = neighbors[n.dir] || null;
-      const t2 = el("text", { "text-anchor": "middle", y: 9, "font-size": 11, "font-weight": 700, fill: "#2e6f6a", "font-family": "'Alegreya Sans',sans-serif" }, g);
-      t2.textContent = nid ? nid : "—";
-      neighborChips.push({ dir: n.dir, nid, g });
+    /* ---------- the atlas-wide line network ---------- */
+    /* Path entries are canonicalised to their OWNER's address, so a line on one
+     * plate and a line on its neighbour that meet at a shared seam hex are one
+     * node in one graph and junction properly. */
+    function canonPath(path, lineOwnerId) {
+      const out = [];
+      for (const e of (path || [])) {
+        const a = G.parseAddr(e);
+        if (!a) continue;
+        const o = own.ownerOf(a.plate || lineOwnerId, a.sub);
+        out.push(o.plateId + "-" + o.sub);
+      }
+      return out;
+    }
+    function renderLines() {
+      for (const rec of recs.values()) { rec.gWater.textContent = ""; rec.gRoad.textContent = ""; }
+      if (!plates.length) return;
+      const lines = [];
+      for (const rec of recs.values()) {
+        const st = stateOf(rec.id);
+        if (!st) continue;
+        const src = opts.linesOf ? opts.linesOf(rec.id, st) : (st.lines || []);
+        for (const ln of src) lines.push({ type: ln.type, path: canonPath(ln.path, rec.id) });
+      }
+      drawLineNetwork(lines, {
+        bySub, styleOf: lineStyle,
+        offsetFor: posOf,        // build the graph in absolute world coordinates…
+        localOrigin: posOf,      // …and hand each run back to its plate's own space
+        layerFor: (cat, plate) => {
+          const rec = recs.get(plate);
+          if (!rec || !rec.built) return null;
+          return cat === "water" ? rec.gWater : rec.gRoad;
+        },
+        anchorFor: (sub, plate) => {
+          const rec = recs.get(plate), st = stateOf(plate);
+          return (rec && rec.built && st) ? anchorsFor(rec, st).of(sub) : null;
+        },
+      });
+    }
+
+    /* ---------- viewport culling ---------- */
+    function viewportRect() {
+      if (opts.viewportRect) return opts.viewportRect();
+      const r = svg.getBoundingClientRect();
+      const w = r.width || 800, h = r.height || 600;
+      return {
+        xmin: (0 - view.tx) / view.s, xmax: (w - view.tx) / view.s,
+        ymin: (0 - view.ty) / view.s, ymax: (h - view.ty) / view.s,
+      };
+    }
+    const inView = (e, vp) =>
+      e.x + G.RL + opts.cullMargin > vp.xmin && e.x - G.RL - opts.cullMargin < vp.xmax &&
+      e.y + G.RL + opts.cullMargin > vp.ymin && e.y - G.RL - opts.cullMargin < vp.ymax;
+
+    /*
+     * Decide what is on screen, build the deltas, tear down what left. An
+     * off-screen plate is never built and its interior is never fetched, so the
+     * node count stays bounded however large the map grows — that, not level of
+     * detail, is the budget. It matters most on the published site, where a
+     * visitor may have the whole continent in front of them.
+     */
+    function update() {
+      const vp = viewportRect();
+      const vis = plates.filter(e => inView(e, vp));
+      const want = new Set(vis.map(e => e.id));
+      for (const id of [...recs.keys()]) if (!want.has(id)) drop(id);
+      for (const e of vis) {
+        let rec = recs.get(e.id) || createRec(e);
+        const st = stateOf(e.id);
+        if (!st) { request(e.id); continue; }        // frame only until it lands
+        if (!rec.built) paint(rec, st);
+      }
+
+      // 157 text nodes a plate: only worth existing inside the zoom band where
+      // they can actually be read
+      const showNums = numOpacity() > 0.01;
+      const k = (1 / view.s).toFixed(4);
+      for (const rec of recs.values()) {
+        rec.label.setAttribute("transform", `translate(0 ${LABEL_Y}) scale(${k})`);
+        if (showNums && !rec.numsBuilt && rec.built) drawNumbers(rec);
+        else if (!showNums && rec.numsBuilt) { rec.gNum.textContent = ""; rec.numsBuilt = false; }
+      }
+      renderLines();
+      applyFade();
+    }
+
+    /* Only the content layer responds to zoom — terrain is drawn at full detail
+     * at every scale, because that is what makes the map one continuous surface
+     * rather than a set of tiles. */
+    function applyFade() {
+      layers.content.style.opacity = iconOpacity();
+      for (const rec of recs.values()) rec.gNum.style.opacity = numOpacity();
+    }
+
+    /* ---------- hit testing ---------- */
+    const plateAt = (wx, wy) => plates.find(e => G.insidePlate(wx - e.x, wy - e.y, G.RL)) || null;
+    /*
+     * A world point -> { plateId, sub }, resolved to the hex's OWNER.
+     *
+     * A seam position is contained by two plates (three at a corner) and which
+     * one plateAt happens to find first is an accident of list order, so that
+     * accident is settled HERE, once, for everything downstream: painting,
+     * selection, metadata and line drawing all get the same answer.
+     */
+    function hexAt(wx, wy) {
+      const e = plateAt(wx, wy);
+      if (!e) return null;
+      const a = G.pxToAxial(wx - e.x, wy - e.y);
+      const h = byKey.get(a.q + "," + a.r);
+      return h ? own.ownerOf(e.id, h.sub) : null;
+    }
+    /* the centre of a subhex in absolute world coordinates */
+    function worldOf(plateId, sub) {
+      const p = posOf(plateId), h = bySub.get(sub);
+      return (p && h) ? { x: p.x + h.x, y: p.y + h.y } : null;
+    }
+
+    function setView(tx, ty, s) {
+      view = { tx, ty, s };
+      world.setAttribute("transform", `translate(${tx} ${ty}) scale(${s})`);
+      applyFade();
+    }
+    /* the bounding box of every plate position, for framing the whole map */
+    function bounds() {
+      const pts = plates.length ? plates : [{ x: 0, y: 0 }];
+      return {
+        minX: Math.min(...pts.map(p => p.x)) - G.RL - G.SIZE,
+        maxX: Math.max(...pts.map(p => p.x)) + G.RL + G.SIZE,
+        minY: Math.min(...pts.map(p => p.y)) - G.RL - G.SIZE,
+        maxY: Math.max(...pts.map(p => p.y)) + G.RL + G.SIZE,
+      };
+    }
+
+    /* one subhex changed colour on one plate: repaint the plates that SHOW it */
+    function invalidate(id) {
+      const rec = recs.get(id);
+      if (rec) rec.built = false;
+    }
+    function refresh() {
+      for (const rec of recs.values()) {
+        const st = stateOf(rec.id);
+        if (st && !rec.built) paint(rec, st);
+      }
+      renderLines();
+      applyFade();
     }
 
     return {
-      world, layers, fillBySub, neighborChips,
-      setTerrain, setNumbersVisible, rebuildLines, rebuildFeatures,
-      lineStyle, hexBySub: bySub,
+      world, layers, geo, bySub, byKey, mesh, recs,
+      setPlates, setView, update, refresh, invalidate, renderLines, applyFade,
+      hexAt, plateAt, worldOf, bounds, posOf, lineStyle, colorOf,
+      get own() { return own; },
+      get plates() { return plates; },
+      iconOpacity, numOpacity,
+      anchorOf: (plateId, sub) => {
+        const rec = recs.get(plateId), st = stateOf(plateId);
+        return (rec && rec.built && st) ? anchorsFor(rec, st).of(sub) : bySub.get(sub);
+      },
     };
   }
 
-  const PlateDraw = { create, drawIcon, el };
+  const PlateDraw = {
+    createAtlas, drawIcon, el, resolveRuns, smoothPath, drawLineNetwork,
+    terrainMesh, meshSubpaths, typeDrawOrder, sectorDirs, renderTerrainInto,
+    waterBoundary, smoothRing, waterOverlayPath,
+    plateBoundaryEdges, plateBoundaryPath,
+    anchorIndex, anchorLattice, inWater,
+    WATER, CORE_R, SHORE_PASSES, ICON_R,
+  };
   if (typeof module !== "undefined" && module.exports) module.exports = PlateDraw;
   else global.PlateDraw = PlateDraw;
 })(typeof window !== "undefined" ? window : this);
 </script>
-<script>window.WORLD = {"generatedFrom":"repo data files (README §4)","plate":{"id":"0001","continent_hex":1,"name":"Central Harrow","title":"Central portion of Harrow Canton, Karvosia","canton":"Harrow","realm":"Karvosia","scale_label":"1 HEX = 3 MILES (1 LEAGUE)","summary":"The heart of Harrow canton: a lake-country of plains and low hills about the town of Merrowgate, hemmed by forest and high ground.","default_terrain":"plains","neighbors":{"e":"0002","ne":"0003","nw":null,"w":null,"sw":null,"se":null}},"registry":{"terrain":{"water":{"color":"#93b7b3","label":"Water"},"swamp":{"color":"#8a9a77","label":"Swamp"},"plains":{"color":"#cdd39c","label":"Plains"},"forest":{"color":"#5e8c5e","label":"Forest"},"hills":{"color":"#c9ae7b","label":"Hills"},"mountains":{"color":"#a2988a","label":"Mountains"}},"features":{"village":{"label":"Village"},"town":{"label":"Town"},"city":{"label":"City"},"dungeon":{"label":"Dungeon"},"ruin":{"label":"Ruins"},"lair":{"label":"Monster lair"},"burned":{"label":"Burned settlement"}},"lines":{"stream":{"category":"water","label":"Stream","color":"#7ea6c9","width":2},"river":{"category":"water","label":"River","color":"#7ea6c9","width":3},"path":{"category":"road","label":"Path","color":"#6b5138","width":1.6,"dash":"5 4"},"road":{"category":"road","label":"Road","color":"#6b5138","width":2.4},"paved":{"category":"road","label":"Paved road","color":"#6b5138","width":3.2}}},"terrainByNum":{"100":"hills","101":"plains","102":"plains","103":"plains","104":"swamp","105":"water","106":"swamp","107":"swamp","108":"plains","109":"plains","110":"plains","111":"hills","112":"hills","113":"plains","114":"plains","115":"plains","116":"plains","117":"plains","118":"plains","119":"swamp","120":"plains","121":"plains","122":"plains","123":"mountains","124":"hills","125":"hills","126":"hills","127":"forest","128":"plains","129":"plains","130":"swamp","131":"swamp","132":"plains","133":"plains","134":"plains","135":"hills","136":"mountains","137":"hills","138":"hills","139":"forest","140":"plains","141":"plains","142":"plains","143":"plains","144":"plains","145":"forest","146":"hills","147":"forest","148":"plains","149":"plains","150":"swamp","151":"plains","152":"forest","153":"forest","154":"plains","155":"plains","156":"plains","157":"forest","001":"mountains","002":"mountains","003":"mountains","004":"mountains","005":"hills","006":"mountains","007":"mountains","008":"mountains","009":"hills","010":"forest","011":"hills","012":"forest","013":"mountains","014":"mountains","015":"mountains","016":"hills","017":"hills","018":"plains","019":"plains","020":"hills","021":"hills","022":"hills","023":"mountains","024":"mountains","025":"mountains","026":"mountains","027":"hills","028":"hills","029":"plains","030":"plains","031":"plains","032":"hills","033":"hills","034":"hills","035":"hills","036":"mountains","037":"mountains","038":"hills","039":"forest","040":"plains","041":"plains","042":"plains","043":"plains","044":"plains","045":"hills","046":"hills","047":"forest","048":"mountains","049":"mountains","050":"hills","051":"forest","052":"plains","053":"plains","054":"plains","055":"plains","056":"plains","057":"plains","058":"plains","059":"forest","060":"forest","061":"hills","062":"forest","063":"plains","064":"plains","065":"plains","066":"plains","067":"water","068":"water","069":"plains","070":"plains","071":"plains","072":"plains","073":"hills","074":"forest","075":"plains","076":"plains","077":"plains","078":"plains","079":"water","080":"water","081":"water","082":"plains","083":"plains","084":"plains","085":"plains","086":"forest","087":"forest","088":"plains","089":"plains","090":"plains","091":"water","092":"water","093":"water","094":"plains","095":"plains","096":"plains","097":"plains","098":"hills","099":"hills"},"hexContent":{"104":{"feature":{"type":"city","name":"Merrowgate"},"local_memory":"Merrowgate sits where the lake road meets the water; its wharves take barge traffic from the whole of Harrow.","chronicle":[{"date":"1 Harvestmoon 4712","text":"The canton fair opened under the Reeve's peace; wool prices ran high."}]},"110":{"feature":{"type":"village","name":"Stanmoor"}},"111":{"feature":{"type":"town","name":"Adris"}},"122":{"feature":{"type":"village","name":"Redthorn"}},"152":{"feature":{"type":"ruin","name":"Tower of Veyl"}},"155":{"feature":{"type":"town","name":"Stonepoint"}},"024":{"feature":{"type":"dungeon","name":"The Undercrag"}},"026":{"feature":{"type":"dungeon","name":"Barrow of Kings"}},"027":{"feature":{"type":"dungeon","name":"Gloomdelve"}},"043":{"feature":{"type":"village","name":"Harlow's Ford"},"local_memory":"The folk of Harlow's Ford still talk about the night the troll's head came through the door.","chronicle":[{"date":"9 Harvestmoon 4712","text":"Four strangers out of the west lodged at the inn."},{"date":"12 Harvestmoon 4712","text":"The marsh troll of the mill road was slain; its head hangs above the bar. Drinks poured free for Brakka's company."}]},"057":{"feature":{"type":"village","name":"Bracken"}},"063":{"feature":{"type":"village","name":"Wyther"}},"094":{"feature":{"type":"village","name":"Old Mere"}}},"lines":[{"type":"river","path":["023","036","049","062","075","076","077","078","079"]},{"type":"river","path":["013","025","038","051","064","077","078","079"]},{"type":"river","path":["024","037","050","063","076","077","078","079"]},{"type":"road","path":["104","103","102","114","113","112","111"]},{"type":"road","path":["104","117","129","141","149","155"]},{"type":"road","path":["111","099","087","075","063"]},{"type":"road","path":["012","011","020","031","043"]}]};</script>
 <script>/*
- * HexChronicle SITE renderer — interaction layer for the published plate.
- * Drawing is done by the shared core (shared/plate-draw.js); this file only
- * adds pan/zoom, tap-to-open-card, cartouche/legend, and the intro. Reads two
- * globals inlined by the build: HexGeo, WORLD (and uses global PlateDraw).
+ * HexChronicle SITE renderer — the interaction layer for the published map.
+ *
+ * ONE CONTINUOUS MAP, no plate to choose. Drawing is done by the shared atlas
+ * (shared/plate-draw.js — PlateDraw.createAtlas), exactly as in the editor, so
+ * the two can never drift: merged-path terrain, smoothed shorelines, the
+ * atlas-wide line network, feature anchors, seam ownership and viewport culling
+ * all come from that one module. This file adds pan/zoom, tap-to-open-card, the
+ * legend, and deep links.
+ *
+ * IT FETCHES WHAT IT SHOWS. world/atlas.json is the summary of every 36-mile
+ * hex; world/plate-NNNN.json is one plate's interior, pulled in only when that
+ * plate scrolls into view. A visitor with the whole continent on screen still
+ * only downloads the plates they are actually looking at.
  *
  * INVENTS NOTHING — every value comes from compiled repo data.
  */
 (function () {
   "use strict";
-  const { SIZE, RL, SQ3, hexCorners, pxToAxial } = HexGeo;
-  const T = WORLD.registry.terrain, F = WORLD.registry.features;
-
-  const geo = HexGeo.buildPlateHexes();
-  const byKey = new Map(geo.map(h => [h.key, h]));
-  const model = {
-    geo,
-    plate: WORLD.plate,
-    registry: WORLD.registry,
-    terrainByNum: WORLD.terrainByNum,
-    hexContent: WORLD.hexContent,
-    lines: WORLD.lines,
-  };
-
-  /* line-feature membership per subhex, for the card */
-  const riverSubs = new Set(), roadSubs = new Set();
-  for (const ln of WORLD.lines) for (const s of ln.path) (ln.type === "river" ? riverSubs : roadSubs).add(s);
-
+  const { SIZE, RL } = HexGeo;
   const svg = document.getElementById("map");
-  const pd = PlateDraw.create(svg, model);
-  const world = pd.world;
-  const addr = h => WORLD.plate.id + "-" + h.sub;
+  const $ = id => document.getElementById(id);
 
-  /* neighbor chips: navigate (only "—" placeholders for now) */
-  for (const chip of pd.neighborChips) {
-    chip.g.addEventListener("click", ev => {
-      ev.stopPropagation();
-      if (chip.nid) showToast(`Plate ${chip.nid} — the adjoining plate would load here.`);
-      else showToast(`No plate to the ${chip.dir.toUpperCase()} yet. It gets created and numbered when the map grows.`);
+  let atlas = null, registry = null, summary = null;
+  const detail = new Map();                 // id -> plate interior (null while loading)
+  const fetching = new Map();
+  let selected = null;                      // { plateId, sub } — always the OWNER
+
+  const esc = x => String(x == null ? "" : x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const getJSON = url => fetch(url).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+
+  boot();
+
+  async function boot() {
+    let a;
+    try { a = await getJSON("world/atlas.json"); }
+    catch (err) { showToast("The map could not be loaded: " + err.message); return; }
+    summary = a;
+    registry = a.registry;
+
+    atlas = PlateDraw.createAtlas(svg, {
+      registry,
+      frameStroke: "#2e6f6a",
+      stateOf: id => detail.get(id) || null,
+      request: id => { ensureDetail(id).catch(() => {}); },
+      viewportRect,
     });
+
+    /*
+     * FRAME FIRST, THEN POPULATE. setPlates runs the first viewport pass, and
+     * that pass is what decides which plate interiors get fetched — so the
+     * camera has to be pointing at the right place before it happens. Arriving
+     * at #0003-135 then downloads the plates around that hex, not the continent.
+     */
+    const target = hashTarget();
+    if (target) frameHex(target, 1.4); else frameAll();
+    atlas.setView(tx, ty, s);
+    atlas.setPlates(a.plates, []);
+
+    buildLegend();
+    wire();
+    if (!openFromHash()) openIntro();
+    window.addEventListener("hashchange", () => openFromHash());
   }
 
-  /* ---- pan / zoom ---- */
-  let s = 1, tx = 0, ty = 0;
-  function applyTransform() {
-    world.setAttribute("transform", `translate(${tx} ${ty}) scale(${s})`);
-    pd.setNumbersVisible(s >= 0.95);
+  function ensureDetail(id) {
+    if (detail.has(id)) return Promise.resolve(detail.get(id));
+    const inflight = fetching.get(id);
+    if (inflight) return inflight;
+    const p = getJSON(`world/plate-${id}.json`).then(d => {
+      // the atlas reads terrain by subhex with a default fallback, like the editor
+      detail.set(id, {
+        id: d.id, name: d.name, title: d.title, canton: d.canton, realm: d.realm,
+        summary: d.summary, continent_hex: d.continent_hex, scale_label: d.scale_label,
+        defaultTerrain: d.default_terrain,
+        terrain: d.terrain, lines: d.lines, hexes: d.hexes,
+      });
+      fetching.delete(id);
+      scheduleViewport();
+      return detail.get(id);
+    });
+    p.catch(() => fetching.delete(id));
+    fetching.set(id, p);
+    return p;
   }
-  function viewSize() {
-    const r = svg.getBoundingClientRect();
-    return { w: r.width || innerWidth, h: r.height || innerHeight };
+
+  /* ---- camera ---- */
+  let s = 1, tx = 0, ty = 0, interacted = false;
+  function viewSize() { const r = svg.getBoundingClientRect(); return { w: r.width || innerWidth, h: r.height || innerHeight }; }
+  function viewportRect() {
+    const v = viewSize();
+    return { xmin: (0 - tx) / s, xmax: (v.w - tx) / s, ymin: (0 - ty) / s, ymax: (v.h - ty) / s };
   }
-  let interacted = false;
-  function fitPlate() {
-    const v = viewSize(), pad = 60;
-    s = Math.min(3, Math.max(0.3, Math.min(
-      (v.w - pad) / (SQ3 * RL + SIZE * 5),
-      (v.h - 170) / (2 * RL + SIZE * 5)
-    )));
-    tx = v.w / 2; ty = v.h / 2 + 14;
+  function applyTransform() { atlas.setView(tx, ty, s); scheduleViewport(); }
+  let vpScheduled = false;
+  function scheduleViewport() {
+    if (vpScheduled) return;
+    vpScheduled = true;
+    requestAnimationFrame(() => { vpScheduled = false; atlas.update(); drawSelection(); });
+  }
+  /* every plate's world position, from the summary alone — needed before the
+   * atlas has been populated, because the framing decides what gets fetched */
+  function summaryBounds() {
+    const pts = summary.plates.map(p => HexGeo.plateToPx(p.coord[0], p.coord[1]));
+    if (!pts.length) pts.push({ x: 0, y: 0 });
+    return {
+      minX: Math.min(...pts.map(p => p.x)) - RL - SIZE, maxX: Math.max(...pts.map(p => p.x)) + RL + SIZE,
+      minY: Math.min(...pts.map(p => p.y)) - RL - SIZE, maxY: Math.max(...pts.map(p => p.y)) + RL + SIZE,
+    };
+  }
+  function frameAll() {
+    const v = viewSize(), b = summaryBounds(), pad = 40;
+    const availW = Math.max(200, v.w - pad * 2), availH = Math.max(200, v.h - 170);
+    s = Math.min(3, Math.max(0.03, Math.min(availW / (b.maxX - b.minX), availH / (b.maxY - b.minY))));
+    tx = v.w / 2 - ((b.minX + b.maxX) / 2) * s;
+    ty = v.h / 2 + 8 - ((b.minY + b.maxY) / 2) * s;
+  }
+  function frameHex(hit, zoom) {
+    const p = summary.plates.find(x => x.id === hit.plateId);
+    const h = HexGeo.buildPlateHexes().find(x => x.sub === hit.sub);
+    if (!p || !h) { frameAll(); return; }
+    const o = HexGeo.plateToPx(p.coord[0], p.coord[1]);
+    const v = viewSize();
+    s = zoom;
+    tx = v.w / 2 - (o.x + h.x) * s;
+    ty = v.h / 2 - 60 - (o.y + h.y) * s;
+    interacted = true;
+  }
+  function fitAll() { frameAll(); applyTransform(); }
+  function zoomAt(cx, cy, k) {
+    interacted = true;
+    const ns = Math.min(3.2, Math.max(0.03, s * k)), real = ns / s;
+    tx = cx - (cx - tx) * real; ty = cy - (cy - ty) * real; s = ns;
     applyTransform();
   }
-  fitPlate();
-  window.addEventListener("load", fitPlate);
-  window.addEventListener("resize", () => { if (!interacted) fitPlate(); });
-  window.addEventListener("orientationchange", () => setTimeout(fitPlate, 250));
-  requestAnimationFrame(fitPlate);
-  document.getElementById("fitBtn").addEventListener("click", () => { closeCard(); interacted = false; fitPlate(); });
+  /* centre one hex on screen, for a deep link */
+  function centreOn(plateId, sub, zoom) {
+    const p = atlas.worldOf(plateId, sub);
+    if (!p) return false;
+    const v = viewSize();
+    s = zoom || Math.max(s, 1.2);
+    tx = v.w / 2 - p.x * s;
+    ty = v.h / 2 - 60 - p.y * s;
+    interacted = true;
+    applyTransform();
+    return true;
+  }
 
+  /* ---- pointer input: every interaction routes through the hit test ---- */
   const pointers = new Map();
   let movedFlag = false, lastPinch = 0;
   svg.addEventListener("pointerdown", e => {
-    e.preventDefault();                 // stop drag-/double-click text selection on the plate
+    e.preventDefault();                 // suppresses `click` on SVG children
     svg.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 1) movedFlag = false;
@@ -523,56 +1806,76 @@
     pointers.delete(e.pointerId); lastPinch = 0;
   });
   svg.addEventListener("pointercancel", e => pointers.delete(e.pointerId));
-  svg.addEventListener("wheel", e => {
-    e.preventDefault();
-    zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0016));
-  }, { passive: false });
-  function zoomAt(cx, cy, k) {
-    interacted = true;
-    const ns = Math.min(3.2, Math.max(0.3, s * k));
-    const real = ns / s;
-    tx = cx - (cx - tx) * real;
-    ty = cy - (cy - ty) * real;
-    s = ns;
-    applyTransform();
+  svg.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0016)); }, { passive: false });
+
+  /* ---- selection + card ---- */
+  function drawSelection() {
+    atlas.layers.ui.textContent = "";
+    if (!selected) return;
+    const p = atlas.worldOf(selected.plateId, selected.sub);
+    if (!p) return;
+    PlateDraw.el("polygon", {
+      points: HexGeo.hexCorners(p.x, p.y, SIZE), fill: "none",
+      stroke: "#f3ead0", "stroke-width": 3, "stroke-linejoin": "round",
+    }, atlas.layers.ui);
   }
 
-  /* ---- tap + card ---- */
-  let selEl = null;
-  function clearSel() { if (selEl) { selEl.remove(); selEl = null; } }
-  function esc(x) { return String(x == null ? "" : x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
   function tapAt(cx, cy) {
-    const wx = (cx - tx) / s, wy = (cy - ty) / s;
-    const a = pxToAxial(wx, wy);
-    const h = byKey.get(a.q + "," + a.r);
-    if (!h) { closeCard(); return; }
-    clearSel();
-    selEl = PlateDraw.el("polygon", { points: hexCorners(h.x, h.y, SIZE), fill: "none", stroke: "#f3ead0", "stroke-width": 3 }, pd.layers.sel);
-    const c = WORLD.hexContent[h.sub] || {};
+    const w = { x: (cx - tx) / s, y: (cy - ty) / s };
+    const hit = atlas.hexAt(w.x, w.y);
+    if (!hit) { closeCard(); return; }
+    selectHex(hit, true);
+  }
+
+  /*
+   * One click, one card. `hit` is already the OWNER of the position, so a hex on
+   * a 36-mile boundary reads the same whichever side you clicked from.
+   */
+  function selectHex(hit, setHash) {
+    selected = hit;
+    drawSelection();
+    if (setHash) {
+      const addr = atlas.own.addressOf(hit.plateId, hit.sub);
+      if (location.hash !== "#" + addr) history.replaceState(null, "", "#" + addr);
+    }
+    const st = detail.get(hit.plateId);
+    if (!st) { openCard(`<div class="eyebrow">Loading…</div><h2>${esc(atlas.own.addressOf(hit.plateId, hit.sub))}</h2>`); ensureDetail(hit.plateId).then(() => { if (selected === hit) renderCard(hit); }).catch(() => {}); return; }
+    renderCard(hit);
+  }
+
+  function renderCard(hit) {
+    const st = detail.get(hit.plateId);
+    if (!st) return;
+    const T = registry.terrain, F = registry.features;
+    const addr = atlas.own.addressOf(hit.plateId, hit.sub);
+    const c = (st.hexes || {})[hit.sub] || {};
+    const tspec = T[st.terrain[hit.sub]] || { label: st.terrain[hit.sub] };
+
     const rows = [];
     if (c.feature) {
       const flabel = (F[c.feature.type] && F[c.feature.type].label) || c.feature.type;
-      rows.push(`<dt>Feature</dt><dd><b>${esc(c.feature.name)}</b> — ${esc(flabel)}</dd>`);
+      rows.push(`<dt>Feature</dt><dd><b>${esc(c.feature.name || c.name || "")}</b>${c.feature.name || c.name ? " — " : ""}${esc(flabel)}</dd>`);
     }
-    const lf = [];
-    if (riverSubs.has(h.sub)) lf.push("stream");
-    if (roadSubs.has(h.sub)) lf.push("road");
-    if (lf.length) rows.push(`<dt>Line features</dt><dd>${lf.join(", ")}</dd>`);
+    const lf = linesThrough(addr);
+    if (lf.length) rows.push(`<dt>Line features</dt><dd>${esc(lf.join(", "))}</dd>`);
+    const shared = atlas.own.sharersOf(hit.plateId, hit.sub).filter(x => x.plateId !== hit.plateId);
+    if (shared.length) rows.push(`<dt>On the boundary of</dt><dd>${esc(shared.map(x => x.plateId).join(", "))}</dd>`);
+
     const chronicle = c.chronicle || [];
     const chron = chronicle.length
       ? chronicle.map(x => `<p><b>${esc(x.date)}</b> — ${esc(x.text)}</p>`).join("")
       : `<p class="empty">Nothing chronicled here yet.</p>`;
     const mem = c.local_memory ? `<h3>Local memory</h3><div class="chron"><p>${esc(c.local_memory)}</p></div>` : "";
-    const tspec = T[WORLD.terrainByNum[h.sub]] || { label: WORLD.terrainByNum[h.sub] };
-    const srcFile = c.feature || chronicle.length || c.local_memory
-      ? `hexes/${addr(h)}.yaml` : `plates/${WORLD.plate.id}.yaml (terrain grid)`;
+    const srcFile = (c.feature || chronicle.length || c.local_memory)
+      ? `hexes/${addr}.yaml` : `plates/${hit.plateId}.yaml (terrain grid)`;
+
     openCard(`
-      <div class="eyebrow">Hex ${esc(addr(h))} · 3-mile · plate ${esc(WORLD.plate.id)} · #${h.num}</div>
-      <h2>${esc((c.feature && c.feature.name) || tspec.label)}</h2>
+      <div class="eyebrow">Hex ${esc(addr)} · 3-mile · in 36-mile hex ${esc(hit.plateId)}${st.name ? " · " + esc(st.name) : ""}</div>
+      <h2>${esc(c.name || (c.feature && c.feature.name) || tspec.label)}</h2>
       <dl class="rows">
         <dt>Terrain</dt><dd>${esc(tspec.label)}</dd>
         ${rows.join("")}
-        <dt>Canton</dt><dd>${esc(WORLD.plate.canton)}, ${esc(WORLD.plate.realm)}</dd>
+        <dt>Canton</dt><dd>${esc(st.canton || "—")}${st.realm ? ", " + esc(st.realm) : ""}</dd>
       </dl>
       <h3>Chronicle</h3><div class="chron">${chron}</div>
       ${mem}
@@ -580,66 +1883,117 @@
       <pre>${esc(srcFile)}</pre>
     `);
   }
-  const card = document.getElementById("card"), cardBody = document.getElementById("cardBody");
-  function openCard(html) { cardBody.innerHTML = html; card.classList.add("open"); }
-  function closeCard() { card.classList.remove("open"); clearSel(); }
-  document.getElementById("cardClose").addEventListener("click", closeCard);
 
-  /* ---- toast ---- */
-  function showToast(msg) {
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    clearTimeout(showToast._h);
-    showToast._h = setTimeout(() => t.classList.remove("show"), 6000);
+  /* every line through this world position, across every loaded plate */
+  function linesThrough(addr) {
+    const out = new Set();
+    for (const [id, st] of detail) {
+      for (const ln of (st.lines || [])) {
+        for (const e of ln.path) {
+          const a = HexGeo.parseAddr(e);
+          if (!a) continue;
+          if (atlas.own.addressOf(a.plate || id, a.sub) === addr) {
+            out.add(((registry.lines || {})[ln.type] || {}).label || ln.type);
+          }
+        }
+      }
+    }
+    return [...out];
   }
 
-  /* ---- cartouche + legend ---- */
-  const PL = WORLD.plate;
-  document.getElementById("t-title").textContent = PL.title || PL.name;
-  document.getElementById("t-addr").textContent = `36-MILE HEX #${PL.id} · within 432-MILE HEX #${PL.continent_hex}`;
-  document.getElementById("t-scale").textContent = `SCALE: ${PL.scale_label}`;
-  svg.setAttribute("aria-label", `Atlas plate ${PL.id} — ${PL.name}`);
-  document.title = `HexChronicle — Plate ${PL.id} · ${PL.name}`;
+  /* ---- deep link: #0003-135 opens that hex ---- *
+   * The address in the link is resolved to its OWNER, so a boundary hex shared
+   * by two 36-mile hexes opens the same card whichever of its two names was
+   * shared — #0003-135 and #0002-001 land on exactly the same place. */
+  function hashTarget() {
+    const m = /^#(\d{4})-(\d{3})$/.exec(location.hash || "");
+    if (!m) return null;
+    if (!summary.plates.some(p => p.id === m[1])) return null;
+    return { plateId: m[1], sub: m[2] };
+  }
+  function openFromHash() {
+    const t = hashTarget();
+    if (!t) {
+      if (location.hash) showToast(`No hex ${location.hash.slice(1)} on this map.`);
+      return false;
+    }
+    const hit = atlas.own.ownerOf(t.plateId, t.sub);
+    centreOn(hit.plateId, hit.sub, Math.max(s, 1.4));
+    selectHex(hit, false);      // the interior may still be in flight; the card fills in
+    return true;
+  }
 
-  const legend = document.getElementById("legend");
+  const card = $("card"), cardBody = $("cardBody");
+  function openCard(html) { cardBody.innerHTML = html; card.classList.add("open"); }
+  function closeCard() {
+    card.classList.remove("open");
+    selected = null; drawSelection();
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  }
+
+  function openIntro() {
+    const n = summary.plates.length;
+    openCard(`
+      <div class="eyebrow">The atlas</div>
+      <h2>${esc(n)} 36-mile hex${n === 1 ? "" : "es"}, one continuous map</h2>
+      <div class="chron">
+        <p><b>Click any hex</b> for its card. Every 3-mile hex has a permanent address like <b>0001-104</b>, which comes straight from the nesting — 3-mile hexes inside 36-mile hexes inside 432-mile hexes.</p>
+        <p><b>A hex on a boundary belongs to one of its two 36-mile hexes</b>, so it reads the same from either side.</p>
+        <p>Everything you see was compiled from the repo's data files, not generated in the browser. Drag to pan, scroll or pinch to zoom.</p>
+      </div>
+      <div class="actions"><button id="introGo">Explore the map</button></div>
+    `);
+    const go = $("introGo");
+    if (go) go.addEventListener("click", closeCard);
+  }
+
+  /* ---- chrome ---- */
+  function wire() {
+    $("cardClose").addEventListener("click", closeCard);
+    $("fitBtn").addEventListener("click", () => { closeCard(); interacted = false; fitAll(); });
+    window.addEventListener("resize", () => { if (!interacted) fitAll(); });
+    window.addEventListener("orientationchange", () => setTimeout(() => { if (!interacted) fitAll(); }, 250));
+    document.title = "HexChronicle — the atlas";
+    svg.setAttribute("aria-label", `Atlas — ${summary.plates.length} 36-mile hexes`);
+    const first = summary.plates[0] || {};
+    $("t-title").textContent = first.realm ? `The realm of ${first.realm}` : "The atlas";
+    $("t-addr").textContent = `${summary.plates.length} 36-MILE HEXES · ${summary.plates.length * 157} SUBHEXES`;
+    $("t-scale").textContent = `SCALE: ${first.scale_label || "1 HEX = 3 MILES (1 LEAGUE)"}`;
+  }
+
   function chipSVG(kind) {
     const sv = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     sv.setAttribute("width", 14); sv.setAttribute("height", 14); sv.setAttribute("viewBox", "-7 -7 14 14");
     PlateDraw.drawIcon(sv, kind, 0, 0, 0.85);
     return sv;
   }
-  const present = new Set(geo.map(h => WORLD.terrainByNum[h.sub]));
-  for (const key of Object.keys(T)) {
-    if (!present.has(key)) continue;
-    const chip = document.createElement("div");
-    chip.className = "chip";
-    chip.innerHTML = `<i style="background:${T[key].color}"></i>${esc(T[key].label)}`;
-    legend.appendChild(chip);
-  }
-  const presentFeatures = new Set(Object.values(WORLD.hexContent).filter(c => c.feature).map(c => c.feature.type));
-  for (const key of Object.keys(F)) {
-    if (!presentFeatures.has(key)) continue;
-    const chip = document.createElement("div");
-    chip.className = "chip";
-    chip.appendChild(chipSVG(key));
-    chip.appendChild(document.createTextNode(F[key].label));
-    legend.appendChild(chip);
+  /* Terrain types that appear anywhere on the map, from the summary's defaults
+   * plus whatever each loaded plate turns out to hold. */
+  function buildLegend() {
+    const legend = $("legend");
+    legend.textContent = "";
+    for (const key of Object.keys(registry.terrain)) {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.innerHTML = `<i style="background:${registry.terrain[key].color}"></i>${esc(registry.terrain[key].label)}`;
+      legend.appendChild(chip);
+    }
+    for (const key of Object.keys(registry.features || {})) {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.appendChild(chipSVG(key));
+      chip.appendChild(document.createTextNode(registry.features[key].label));
+      legend.appendChild(chip);
+    }
   }
 
-  /* ---- intro card ---- */
-  openCard(`
-    <div class="eyebrow">Atlas plate view</div>
-    <h2>Plate ${esc(PL.id)} — ${esc(PL.name)}</h2>
-    <div class="chron">
-      <p><b>One atlas hex is the page.</b> This is 36-mile hex #${esc(PL.id)} inside 432-mile hex #${esc(PL.continent_hex)}, drawn as 3-mile subhexes (1 league), numbered row by row.</p>
-      <p><b>Tap any hex</b> for its card — addresses like <b>${esc(PL.id)}-104</b> come straight from the nesting. Everything you see was compiled from the repo's data files, not generated in the browser.</p>
-      <p><b>The teal chips</b> on each edge are the six adjoining plates; none exist yet, so they show “—”.</p>
-    </div>
-    <div class="actions"><button id="introGo">Explore the plate</button></div>
-  `);
-  document.getElementById("introGo").addEventListener("click", closeCard);
-  applyTransform();
+  function showToast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(showToast._h);
+    showToast._h = setTimeout(() => t.classList.remove("show"), 6000);
+  }
 })();
 </script>
 </body>

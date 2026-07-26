@@ -73,7 +73,26 @@ function assertHexFieldsAllowed(keys) {
   }
 }
 
+/*
+ * The PLATE-LEVEL descriptive fields, and nothing else. `id` is the plate's
+ * permanent identity, `terrain` and `lines` are the map itself, and `neighbors`
+ * is the lattice — each has its own endpoint and its own writer, so a general
+ * "edit the plate" call must not be able to touch any of them. Named here as a
+ * list rather than checked at the call site so the refusal is structural.
+ */
+const PLATE_META_KEYS = ["name", "title", "canton", "realm", "summary", "continent_hex", "scale_label"];
+const PLATE_FORBIDDEN_KEYS = ["id", "terrain", "lines", "neighbors"];
+
+function assertPlateMetaAllowed(keys) {
+  for (const k of keys) {
+    if (PLATE_FORBIDDEN_KEYS.includes(k)) throw new ScopeError(`editor may not write plate field "${k}" through the meta endpoint`);
+    if (!PLATE_META_KEYS.includes(k)) throw new ScopeError(`unknown plate field "${k}" not in the meta allowlist`);
+  }
+}
+
 module.exports = {
   REPO_ROOT, ALLOWED_ROOTS, HEX_ALLOWED_KEYS, HEX_FORBIDDEN_KEYS,
-  ScopeError, assertInScope, assertCreatable, isAllowedCommitPath, assertHexFieldsAllowed,
+  PLATE_META_KEYS, PLATE_FORBIDDEN_KEYS,
+  ScopeError, assertInScope, assertCreatable, isAllowedCommitPath,
+  assertHexFieldsAllowed, assertPlateMetaAllowed,
 };

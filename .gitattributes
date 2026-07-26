@@ -1,0 +1,21 @@
+# Line endings.
+#
+# Text files are normalised to LF IN THE REPOSITORY. Without this, a checkout on
+# a machine with core.autocrlf=true rewrites every line of every file, and the
+# next commit is an unreadable whole-file diff that hides the real change.
+#
+# The working copy is left alone (no `eol=` on the wildcard), so existing CRLF
+# files keep their endings on disk; editor/yaml-io.js detects a file's endings
+# and preserves them on every surgical write, so map data never churns either.
+* text=auto
+
+# Generated output. build/build.js normalises index.html to LF before writing —
+# these lines make that explicit and keep the emitted JSON stable too, so a
+# rebuild produces a diff only when the DATA changed.
+docs/index.html   text eol=lf
+docs/world/*.json text eol=lf
+docs/_headers     text eol=lf
+docs/CNAME        text eol=lf
+
+# Fonts are binary: never normalise, never diff, never delta-compress badly.
+*.woff2 binary

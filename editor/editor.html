@@ -13,14 +13,15 @@
 <svg id="map" aria-label="Plate editor"></svg>
 
 <header id="bar">
-  <div class="brand"><h1>HexChronicle</h1><span>Editor · plate <b id="plateId">—</b></span></div>
+  <div class="brand"><h1>HexChronicle</h1><span>Editor · hex <b id="selAddr">—</b></span></div>
   <div class="tools">
     <button class="tool active" data-tool="paint" title="Paint terrain (B)">Paint</button>
     <button class="tool" data-tool="lines" title="Line tools (L)">Lines</button>
+    <button class="tool" data-tool="meta" title="Per-hex metadata (M)">Metadata</button>
     <span class="sep"></span>
     <button id="undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
     <button id="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button>
-    <button id="fit" title="Fit plate">Fit</button>
+      <button id="fit" title="Fit the whole map">Fit</button>
     <span class="sep"></span>
     <button id="save" class="primary" disabled>Save</button>
     <span id="status" role="status"></span>
@@ -30,14 +31,14 @@
 <aside id="palette">
   <h4>Terrain brush</h4>
   <div id="swatches"></div>
-  <p class="hint">Click or drag hexes to paint. Painting to the default terrain clears the override.</p>
+  <p class="hint">Click or drag any hex, anywhere on the map. Painting to a plate's default terrain clears the override. Save writes every 36-mile hex you touched.</p>
 </aside>
 
 <aside id="linePanel" hidden>
   <h4>Line tools</h4>
   <div id="lineTypes"></div>
   <button id="newLine" class="wide">+ New line</button>
-  <h5>Lines on this plate</h5>
+  <h5 id="lineListTitle">Lines on the map</h5>
   <div id="lineList"></div>
   <div id="lineEdit" hidden>
     <div id="editInfo"></div>
@@ -48,7 +49,43 @@
     </div>
     <p class="hint">Click hexes to append · <b>Backspace</b> removes last · Enter finishes · Esc cancels.</p>
   </div>
-  <p class="hint" id="lineIdleHint">Pick a type then <b>+ New line</b>, or click a line below (or on the map) to extend, reroute, retype, or delete it.</p>
+  <p class="hint" id="lineIdleHint">Pick a type then <b>+ New line</b>, or click a line below (or on the map) to extend, reroute, retype, or delete it. Draw straight across a 36-mile boundary — the line is split into one piece per plate when it is saved, and still draws as one.</p>
+</aside>
+
+<aside id="metaPanel" hidden>
+  <h4>Hex metadata</h4>
+  <p class="hint" id="metaIdle">Click any hex on any plate to edit it.</p>
+
+  <div id="metaBody" hidden>
+    <div id="metaAddr"></div>
+    <dl class="ro" id="metaDerived"></dl>
+
+    <h5>Map data</h5>
+    <label>Name<input id="metaName" type="text" placeholder="unnamed" autocomplete="off"></label>
+    <label>Terrain<select id="metaTerrain"></select></label>
+    <label>Feature<select id="metaFeatureType"></select></label>
+    <label>Feature name<input id="metaFeatureName" type="text" placeholder="unnamed" autocomplete="off"></label>
+    <label>Visibility<select id="metaVisibility">
+      <option value="public">public</option>
+      <option value="gm-only">gm-only</option>
+    </select></label>
+
+    <h5>Story <span class="ro-tag">read-only</span></h5>
+    <p class="hint">Owned by the living-world agent (README §4). The editor cannot write these.</p>
+    <div id="metaStory"></div>
+  </div>
+
+  <div id="platePanel" hidden>
+    <h5>Its 36-mile hex <span class="ro-tag" id="plateWho"></span></h5>
+    <label>Name<input id="plateName" type="text" placeholder="unnamed" autocomplete="off"></label>
+    <label>Title<input id="plateTitle" type="text" placeholder="map cartouche" autocomplete="off"></label>
+    <label>Canton<input id="plateCanton" type="text" autocomplete="off"></label>
+    <label>Realm<input id="plateRealm" type="text" autocomplete="off"></label>
+    <label>432-mile hex #<input id="plateContinent" type="number" min="1" step="1" autocomplete="off"></label>
+    <label>Scale label<input id="plateScale" type="text" autocomplete="off"></label>
+    <label>Summary<textarea id="plateSummary" rows="4" placeholder="a sentence or two"></textarea></label>
+    <p class="hint">These are the plate's own description. Its terrain grid, lines and neighbours have their own paths and are never touched from here.</p>
+  </div>
 </aside>
 
 <div id="addModal" hidden>

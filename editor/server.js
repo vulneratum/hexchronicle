@@ -32,83 +32,162 @@ const R = (...p) => path.join(ROOT, ...p);
 /* ---------- read-only model builder (writes never happen here) ---------- */
 function readYaml(rel) { return jsyaml.load(fs.readFileSync(R(rel), "utf8")); }
 
-// hex content: features ONLY (the editor never loads/surfaces story fields)
-function readFeatures(plateId) {
+/* ---------- seam ownership: one physical hex, one identity ---------- *
+ *
+ * A plate's boundary runs through subhex CENTRES, so 30 of its 157 positions
+ * are also positions on a neighbour (shared/geometry.js). The plate with the
+ * lower id owns them; everything below reads and writes THROUGH the owner, so
+ * a seam hex has one terrain, one hex file and one address whichever plate you
+ * happen to be looking at.
+ *
+ * Derived from the neighbour graph on demand, never stored.
+ */
+function ownershipFor(plateId) {
+  try {
+    return HexGeo.plateOwnership(buildLattice(plateId).coord);
+  } catch (e) {
+    return HexGeo.plateOwnership({ [plateId]: [0, 0] });     // unplaced: owns itself
+  }
+}
+
+/* every plate's own terrain grid, filled out and cached for one request */
+function terrainReader() {
+  const cache = new Map();
+  return function terrainOf(plateId, sub) {
+    let rec = cache.get(plateId);
+    if (!rec) {
+      let doc = null;
+      try { doc = readYaml(`plates/${plateId}.yaml`); } catch { doc = null; }
+      rec = doc ? { def: doc.default_terrain, t: doc.terrain || {} } : null;
+      cache.set(plateId, rec);
+    }
+    return rec ? (rec.t[sub] || rec.def) : null;
+  };
+}
+
+/*
+ * The RESOLVED terrain of every subhex of `plateId`: its own, except on a
+ * borrowed position, which takes the owner's. The non-owner's entry for that
+ * position is ignored entirely — it is inert data, left on disk for a separate
+ * cleanup rather than migrated here.
+ */
+function resolvedTerrain(plateId, own, read) {
+  const out = {};
+  for (const h of HexGeo.buildPlateHexes()) {
+    const o = own.ownerOf(plateId, h.sub);
+    out[h.sub] = read(o.plateId, o.sub) || read(plateId, h.sub);
+  }
+  return out;
+}
+
+/* which subhexes of this plate belong to somebody else, as sub -> "PPPP-SSS" */
+function borrowedMap(plateId, own) {
+  const out = {};
+  for (const sub of own.borrowedSubs(plateId)) out[sub] = own.addressOf(plateId, sub);
+  return out;
+}
+
+/*
+ * One record per EXISTING hex file, keyed by this plate's subhex number but
+ * READ FROM THE OWNER's file. Doubles as PlateDraw's `hexContent` (it reads
+ * only `feature`), so the extra keys are inert for rendering and exist for the
+ * metadata panel.
+ *
+ * `chronicle` and `local_memory` are surfaced READ-ONLY: they belong to the
+ * living-world agent (README §4) and the scope guard refuses to write them.
+ * Reading them here lets the editor show you what a hex already carries so you
+ * do not have to guess; nothing sends them back.
+ */
+function readHexRecords(plateId, own) {
   const hexContent = {};
   const hexDir = R("hexes");
   if (!fs.existsSync(hexDir)) return hexContent;
-  for (const f of fs.readdirSync(hexDir).filter(f => /\.ya?ml$/i.test(f))) {
-    const m = /^(\d{4})-(\d{3})\.ya?ml$/i.exec(f);
-    if (!m || m[1] !== plateId) continue;
+  const present = new Set(fs.readdirSync(hexDir)
+    .map(f => /^(\d{4})-(\d{3})\.ya?ml$/i.exec(f)).filter(Boolean).map(m => m[1] + "-" + m[2]));
+
+  for (const h of HexGeo.buildPlateHexes()) {
+    const o = own ? own.ownerOf(plateId, h.sub) : { plateId, sub: h.sub };
+    const address = o.plateId + "-" + o.sub;
+    if (!present.has(address)) continue;
+    const f = `${address}.yaml`;
     const doc = jsyaml.load(fs.readFileSync(path.join(hexDir, f), "utf8")) || {};
-    if (doc.feature && doc.feature.type) {
-      hexContent[m[2]] = { feature: { type: doc.feature.type, name: doc.feature.name || null } };
-    }
+    hexContent[h.sub] = {
+      address,                                  // the OWNER's address, always
+      file: `hexes/${f}`,
+      name: doc.name || null,
+      visibility: doc.visibility || "public",
+      feature: (doc.feature && doc.feature.type)
+        ? { type: doc.feature.type, name: doc.feature.name || null } : null,
+      local_memory: doc.local_memory ? String(doc.local_memory).trim() : null,
+      chronicle: Array.isArray(doc.chronicle)
+        ? doc.chronicle.map(c => ({ date: c.date || "", text: c.text || "", visibility: c.visibility || "public" })) : [],
+    };
   }
   return hexContent;
 }
 
-function buildModel(plateId) {
+function themeRegistry() {
   const theme = readYaml("theme/terrain.yaml");
-  const registry = { terrain: theme.types || {}, features: theme.features || {}, lines: theme.lines || {} };
-  const plate = readYaml(`plates/${plateId}.yaml`);
-
-  const geo = HexGeo.buildPlateHexes();
-  const validSub = new Set(geo.map(h => h.sub));
-  const defaultTerrain = plate.default_terrain;
-
-  const terrainByNum = {};
-  for (const h of geo) terrainByNum[h.sub] = defaultTerrain;
-  for (const [sub, type] of Object.entries(plate.terrain || {})) {
-    if (validSub.has(sub)) terrainByNum[sub] = type;
-  }
-
-  const hexContent = readFeatures(plateId);
-
-  return {
-    plate: {
-      id: plate.id, continent_hex: plate.continent_hex, name: plate.name,
-      title: plate.title || plate.name, canton: plate.canton, realm: plate.realm,
-      scale_label: plate.scale_label, default_terrain: defaultTerrain,
-      neighbors: plate.neighbors || {},
-    },
-    registry, terrainByNum, hexContent, lines: plate.lines || [],
-  };
+  return { terrain: theme.types || {}, features: theme.features || {}, lines: theme.lines || {} };
 }
 
 /* ---------- write op: terrain (Phase 1), guarded ---------- */
 function savePlateTerrain(plateId, body) {
-  const model = buildModel(plateId);      // for validation (types, subs, default)
+  if (!fs.existsSync(R(`plates/${plateId}.yaml`))) throw new HttpError(404, `no such plate ${plateId}`);
+  const plate = readYaml(`plates/${plateId}.yaml`);
   const validSub = new Set(HexGeo.buildPlateHexes().map(h => h.sub));
-  const types = model.registry.terrain;
+  const types = themeRegistry().terrain;
 
-  const defaultTerrain = body.default_terrain || model.plate.default_terrain;
+  const defaultTerrain = body.default_terrain || plate.default_terrain;
   if (!types[defaultTerrain]) throw new HttpError(400, `unknown default_terrain "${defaultTerrain}"`);
 
+  /*
+   * A plate writes only the positions it OWNS. The 30 seam positions it merely
+   * borrows belong to the lower-numbered neighbour, and the editor routes those
+   * edits there; anything arriving here for one is dropped rather than written
+   * back as a second, disagreeing copy.
+   */
+  const own = ownershipFor(plateId);
   const overrides = {};
+  let skipped = 0;
   for (const [sub, type] of Object.entries(body.terrain || {})) {
     if (!validSub.has(sub)) throw new HttpError(400, `subhex "${sub}" out of range`);
     if (!types[type]) throw new HttpError(400, `unknown terrain type "${type}" (subhex ${sub})`);
+    if (own.isBorrowed(plateId, sub)) { skipped++; continue; }
     if (type === defaultTerrain) continue;     // keep the grid sparse
     overrides[sub] = type;
   }
 
   const abs = guard.assertInScope(`plates/${plateId}.yaml`);   // structural boundary
   yamlIo.writePlateTerrain(abs, { defaultTerrain, overrides });
-  return { ok: true, overrides: Object.keys(overrides).length };
+  return { ok: true, overrides: Object.keys(overrides).length, borrowed_skipped: skipped };
 }
 
 /* ---------- write op: line features (Phase 2), guarded ---------- */
+/*
+ * A path entry is either "NNN" (this plate) or "PPPP-NNN" (any plate, README §2)
+ * — the qualified form is how ONE line feature crosses a plate boundary. Entries
+ * that resolve to this plate are normalised back to the bare form, so a line
+ * that never leaves home is written exactly as it always was.
+ */
 function savePlateLines(plateId, body) {
-  const model = buildModel(plateId);
+  if (!fs.existsSync(R(`plates/${plateId}.yaml`))) throw new HttpError(404, `no such plate ${plateId}`);
   const validSub = new Set(HexGeo.buildPlateHexes().map(h => h.sub));
-  const lineTypes = model.registry.lines;
+  const lineTypes = themeRegistry().lines;
+  const known = new Set(plateIds());
 
   const linesArr = [];
   for (const ln of (body.lines || [])) {
     if (!lineTypes[ln.type]) throw new HttpError(400, `unknown line type "${ln.type}"`);
-    const path = (ln.path || []).map(String);
-    for (const sub of path) if (!validSub.has(sub)) throw new HttpError(400, `line references subhex "${sub}" out of range`);
+    const path = [];
+    for (const raw of (ln.path || [])) {
+      const a = HexGeo.parseAddr(raw);
+      if (!a) throw new HttpError(400, `line references "${raw}", which is not a subhex address (NNN or PPPP-NNN)`);
+      if (!validSub.has(a.sub)) throw new HttpError(400, `line references subhex "${raw}" out of range`);
+      const foreign = a.plate && a.plate !== plateId;
+      if (foreign && !known.has(a.plate)) throw new HttpError(400, `line references plate ${a.plate}, which does not exist`);
+      path.push(foreign ? `${a.plate}-${a.sub}` : a.sub);
+    }
     if (path.length < 2) throw new HttpError(400, `a ${ln.type} needs at least 2 hexes`);
     linesArr.push({ type: ln.type, path });
   }
@@ -118,6 +197,131 @@ function savePlateLines(plateId, body) {
   return { ok: true, lines: linesArr.length };
 }
 
+
+/* ---------- write op: per-subhex metadata (Phase 5), guarded ---------- */
+/*
+ * The MAP fields of one hex file: name, visibility, feature. Two structural
+ * boundaries stand between this and the story:
+ *
+ *   guard.assertInScope()          — the path may only be under hexes/
+ *   guard.assertHexFieldsAllowed() — the key set may only be map fields
+ *
+ * `chronicle` and `local_memory` are owned by the living-world agent (README
+ * §4). They are never assembled into `fields`, and even if they were the guard
+ * refuses them — that refusal is asserted by guard.test.js.
+ *
+ * TERRAIN IS NOT WRITTEN HERE. It lives in the plate's terrain grid, which is
+ * the single source of truth; the editor routes terrain edits to
+ * PUT /api/plate/:id/terrain. A `terrain` key arriving here is refused outright
+ * rather than silently dropped. (Note: guard.HEX_ALLOWED_KEYS still lists
+ * "terrain" from an earlier design — see the note in the summary; nothing in
+ * this endpoint relies on that entry.)
+ */
+function saveHex(plateId, sub, body) {
+  if (!/^\d{4}$/.test(plateId)) throw new HttpError(400, `bad plate id "${plateId}"`);
+  if (!/^\d{3}$/.test(sub)) throw new HttpError(400, `bad subhex number "${sub}"`);
+  const validSub = new Set(HexGeo.buildPlateHexes().map(h => h.sub));
+  if (!validSub.has(sub)) throw new HttpError(400, `subhex "${sub}" out of range`);
+  if (!fs.existsSync(R(`plates/${plateId}.yaml`))) throw new HttpError(404, `no such plate ${plateId}`);
+
+  /*
+   * There is exactly ONE writable record per physical hex. A seam position
+   * addressed through the plate that borrows it is redirected to its owner
+   * here, so it cannot end up with two files that disagree — whichever plate
+   * you had open when you typed.
+   */
+  const o = ownershipFor(plateId).ownerOf(plateId, sub);
+  plateId = o.plateId; sub = o.sub;
+  if ("terrain" in body) {
+    throw new HttpError(400, "terrain belongs to the plate grid — use PUT /api/plate/:id/terrain");
+  }
+  /*
+   * Refuse on what was ASKED FOR, not just on what we would have written.
+   * Assembling `fields` from a known key list already makes a story write
+   * impossible, but dropping `chronicle` silently and answering 200 would tell
+   * the caller their write succeeded. Put the request's own key set through the
+   * guard so an attempt to write story fields fails loudly, as a scope violation.
+   */
+  guard.assertHexFieldsAllowed(Object.keys(body));
+
+  const featureTypes = themeRegistry().features;
+  const VISIBILITY = ["public", "gm-only"];
+  const text = v => { const s = v == null ? "" : String(v).trim(); return s || null; };
+
+  // Assemble ONLY map fields. A null value means "remove this key".
+  const fields = {};
+  if ("name" in body) fields.name = text(body.name);
+  if ("visibility" in body) {
+    const v = text(body.visibility) || "public";
+    if (!VISIBILITY.includes(v)) throw new HttpError(400, `unknown visibility "${v}" (${VISIBILITY.join(" | ")})`);
+    fields.visibility = v;
+  }
+  if ("feature" in body) {
+    const f = body.feature;
+    if (!f || !text(f.type)) {
+      fields.feature = null;                  // clearing removes the key entirely
+    } else {
+      const type = text(f.type);
+      if (!featureTypes[type]) throw new HttpError(400, `unknown feature type "${type}"`);
+      fields.feature = { type, name: text(f.name) };
+    }
+  }
+
+  guard.assertHexFieldsAllowed(Object.keys(fields));           // structural boundary
+
+  const rel = `hexes/${plateId}-${sub}.yaml`;
+  const address = `${plateId}-${sub}`;
+  if (fs.existsSync(R(rel))) {
+    const abs = guard.assertInScope(rel);                      // structural boundary
+    yamlIo.updateHexFields(abs, fields);
+    return { ok: true, address, file: rel, created: false };
+  }
+
+  // Nothing worth a file yet — don't litter hexes/ with empty records.
+  const empty = Object.values(fields).every(v => v === null || v === "public");
+  if (empty) return { ok: true, address, file: rel, created: false, skipped: true };
+
+  const abs = guard.assertCreatable(rel);                      // refuses to clobber
+  yamlIo.writeNewHex(abs, { address, fields, eol: detectEol() });
+  return { ok: true, address, file: rel, created: true };
+}
+
+/* ---------- write op: plate-level descriptive fields, guarded ---------- */
+/*
+ * The plate's own description — what it is called, which canton and realm it
+ * belongs to, its blurb. NOT the map:
+ *
+ *   guard.assertPlateMetaAllowed()  — the key set may only be those fields
+ *   yamlIo.updatePlateMeta()        — a surgical write, so the terrain grid,
+ *                                     the lines block and every comment in the
+ *                                     file come out byte-for-byte identical
+ *
+ * `id` is the plate's permanent identity, `terrain` and `lines` are the map,
+ * and `neighbors` is the lattice. Each has its own endpoint; an attempt to send
+ * one here fails loudly as a scope violation rather than being dropped.
+ */
+function savePlateMeta(plateId, body) {
+  if (!/^\d{4}$/.test(plateId)) throw new HttpError(400, `bad plate id "${plateId}"`);
+  if (!fs.existsSync(R(`plates/${plateId}.yaml`))) throw new HttpError(404, `no such plate ${plateId}`);
+  guard.assertPlateMetaAllowed(Object.keys(body));            // refuse on what was ASKED for
+
+  const text = v => { const s = v == null ? "" : String(v).trim(); return s || null; };
+  const fields = {};
+  for (const key of ["name", "title", "canton", "realm", "summary", "scale_label"]) {
+    if (key in body) fields[key] = text(body[key]);
+  }
+  if ("continent_hex" in body) {
+    const n = parseInt(body.continent_hex, 10);
+    if (!Number.isFinite(n) || n < 1) throw new HttpError(400, `continent_hex must be a positive integer`);
+    fields.continent_hex = n;
+  }
+  if (!Object.keys(fields).length) return { ok: true, file: `plates/${plateId}.yaml`, changed: 0 };
+
+  guard.assertPlateMetaAllowed(Object.keys(fields));          // structural boundary
+  const abs = guard.assertInScope(`plates/${plateId}.yaml`);  // structural boundary
+  yamlIo.updatePlateMeta(abs, fields);
+  return { ok: true, file: `plates/${plateId}.yaml`, changed: Object.keys(fields).length };
+}
 
 /* ---------- plate directory + lattice ---------- */
 /*
@@ -200,6 +404,13 @@ function detectEol() {
  * no plate yet — the slots the editor offers to fill. Each carries a `from`
  * plate and direction, which is all createPlate needs.
  */
+/*
+ * The whole map in one payload. Anchored on the LOWEST plate id at (0,0) — the
+ * frame never moves, so a world coordinate means the same thing for the whole
+ * session and there is no such thing as "the plate you are on".
+ */
+function atlasOriginId() { return plateIds()[0] || "0001"; }
+
 function buildAtlas(originId) {
   const { plates, coord, atCoord, conflicts } = buildLattice(originId);
 
@@ -236,7 +447,12 @@ function buildAtlas(originId) {
   }
 
   const orphans = plateIds().filter(id => !coord.has(id));
-  return { origin: originId, plates: out, empty, conflicts, orphans, dangling, profiles: plateGen.PROFILES };
+  // The registry travels with the atlas: it is the one payload the client always
+  // fetches, and it needs the terrain colours before it can draw anything.
+  return {
+    origin: originId, plates: out, empty, conflicts, orphans, dangling,
+    profiles: plateGen.PROFILES, registry: themeRegistry(),
+  };
 }
 
 /*
@@ -247,12 +463,24 @@ function buildAtlas(originId) {
 function plateDetail(id) {
   if (!fs.existsSync(R(`plates/${id}.yaml`))) throw new HttpError(404, `no such plate ${id}`);
   const doc = readYaml(`plates/${id}.yaml`);
+  const own = ownershipFor(id);
   return {
     id,
+    // the plate's descriptive fields, all editable through PUT /api/plate/:id/meta
+    name: doc.name || null,
+    title: doc.title || null,
+    canton: doc.canton != null ? doc.canton : null,
+    realm: doc.realm != null ? doc.realm : null,
+    summary: doc.summary ? String(doc.summary).trim() : null,
+    continent_hex: doc.continent_hex != null ? doc.continent_hex : null,
+    scale_label: doc.scale_label || null,
     default_terrain: doc.default_terrain,
-    terrain: doc.terrain || {},
+    // RESOLVED, and complete: a borrowed seam position carries the owner's
+    // terrain, so this plate can never disagree with its neighbour about a hex
+    terrain: resolvedTerrain(id, own, terrainReader()),
     lines: doc.lines || [],
-    features: readFeatures(id),
+    hexes: readHexRecords(id, own),
+    borrowed: borrowedMap(id, own),
   };
 }
 
@@ -308,7 +536,7 @@ function planPlate(body) {
 
   const rolled = plateGen.generatePlate({ hexes, types: theme.types, profile, seed, edgeSeeds });
 
-  return { id, profile, seed, rolled, edgeSeeds, adjacency, fromId, body, theme };
+  return { id, profile, seed, rolled, edgeSeeds, adjacency, fromId, pos, coord, body, theme };
 }
 
 /*
@@ -325,7 +553,21 @@ function previewPlate(body) {
 }
 
 function createPlate(body) {
-  const { id, profile, seed, rolled, edgeSeeds, adjacency, fromId } = planPlate(body);
+  const { id, profile, seed, rolled, edgeSeeds, adjacency, fromId, pos, coord } = planPlate(body);
+
+  /*
+   * A new plate has the highest id, so every seam position it shares with an
+   * existing neighbour belongs to that neighbour. Rolling terrain for those
+   * positions is right — they are a boundary condition for the blend — but
+   * WRITING them would create stale entries on the day the plate is born. Drop
+   * them: the plate shows its neighbour's hex there, which is the whole point.
+   */
+  const lattice = Object.fromEntries([...coord, [id, pos]]);
+  const own = HexGeo.plateOwnership(lattice);
+  const terrain = {};
+  for (const [sub, t] of Object.entries(rolled.terrain)) {
+    if (!own.isBorrowed(id, sub)) terrain[sub] = t;
+  }
 
   const abs = guard.assertCreatable(`plates/${id}.yaml`);   // structural boundary
   yamlIo.writeNewPlate(abs, {
@@ -338,7 +580,7 @@ function createPlate(body) {
     profile, seed, edgeSeeds: edgeSeeds.length,
     neighbors: adjacency,
     default_terrain: rolled.defaultTerrain,
-    terrain: rolled.terrain,
+    terrain,
     eol: detectEol(),
   });
 
@@ -353,7 +595,8 @@ function createPlate(body) {
   return {
     ok: true, id, profile, seed,
     default_terrain: rolled.defaultTerrain,
-    overrides: Object.keys(rolled.terrain).length,
+    overrides: Object.keys(terrain).length,
+    borrowed_skipped: Object.keys(rolled.terrain).length - Object.keys(terrain).length,
     counts: rolled.counts,
     edge_seeds: edgeSeeds.length,
     neighbors: adjacency,
@@ -405,16 +648,9 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { plates: listPlates(), profiles: plateGen.PROFILES, conflicts });
     }
 
-    // API: the whole map, positioned around one plate
+    // API: the whole map, on one fixed frame
     if (req.method === "GET" && p === "/api/atlas") {
-      const id = u.searchParams.get("origin") || plateIds()[0] || "0001";
-      return send(res, 200, buildAtlas(id));
-    }
-
-    // API: model
-    if (req.method === "GET" && p === "/api/model") {
-      const id = u.searchParams.get("plate") || "0001";
-      return send(res, 200, buildModel(id));
+      return send(res, 200, buildAtlas(atlasOriginId()));
     }
 
     // API: one plate's full interior (detail LOD, fetched on demand)
@@ -437,6 +673,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "PUT" && (m = /^\/api\/plate\/(\d{4})\/lines$/.exec(p))) {
       const body = JSON.parse((await readBody(req)) || "{}");
       return send(res, 200, savePlateLines(m[1], body));
+    }
+    // API: PUT /api/plate/:id/meta — the plate's descriptive fields, never the map
+    if (req.method === "PUT" && (m = /^\/api\/plate\/(\d{4})\/meta$/.exec(p))) {
+      const body = JSON.parse((await readBody(req)) || "{}");
+      return send(res, 200, savePlateMeta(m[1], body));
+    }
+    // API: PUT /api/hex/:plateId/:sub — one hex file's MAP fields (never story)
+    if (req.method === "PUT" && (m = /^\/api\/hex\/(\d{4})\/(\d{3})$/.exec(p))) {
+      const body = JSON.parse((await readBody(req)) || "{}");
+      return send(res, 200, saveHex(m[1], m[2], body));
     }
     // API: POST /api/plate/preview — roll a candidate without writing anything
     if (req.method === "POST" && p === "/api/plate/preview") {

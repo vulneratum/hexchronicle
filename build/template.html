@@ -3,11 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>HexChronicle — Atlas plate</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>HexChronicle — the atlas</title>
 <style>
+  /*
+   * FONTS ARE SERVED FROM THIS ORIGIN. They used to come from Google, which
+   * cost a render-blocking stylesheet from a third party, a second DNS+TLS
+   * handshake, and leaked every visitor's IP to a host that has nothing to do
+   * with the map. These files are the same faces, fetched once and committed;
+   * the site now makes NO third-party request at all.
+   *
+   * IBM Plex Mono is SUBSET to the 98 characters the map can render in it —
+   * printable ASCII plus · … — because it draws addresses, the cartouche line,
+   * the card eyebrow and file paths, all of which are bounded. 9 KB instead of
+   * 29 KB across two weights, one of which was never used.
+   *
+   * The other two are shipped as the FULL Latin set on purpose. They render
+   * place names, which are still being written: a tighter subset would silently
+   * fall back to a system font the first time a name used a character that had
+   * been left out.
+   *
+   * font-display: swap everywhere, so text paints immediately in the fallback
+   * and reflows when the face arrives, rather than holding the first paint.
+   */
+  @font-face{font-family:'IM Fell English SC';font-style:normal;font-weight:400;font-display:swap;
+    src:url(fonts/im-fell-english-sc-400.woff2) format('woff2')}
+  @font-face{font-family:'Alegreya Sans';font-style:normal;font-weight:400;font-display:swap;
+    src:url(fonts/alegreya-sans-400.woff2) format('woff2')}
+  @font-face{font-family:'Alegreya Sans';font-style:normal;font-weight:500;font-display:swap;
+    src:url(fonts/alegreya-sans-500.woff2) format('woff2')}
+  @font-face{font-family:'Alegreya Sans';font-style:normal;font-weight:700;font-display:swap;
+    src:url(fonts/alegreya-sans-700.woff2) format('woff2')}
+  @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;
+    src:url(fonts/ibm-plex-mono-400.woff2) format('woff2')}
+
   :root{
     --ink:#1e2a26;
     --parchment:#e9e2cf;
@@ -112,14 +140,14 @@
 </head>
 <body>
 
-<svg id="map" aria-label="Atlas plate"></svg>
+<svg id="map" aria-label="The atlas"></svg>
 
 <header>
   <div class="brand">
     <h1>HexChronicle</h1>
-    <span>Atlas plate view</span>
+    <span>The atlas</span>
   </div>
-  <button class="hbtn" id="fitBtn">Fit plate</button>
+  <button class="hbtn" id="fitBtn">Fit map</button>
 </header>
 
 <div id="plateTitle">
@@ -136,10 +164,12 @@
   <div id="cardBody"></div>
 </div>
 
-<!-- Compiled by build/build.js — do not edit docs/ by hand; edit the data files and rebuild. -->
+<!-- Compiled by build/build.js — do not edit docs/ by hand; edit the data files and rebuild.
+     The map DATA is not inlined: world/atlas.json is the summary, and each
+     36-mile hex's interior is fetched from world/plate-NNNN.json only when it
+     scrolls into view. -->
 <script>/*__GEOMETRY_JS__*/</script>
 <script>/*__PLATEDRAW_JS__*/</script>
-<script>window.WORLD = /*__WORLD_DATA__*/;</script>
 <script>/*__RENDERER_JS__*/</script>
 </body>
 </html>

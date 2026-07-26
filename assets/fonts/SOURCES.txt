@@ -1,0 +1,21 @@
+Fetched from Google Fonts, OFL/Apache licensed, redistributable.
+
+im-fell-english-sc-400.woff2
+  IM Fell English SC 400 (latin subset), 56956 bytes
+  https://fonts.gstatic.com/s/imfellenglishsc/v16/a8IENpD3CDX-4zrWfr1VY879qFF05pZ7PIIP.woff2
+
+alegreya-sans-400.woff2
+  Alegreya Sans 400 (latin subset), 23708 bytes
+  https://fonts.gstatic.com/s/alegreyasans/v28/5aUz9_-1phKLFgshYDvh6Vwt7VptvQ.woff2
+
+alegreya-sans-500.woff2
+  Alegreya Sans 500 (latin subset), 23928 bytes
+  https://fonts.gstatic.com/s/alegreyasans/v28/5aUu9_-1phKLFgshYDvh6Vwt5alOqEp2iw.woff2
+
+alegreya-sans-700.woff2
+  Alegreya Sans 700 (latin subset), 23976 bytes
+  https://fonts.gstatic.com/s/alegreyasans/v28/5aUu9_-1phKLFgshYDvh6Vwt5eFIqEp2iw.woff2
+
+ibm-plex-mono-400.woff2
+  IBM Plex Mono 400 (text subset), 9320 bytes
+  https://fonts.gstatic.com/l/font?kit=-F63fjptAgt5VM-kVkqdyU8n5i04tXdEpckxMf9H57LY_ZgSlu-nUIxVcZJ7F2QpZldywEUfh4AuTPsj-BojQ5MjGd6NARv5_K7m7ueQQnnIJxl-sSzDXDmYJbwpNvKOKHyRKIMhcWz4bxjyDgqSmL-rzl-C5I4v5MmQPTg&skey=b40c83751ce1954d&v=v20

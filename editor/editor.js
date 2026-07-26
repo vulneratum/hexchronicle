@@ -1,28 +1,34 @@
 /*
  * HexChronicle editor client.
- *   Phase 1 — terrain paint brush + Save.
- *   Phase 2 — line tools: draw/extend/reroute/retype/delete rivers & roads.
- *   Phase 3 — the atlas: every plate on one canvas, add-new-plate flow.
  *
- * NAVIGATION IS A SLIPPY MAP. The active plate always sits at world origin
- * (0,0); every editing coordinate (paint, lines, undo, save) depends on that.
- * Switching plates RE-ORIGINS the atlas rather than moving the active plate, so
- * zoom, camera, and the detail cache survive — no page reload.
+ * THERE IS NO SELECTED PLATE. A 36-mile hex is not a mode you enter — it is
+ * just where a 3-mile subhex happens to live. Click any subhex on any plate and
+ * it is immediately paintable, linkable and editable with whatever tool is
+ * active. Nothing re-origins, nothing dims, no plate is "current".
  *
- * LOD + culling keep the node count bounded: off-screen plates are neither
- * fetched nor built; on-screen plates draw as flat colour below DETAIL_ZOOM and
- * as a full subhex grid (up to MAX_FULL nearest) above it.
+ * The map itself — layers, viewport culling, merged-path terrain, shorelines,
+ * the atlas-wide line network, feature anchors, and the hit test — lives in
+ * shared/plate-draw.js (PlateDraw.createAtlas), so the editor and the published
+ * site are the same renderer with different interaction bolted on. This file is
+ * the interaction: tools, panels, undo, and save.
+ *
+ * WORLD COORDINATES ARE ABSOLUTE. The lattice is anchored on the lowest plate
+ * id at (0,0) and never moves, so a world coordinate means the same thing for
+ * the whole session and hexAt() is a plain geometric lookup.
+ *
+ * SEAM OWNERSHIP. A plate is 12 subhexes across, so its rim runs through subhex
+ * CENTRES and 30 of its positions are also positions on a neighbour. The hit
+ * test resolves every click to the OWNER (lower plate id), so one physical hex
+ * has one address, one terrain, one file — whichever side you clicked from.
  *
  * SVG click caveat: pointerdown calls preventDefault() + setPointerCapture,
  * which suppresses the `click` event for everything inside the map. All map
- * interaction routes through endPointer()'s hit test (atlasAt). Never add a
- * click listener to an SVG element.
- *
- * Draws with the shared PlateDraw core; adds the editing interaction here.
+ * interaction routes through endPointer()'s hit test. Never add a click listener
+ * to an SVG element.
  */
 (function () {
   "use strict";
-  const { SIZE, RL, SQ3, pxToAxial } = HexGeo;
+  const { SIZE, RL, hexCorners, plateCorners, insidePlate, plateToPx } = HexGeo;
   const svg = document.getElementById("map");
   const $ = id => document.getElementById(id);
   const SVGNS = "http://www.w3.org/2000/svg";
@@ -30,96 +36,121 @@
 
   /* ---- tuning ---- */
   const PAD_LEFT = 215;                 // canvas taken by the left-hand panel
-  const DETAIL_ZOOM = 0.40;             // context plates gain subhex detail above this scale
-  const MAX_FULL = 14;                  // cap on simultaneously-detailed context plates (node budget)
-  const CULL_MARGIN = RL * 0.6;         // build slightly beyond the viewport so panning doesn't pop
-  const FADE_MS = 220;                  // LOD cross-fade duration
-  const LABEL_Y = -(RL - SIZE * 0.55);  // plate-id label sits at the plate's top
+  const HEX_STROKE = "rgba(0,0,0,0.16)";
   const DIR_NAME = { e: "east", ne: "north-east", nw: "north-west", w: "west", sw: "south-west", se: "south-east" };
-  const DIR_AXIAL = { e: [1, 0], se: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [0, -1], ne: [1, -1] };
-  const plateToPx = (q, r) => ({ x: SQ3 * RL * (q + r / 2), y: 1.5 * RL * r });
 
-  /* ---- active-plate state (rebuilt on every switch) ---- */
-  let model, geo, byKey, pd, plateId, defaultTerrain;
-  let gEdit = null;                     // overlay group for the in-progress line
-  let brush;                            // terrain brush
-  let workingLines = [];                // [{type, path:[sub]}] — source of truth for the active plate's lines
-  let lineType = null, editing = null;
-  let dirtyTerrain = false, dirtyLines = false;
-  const undoStack = [], redoStack = [];
+  /* ---- state ---- */
+  let registry = null, atlas = null, geo = null, bySub = null;
+  let atlasDoc = null;                  // the last /api/atlas payload (profiles, problems)
+  const plateState = new Map();         // id -> interior state; PRESENT MEANS FULLY LOADED
+  const fetching = new Map();           // id -> in-flight detail promise
+  const dirtyPlates = new Set();
+  const undoStack = [], redoStack = []; // entries: [{plateId, sub, from, to}, …]
   let curStroke = null;
 
-  /* ---- atlas / camera state (persists across switches) ---- */
-  let camera = null, gAtlas = null;     // camera holds pan/zoom; gAtlas holds context plates + slots
-  let atlas = null;                     // last atlas payload (for profiles etc.)
-  let atlasIndex = [], slotIndex = [];  // world positions of every plate / empty slot
-  const detailCache = new Map();        // id -> {default_terrain, terrain, lines, features}
-  const fetching = new Set();           // detail fetches in flight
-  const rendered = new Map();           // id -> { g, label, content, lod, x, y, entry } for built context plates
-  const renderedSlots = new Map();      // key -> g for built slots
+  let selected = null;                  // { plateId, sub } — always the OWNER
+  let tool = "paint", brush = null, lineType = null, editing = null;
+  let spaceHeld = false;
 
-  let tool = "paint", spaceHeld = false;
+  /* empty lattice positions — editor-only, see "EMPTY POSITIONS" below */
+  let gSlots = null, slotIndex = [], hotSlot = null;
+  const slotEls = new Map();
 
-  const QUERY_PLATE = new URLSearchParams(location.search).get("plate");
-
-  getModel(QUERY_PLATE).then(init).catch(err => setStatus("load failed: " + err, "err"));
-
-  function getModel(id) {
-    return fetch("/api/model" + (id ? "?plate=" + encodeURIComponent(id) : ""))
-      .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
-  }
-
-  function init(m) {
+  async function boot() {
     geo = HexGeo.buildPlateHexes();
-    byKey = new Map(geo.map(h => [h.key, h]));
+    bySub = new Map(geo.map(h => [h.sub, h]));
+    let a;
+    try { a = await getJSON("/api/atlas"); }
+    catch (err) { setStatus("load failed: " + err.message, "err"); return; }
 
-    // camera group: everything the pan/zoom transform applies to. The active
-    // plate is re-parented under it so the surrounding atlas moves with it,
-    // while staying at world origin (see hexAt / the switching functions).
-    camera = document.createElementNS(SVGNS, "g");
-    gAtlas = document.createElementNS(SVGNS, "g");
-    svg.appendChild(camera);
-    camera.appendChild(gAtlas);         // context plates draw beneath the active plate
-
-    mountActivePlate(m);
-    wireTools();
-    setStatus("ready");
-    fitAll();                    // centre the active plate right away…
-    refetchAtlas().then(fitAll); // …then reframe once the atlas is known
-  }
-
-  /*
-   * Tear down the current active plate and build a new one from model `m`. Used
-   * by init and by every in-place switch. Leaves camera/atlas untouched.
-   */
-  function mountActivePlate(m) {
-    if (pd) pd.world.remove();
-    model = m;
-    plateId = m.plate.id;
-    defaultTerrain = m.plate.default_terrain;
-    model.geo = geo;
-    $("plateId").textContent = plateId;
-    document.title = `HexChronicle Editor — Plate ${plateId}`;
-
-    pd = PlateDraw.create(svg, model);
-    camera.appendChild(pd.world);        // move above gAtlas
-    for (const c of pd.neighborChips) c.g.remove();   // full-size slots replace the per-plate chips
-    gEdit = document.createElementNS(SVGNS, "g");
-    pd.world.appendChild(gEdit);
-
-    workingLines = (model.lines || []).map(l => ({ type: l.type, path: l.path.slice() }));
-    editing = null; hideEditUI();
-    undoStack.length = 0; redoStack.length = 0; updateUndoButtons();
-    dirtyTerrain = false; dirtyLines = false; $("save").disabled = true;
-
+    registry = a.registry;
+    atlas = PlateDraw.createAtlas(svg, {
+      geo, registry,
+      gridStroke: HEX_STROKE,
+      stateOf: id => plateState.get(id) || null,
+      request: id => { ensureState(id).catch(() => {}); },
+      linesOf: visibleLinesOf,
+      viewportRect,
+    });
+    // the editor's own overlay, above the map the shared renderer draws
+    gSlots = el("g", {}, atlas.world);
     buildPalette();
     buildLineTypes();
-    renderLineList();
+    buildMetaChoices();
+    wireTools();
+    wireMetaPanel();
+    wirePlatePanel();
+    loadAtlas(a);
+    fitAll();
+    setStatus("ready — click any hex on any plate");
   }
 
-  /* ---------- terrain palette (from theme registry) ---------- */
+  const getJSON = url => fetch(url).then(r => {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  });
+
+  function loadAtlas(a) {
+    atlasDoc = a;
+    atlas.setPlates(a.plates);
+    setSlots(a.empty);
+    renderLineList();
+    const problems = [];
+    if (a.orphans && a.orphans.length) problems.push(`${a.orphans.length} plate(s) not linked to this map`);
+    if (a.dangling && a.dangling.length) problems.push(`${a.dangling.length} neighbour link(s) point at a missing plate`);
+    if (a.conflicts && a.conflicts.length) problems.push(`${a.conflicts.length} inconsistent neighbour link(s)`);
+    if (problems.length) setStatus(problems.join(" · "), "err");
+  }
+  const refetchAtlas = () => getJSON("/api/atlas").then(loadAtlas)
+    .catch(() => setStatus("atlas failed to load", "err"));
+
+  /* ============================================================= *
+   * Per-plate interior state
+   *
+   * A plate is in `plateState` only once its FULL detail has arrived. That is
+   * load-bearing, not incidental: PUT /api/plate/:id/lines REPLACES the plate's
+   * entire lines array, so writing a plate whose detail was never fetched would
+   * silently delete every line it has. `state()` therefore never returns a stub,
+   * and save() refuses to write lines for a plate that is not in here.
+   * ============================================================= */
+  function stateFromDetail(d) {
+    const terrain = {};
+    for (const h of geo) terrain[h.sub] = d.terrain[h.sub] || d.default_terrain;
+    return {
+      id: d.id,
+      name: d.name || null, title: d.title || null,
+      canton: d.canton || null, realm: d.realm || null,
+      summary: d.summary || null,
+      continent_hex: d.continent_hex, scale_label: d.scale_label || null,
+      defaultTerrain: d.default_terrain,
+      terrain,
+      lines: (d.lines || []).map(l => ({ type: l.type, path: l.path.slice() })),
+      hexes: d.hexes || {},
+      dirtyTerrain: false, dirtyLines: false, dirtyMeta: false,
+      dirtyHexes: new Set(),
+    };
+  }
+  function ensureState(id) {
+    const st = plateState.get(id);
+    if (st) return Promise.resolve(st);
+    const inflight = fetching.get(id);
+    if (inflight) return inflight;
+    const p = getJSON("/api/plate/" + id + "/detail").then(d => {
+      const fresh = stateFromDetail(d);
+      plateState.set(id, fresh);
+      fetching.delete(id);
+      scheduleViewport();
+      renderLineList();
+      return fresh;
+    });
+    p.catch(() => fetching.delete(id));
+    fetching.set(id, p);
+    return p;
+  }
+
+  /* ---------- terrain palette ---------- */
   function buildPalette() {
-    const T = model.registry.terrain, box = $("swatches");
+    const T = registry.terrain, box = $("swatches");
     box.textContent = "";
     for (const key of Object.keys(T)) {
       const b = document.createElement("div");
@@ -129,60 +160,61 @@
       b.addEventListener("click", () => selectBrush(key));
       box.appendChild(b);
     }
-    // Starting the brush on the plate's default terrain makes Paint look broken
-    // — every stroke a no-op until you pick another swatch. Start off-default.
-    brush = Object.keys(T).find(k => k !== defaultTerrain) || defaultTerrain;
-    selectBrush(brush);
+    selectBrush(Object.keys(T)[0]);
   }
   function selectBrush(key) {
     brush = key;
     for (const b of document.querySelectorAll(".swatch")) b.classList.toggle("active", b.dataset.key === key);
   }
 
-  /* ---------- line-type palette (from theme registry) ---------- */
+  /* ---------- line-type palette ---------- */
   function buildLineTypes() {
-    const L = model.registry.lines || {}, box = $("lineTypes");
+    const L = registry.lines || {}, box = $("lineTypes");
     box.textContent = "";
-    const keys = Object.keys(L);
-    for (const key of keys) {
+    for (const key of Object.keys(L)) {
       const spec = L[key];
       const b = document.createElement("button");
       b.className = "ltype";
-      b.dataset.key = key;
-      b.innerHTML = `<i style="border-top-color:${spec.color};border-top-width:${Math.max(2, spec.width)}px;${spec.dash ? "border-top-style:dashed" : "border-top-style:solid"}"></i>${spec.label}`;
-      b.addEventListener("click", () => selectLineType(key));
+      b.dataset.type = key;
+      b.innerHTML = `<i style="background:${spec.color};height:${Math.max(2, spec.width)}px"></i>${spec.label || key}`;
+      b.addEventListener("click", () => {
+        lineType = key;
+        highlightLineType();
+        if (editing) { editing.type = key; renderLines(); updateEditInfo(); }
+      });
       box.appendChild(b);
     }
-    lineType = keys.includes("road") ? "road" : keys[0];
+    lineType = Object.keys(L)[0] || null;
     highlightLineType();
   }
   function highlightLineType() {
-    for (const b of document.querySelectorAll(".ltype")) b.classList.toggle("active", b.dataset.key === lineType);
+    for (const b of document.querySelectorAll(".ltype")) b.classList.toggle("active", b.dataset.type === lineType);
   }
-  function selectLineType(key) {
-    lineType = key;
-    highlightLineType();
-    if (editing) { editing.type = key; renderLines(); updateEditInfo(); }
-  }
+  const lineLabel = t => ((registry.lines || {})[t] || {}).label || t;
 
   /* ---------- pan / zoom ---------- */
   let s = 1, tx = 0, ty = 0;
   function applyTransform() {
-    camera.setAttribute("transform", `translate(${tx} ${ty}) scale(${s})`);
-    pd.setNumbersVisible(s >= 0.95);
+    atlas.setView(tx, ty, s);
     scheduleViewport();
   }
   function viewSize() { const r = svg.getBoundingClientRect(); return { w: r.width || innerWidth, h: r.height || innerHeight }; }
-  /* Frame the whole atlas (every plate position), centred right of the panel. */
-  function fitAll() {
+  function viewportRect() {
     const v = viewSize();
-    const pts = (atlasIndex && atlasIndex.length) ? atlasIndex : [{ x: 0, y: 0 }];
-    const minX = Math.min(...pts.map(p => p.x)) - RL - SIZE, maxX = Math.max(...pts.map(p => p.x)) + RL + SIZE;
-    const minY = Math.min(...pts.map(p => p.y)) - RL - SIZE, maxY = Math.max(...pts.map(p => p.y)) + RL + SIZE;
+    return { xmin: (PAD_LEFT - tx) / s, xmax: (v.w - tx) / s, ymin: (0 - ty) / s, ymax: (v.h - ty) / s };
+  }
+  let vpScheduled = false;
+  function scheduleViewport() {
+    if (vpScheduled) return;
+    vpScheduled = true;
+    requestAnimationFrame(() => { vpScheduled = false; atlas.update(); updateSlots(); drawSelection(); drawActive(); });
+  }
+  function fitAll() {
+    const v = viewSize(), b = atlas.bounds();
     const availW = Math.max(200, v.w - PAD_LEFT - 40), availH = Math.max(200, v.h - 110);
-    s = Math.min(3, Math.max(0.05, Math.min(availW / (maxX - minX), availH / (maxY - minY))));
-    tx = PAD_LEFT + availW / 2 - ((minX + maxX) / 2) * s;
-    ty = 70 + availH / 2 - ((minY + maxY) / 2) * s;
+    s = Math.min(3, Math.max(0.05, Math.min(availW / (b.maxX - b.minX), availH / (b.maxY - b.minY))));
+    tx = PAD_LEFT + availW / 2 - ((b.minX + b.maxX) / 2) * s;
+    ty = 70 + availH / 2 - ((b.minY + b.maxY) / 2) * s;
     applyTransform();
   }
   window.addEventListener("resize", () => fitAll());
@@ -191,334 +223,495 @@
     tx = cx - (cx - tx) * real; ty = cy - (cy - ty) * real; s = ns;
     applyTransform();
   }
+  const toWorld = (clientX, clientY) => ({ x: (clientX - tx) / s, y: (clientY - ty) / s });
+  const hexAt = (cx, cy) => { const w = toWorld(cx, cy); return atlas.hexAt(w.x, w.y); };
+  const slotAt = (cx, cy) => { const w = toWorld(cx, cy); return slotAtWorld(w.x, w.y); };
 
-  // client -> active-plate subhex. Works because the active plate is at origin.
-  function hexAt(clientX, clientY) {
-    const a = pxToAxial((clientX - tx) / s, (clientY - ty) / s);
-    return byKey.get(a.q + "," + a.r) || null;
+  /* ============================================================= *
+   * Selection — one hex, anywhere, no plate step
+   * ============================================================= */
+  function selectHex(hit) {
+    selected = hit ? { plateId: hit.plateId, sub: hit.sub } : null;
+    if (hit && !plateState.has(hit.plateId)) ensureState(hit.plateId).then(renderPanels).catch(() => {});
+    drawSelection();
+    renderPanels();
+  }
+  const selAddress = () => (selected ? atlas.own.addressOf(selected.plateId, selected.sub) : null);
+
+  function drawSelection() {
+    atlas.layers.ui.textContent = "";
+    if (!selected) return;
+    const p = atlas.worldOf(selected.plateId, selected.sub);
+    if (!p) return;
+    const pts = hexCorners(p.x, p.y, SIZE);
+    el("polygon", { points: pts, fill: "none", stroke: "#f3ead0", "stroke-width": 3, "stroke-linejoin": "round" }, atlas.layers.ui);
+    el("polygon", { points: pts, fill: "none", stroke: "#2b2b23", "stroke-width": 1, "stroke-linejoin": "round" }, atlas.layers.ui);
+    drawActive();
+  }
+  function renderPanels() {
+    $("selAddr").textContent = selAddress() || "—";
+    renderMetaPanel();
+    renderPlatePanel();
   }
 
-  /* ---------- terrain painting ---------- */
+  /* ============================================================= *
+   * Terrain painting — on whichever hex was hit
+   * ============================================================= */
   function paintAt(cx, cy) {
-    const h = hexAt(cx, cy);
-    if (!h) return;
-    const from = model.terrainByNum[h.sub];
-    if (from === brush) return;
-    if (!(h.sub in curStroke)) curStroke[h.sub] = { sub: h.sub, from };
-    curStroke[h.sub].to = brush;
-    pd.setTerrain(h.sub, brush);
-    markTerrainDirty();
+    const hit = hexAt(cx, cy);
+    if (!hit) return;
+    if (plateState.has(hit.plateId)) { applyPaint(hit, brush); return; }
+    /*
+     * Its interior has not arrived yet. Every hex is directly clickable now, so
+     * a click near the edge of the viewport can easily land on a plate that is
+     * still loading — fetch it and then apply the stroke, rather than making the
+     * first click a silent no-op the user has to guess about.
+     */
+    const want = brush;
+    ensureState(hit.plateId).then(() => applyPaint(hit, want)).catch(() => {});
   }
-
-  /* ---------- line editing ---------- */
-  function visibleLines() {
-    return (editing && editing.orig != null) ? workingLines.filter((_, i) => i !== editing.orig) : workingLines;
-  }
-  function renderLines() { pd.rebuildLines(visibleLines()); drawActive(); }
-
-  function drawActive() {
-    gEdit.textContent = "";
-    if (!editing || !editing.path.length) return;
-    const pts = editing.path.map(sub => pd.hexBySub.get(sub)).filter(Boolean);
-    const st = pd.lineStyle(editing.type);
-    if (pts.length >= 2) {
-      const d = "M " + pts.map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" L ");
-      el("path", { d, fill: "none", stroke: st.color, "stroke-width": st.width, "stroke-linecap": "round", opacity: "0.55" }, gEdit);
-      el("path", { d, fill: "none", stroke: "#f3ead0", "stroke-width": "1.4", "stroke-dasharray": "4 4", "stroke-linecap": "round" }, gEdit);
+  function applyPaint(hit, want) {
+    const st = plateState.get(hit.plateId);
+    if (!st) return;
+    const from = st.terrain[hit.sub];
+    if (from === want) return;
+    const change = { plateId: hit.plateId, sub: hit.sub, from, to: want };
+    if (curStroke) {
+      const key = hit.plateId + ":" + hit.sub;
+      if (!(key in curStroke)) curStroke[key] = change;
+      curStroke[key].to = want;
+    } else {
+      // the stroke already closed out while the plate was loading
+      undoStack.push([change]); redoStack.length = 0; updateUndoButtons();
     }
-    pts.forEach((p, i) => {
-      el("circle", { cx: p.x, cy: p.y, r: i === 0 || i === pts.length - 1 ? 4 : 2.6, fill: "#f3ead0", stroke: "#2b2b23", "stroke-width": "1.2" }, gEdit);
-    });
+    setTerrainAt(hit.plateId, hit.sub, want);
+    flushTerrainRebuilds();
+    markDirty(hit.plateId, "dirtyTerrain");
+  }
+
+  /*
+   * One subhex recolour, applied to EVERY plate that shows that position.
+   *
+   * A seam hex is drawn by two plates (three at a corner) and each keeps its own
+   * copy for meshing and shoreline smoothing, so a paint that reached only one
+   * of them would put a visible discontinuity right on the boundary. Only the
+   * OWNER is marked dirty, so only the owner's file is ever written.
+   */
+  function setTerrainAt(id, sub, type) {
+    const o = atlas.own.ownerOf(id, sub);
+    if (!plateState.has(o.plateId)) return;
+    for (const c of atlas.own.sharersOf(o.plateId, o.sub)) {
+      const cst = plateState.get(c.plateId);
+      if (!cst) continue;
+      cst.terrain[c.sub] = type;
+      atlas.invalidate(c.plateId);
+    }
+  }
+  function flushTerrainRebuilds() { atlas.refresh(); drawSelection(); }
+
+  /* ============================================================= *
+   * Line features
+   *
+   * A line is edited as ONE path of owner addresses that may cross any number of
+   * plates. It is STORED split at the seams — a plate's `lines:` array can only
+   * name that plate's own subhexes — and the pieces overlap by the shared hex,
+   * so the atlas-wide network joins them back into one continuous line.
+   * ============================================================= */
+  const addrOf = hit => atlas.own.addressOf(hit.plateId, hit.sub);
+  const qualify = (path, ownerId) => path.map(e => {
+    const a = HexGeo.parseAddr(e);
+    if (!a) return null;
+    return atlas.own.addressOf(a.plate || ownerId, a.sub);
+  }).filter(Boolean);
+
+  /* hide the piece being edited; the in-progress overlay stands in for it */
+  function visibleLinesOf(id, st) {
+    if (editing && editing.from && editing.from.plateId === id) {
+      return st.lines.filter((_, i) => i !== editing.from.index);
+    }
+    return st.lines;
+  }
+  function renderLines() { atlas.renderLines(); drawActive(); renderLineList(); }
+
+  /*
+   * Split a path of owner addresses into one piece per plate.
+   *
+   * Every pair of adjacent world positions is held by at least one plate (a
+   * plate's rim overlaps its neighbour's by a full row of shared hexes), so a
+   * run can always be extended until no single plate holds the next hex too.
+   * The next piece then RESTARTS on the shared hex, so consecutive pieces
+   * overlap by one and the drawn line has no gap at the seam.
+   */
+  function claimsOf(addr) {
+    const a = HexGeo.parseAddr(addr);
+    const o = atlas.own.ownerOf(a.plate, a.sub);
+    return new Map(atlas.own.sharersOf(o.plateId, o.sub).map(c => [c.plateId, c.sub]));
+  }
+  function splitPath(path) {
+    const pieces = [];
+    let start = 0;
+    while (start < path.length - 1) {
+      // grow the longest run from `start` that ONE plate can name end to end
+      let cand = new Set(claimsOf(path[start]).keys()), end = start;
+      while (end + 1 < path.length) {
+        const next = claimsOf(path[end + 1]);
+        const merged = new Set([...cand].filter(p => next.has(p)));
+        if (!merged.size) break;
+        cand = merged; end++;
+      }
+      if (end === start) break;        // no plate holds this edge: impossible on a real lattice
+      const run = path.slice(start, end + 1);
+      const plateId = pickHolder(run, [...cand]);
+      pieces.push({ plateId, path: run.map(a => claimsOf(a).get(plateId)) });
+      start = end;                     // the shared hex also starts the next piece
+    }
+    return pieces;
+  }
+  /* prefer the plate that OWNS most of the run, then the lower id */
+  function pickHolder(run, holders) {
+    const score = new Map(holders.map(p => [p, 0]));
+    for (const addr of run) {
+      const o = HexGeo.parseAddr(addr);
+      if (score.has(o.plate)) score.set(o.plate, score.get(o.plate) + 1);
+    }
+    return [...score.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0][0];
   }
 
   function startNewLine() {
-    editing = { orig: null, type: lineType, path: [] };
-    showEditUI(); renderLineList(); renderLines(); updateEditInfo();
-    setStatus("drawing a new " + lineLabel(lineType) + " — click hexes");
+    editing = { from: null, type: lineType, path: [] };
+    showEditUI(); renderLines(); updateEditInfo();
+    setStatus(`drawing a new ${lineLabel(lineType)} — click hexes on any plate`);
   }
-  function selectLine(i) {
-    editing = { orig: i, type: workingLines[i].type, path: workingLines[i].path.slice() };
+  function selectLine(plateId, index) {
+    const st = plateState.get(plateId);
+    if (!st) return;
+    const src = st.lines[index];
+    editing = { from: { plateId, index }, type: src.type, path: qualify(src.path, plateId) };
     lineType = editing.type; highlightLineType();
-    showEditUI(); renderLineList(); renderLines(); updateEditInfo();
-    setStatus("editing " + lineLabel(editing.type) + " · click to extend, Backspace to trim");
+    showEditUI(); renderLines(); updateEditInfo();
+    setStatus(`editing ${lineLabel(editing.type)} on plate ${plateId} · click to extend, Backspace to trim`);
   }
-  function lineTap(cx, cy) {
-    const h = hexAt(cx, cy);
-    if (!h) return;
-    if (!editing) {
-      const i = workingLines.findIndex(l => l.path.includes(h.sub));
-      if (i >= 0) selectLine(i);
+
+  function lineTap(hit) {
+    const addr = addrOf(hit);
+    if (editing) {
+      if (editing.path[editing.path.length - 1] === addr) return;
+      if (!plateState.has(hit.plateId)) { ensureState(hit.plateId).catch(() => {}); return; }
+      editing.path.push(addr);
+      renderLines(); updateEditInfo();
       return;
     }
-    if (editing.path[editing.path.length - 1] === h.sub) return;   // ignore repeat
-    editing.path.push(h.sub);
-    renderLines(); updateEditInfo();
+    for (const [id, st] of plateState) {
+      const i = st.lines.findIndex(l => qualify(l.path, id).includes(addr));
+      if (i >= 0) { selectLine(id, i); return; }
+    }
   }
   function trimLast() { if (editing && editing.path.length) { editing.path.pop(); renderLines(); updateEditInfo(); } }
 
-  function finishLine() {
+  async function finishLine() {
     if (!editing) return;
     if (editing.path.length < 2) { setStatus("a line needs at least 2 hexes", "err"); return; }
-    const rec = { type: editing.type, path: editing.path.slice() };
-    if (editing.orig == null) workingLines.push(rec); else workingLines[editing.orig] = rec;
-    editing = null; markLinesDirty(); hideEditUI(); renderLineList(); renderLines();
-    setStatus("line set — Save to write it to disk");
+    const pieces = splitPath(editing.path);
+    const touched = new Set(pieces.map(p => p.plateId));
+    if (editing.from) touched.add(editing.from.plateId);
+
+    // A plate's lines array is REPLACED on save, so every plate about to receive
+    // a piece must have its full interior in hand first.
+    try { await Promise.all([...touched].map(ensureState)); }
+    catch (err) { setStatus("could not load a plate the line crosses: " + err.message, "err"); return; }
+
+    if (editing.from) {
+      const st = plateState.get(editing.from.plateId);
+      st.lines.splice(editing.from.index, 1);
+      markDirty(editing.from.plateId, "dirtyLines");
+    }
+    for (const piece of pieces) {
+      plateState.get(piece.plateId).lines.push({ type: editing.type, path: piece.path });
+      markDirty(piece.plateId, "dirtyLines");
+    }
+    editing = null; hideEditUI();
+    renderLines();
+    setStatus(pieces.length > 1
+      ? `line set, split across ${pieces.map(p => p.plateId).join(" + ")} — Save to write it`
+      : `line set on plate ${pieces[0].plateId} — Save to write it`);
   }
-  function cancelLine() { editing = null; hideEditUI(); renderLineList(); renderLines(); setStatus("edit cancelled"); }
+  function cancelLine() { editing = null; hideEditUI(); renderLines(); setStatus("edit cancelled"); }
   function deleteLine() {
-    if (!editing || editing.orig == null) return;
-    workingLines.splice(editing.orig, 1);
-    editing = null; markLinesDirty(); hideEditUI(); renderLineList(); renderLines();
-    setStatus("line deleted — Save to write it to disk");
+    if (!editing || !editing.from) return;
+    const st = plateState.get(editing.from.plateId);
+    st.lines.splice(editing.from.index, 1);
+    markDirty(editing.from.plateId, "dirtyLines");
+    editing = null; hideEditUI(); renderLines();
+    setStatus("line deleted — Save to write it");
   }
 
-  function lineLabel(type) { const L = model.registry.lines[type]; return L ? L.label : type; }
-  function showEditUI() { $("lineEdit").hidden = false; $("lineIdleHint").hidden = true; $("deleteLine").hidden = editing.orig == null; updateEditInfo(); }
+  function showEditUI() { $("lineEdit").hidden = false; $("lineIdleHint").hidden = true; $("deleteLine").hidden = !(editing && editing.from); }
   function hideEditUI() { $("lineEdit").hidden = true; $("lineIdleHint").hidden = false; }
   function updateEditInfo() {
     if (!editing) return;
-    const verb = editing.orig == null ? "New" : "Editing";
-    $("editInfo").textContent = `${verb} ${lineLabel(editing.type)} · ${editing.path.length} hex${editing.path.length === 1 ? "" : "es"}`;
+    const n = editing.path.length;
+    const crossed = [...new Set(editing.path.map(a => HexGeo.parseAddr(a).plate))];
+    $("editInfo").innerHTML = `<b>${esc(lineLabel(editing.type))}</b> · ${n} hex${n === 1 ? "" : "es"}`
+      + (crossed.length > 1 ? `<br><span class="sub">crosses ${crossed.join(" → ")} — it will be split at the seam</span>` : "");
   }
+
+  /* every line on every loaded plate, so there is no "lines on this plate" */
   function renderLineList() {
-    const box = $("lineList"); box.textContent = "";
-    if (!workingLines.length) { box.innerHTML = `<div class="lineitem"><span class="empty">No lines yet.</span></div>`; return; }
-    workingLines.forEach((l, i) => {
-      const spec = model.registry.lines[l.type] || { color: "#888", width: 2, label: l.type };
-      const it = document.createElement("div");
-      it.className = "lineitem" + (editing && editing.orig === i ? " active" : "");
-      it.innerHTML = `<i style="border-top-color:${spec.color};border-top-width:${Math.max(2, spec.width)}px;border-top-style:${spec.dash ? "dashed" : "solid"}"></i><span>${spec.label}</span><span class="n">${l.path.length} hex</span>`;
-      it.addEventListener("click", () => selectLine(i));
-      box.appendChild(it);
+    const box = $("lineList");
+    if (!box) return;
+    const all = [];
+    for (const [id, st] of plateState) st.lines.forEach((l, i) => all.push({ id, i, l }));
+    if (!all.length) { box.innerHTML = `<div class="lineitem"><span class="empty">No lines yet.</span></div>`; return; }
+    box.textContent = "";
+    for (const { id, i, l } of all) {
+      const d = document.createElement("div");
+      d.className = "lineitem" + (editing && editing.from && editing.from.plateId === id && editing.from.index === i ? " active" : "");
+      d.innerHTML = `<b>${esc(lineLabel(l.type))}</b><span class="sub">${esc(id)} · ${l.path.length} hexes</span>`;
+      d.addEventListener("click", () => selectLine(id, i));
+      box.appendChild(d);
+    }
+  }
+
+  /* the in-progress path, drawn in the UI layer over everything */
+  function drawActive() {
+    const layer = atlas.layers.ui;
+    const old = layer.querySelector(".activeline");
+    if (old) old.remove();
+    if (!editing || !editing.path.length) return;
+    const g = el("g", { class: "activeline" }, layer);
+    const st = atlas.lineStyle(editing.type);
+    const pts = [];
+    for (const addr of editing.path) {
+      const a = HexGeo.parseAddr(addr);
+      const p = a && atlas.worldOf(a.plate, a.sub);
+      if (p) pts.push(p);
+    }
+    if (pts.length >= 2) {
+      const d = "M " + pts.map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" L ");
+      el("path", { d, fill: "none", stroke: st.color, "stroke-width": st.width, "stroke-linecap": "round", opacity: "0.55" }, g);
+      el("path", { d, fill: "none", stroke: "#f3ead0", "stroke-width": "1.4", "stroke-dasharray": "4 4", "stroke-linecap": "round" }, g);
+    }
+    pts.forEach((p, i) => {
+      el("circle", { cx: p.x, cy: p.y, r: i === 0 || i === pts.length - 1 ? 4 : 2.6, fill: "#f3ead0", stroke: "#2b2b23", "stroke-width": "1.2" }, g);
     });
   }
 
   /* ============================================================= *
-   * The atlas: LOD + viewport culling + detail cache
+   * Per-hex metadata
    * ============================================================= */
-  function terrainColor(type) {
-    return ((model.registry.terrain || {})[type] || {}).color || "#cccccc";
-  }
-  function smoothPath(pts) {
-    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-    for (let i = 1; i < pts.length - 1; i++) {
-      const mx = (pts[i].x + pts[i + 1].x) / 2, my = (pts[i].y + pts[i + 1].y) / 2;
-      d += ` Q ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
+  function buildMetaChoices() {
+    const t = $("metaTerrain");
+    t.textContent = "";
+    for (const [key, spec] of Object.entries(registry.terrain)) {
+      const o = document.createElement("option");
+      o.value = key; o.textContent = spec.label || key;
+      t.appendChild(o);
     }
-    const L = pts[pts.length - 1];
-    return d + ` L ${L.x.toFixed(1)} ${L.y.toFixed(1)}`;
+    const f = $("metaFeatureType");
+    f.textContent = "";
+    const none = document.createElement("option");
+    none.value = ""; none.textContent = "— none —";
+    f.appendChild(none);
+    for (const [key, spec] of Object.entries(registry.features || {})) {
+      const o = document.createElement("option");
+      o.value = key; o.textContent = spec.label || key;
+      f.appendChild(o);
+    }
   }
 
-  /* index every plate + slot at its world position (active plate at 0,0) */
-  function loadAtlas(a) {
-    atlas = a;
-    atlasIndex = a.plates.map(p => {
-      const o = plateToPx(p.coord[0], p.coord[1]);
-      return { kind: "plate", id: p.id, name: p.name, continent_hex: p.continent_hex, default_terrain: p.default_terrain, x: o.x, y: o.y };
+  function hexRecord(st, sub, create) {
+    let rec = st.hexes[sub];
+    if (!rec && create) rec = st.hexes[sub] = { name: null, visibility: "public", feature: null, local_memory: null, chronicle: [] };
+    return rec || null;
+  }
+
+  /* every line crossing this hex, whichever plate stores the piece */
+  function linesThrough(plateId, sub) {
+    const addr = atlas.own.addressOf(plateId, sub), out = [];
+    for (const [id, st] of plateState) {
+      for (const l of st.lines) {
+        if (qualify(l.path, id).includes(addr)) out.push(lineLabel(l.type) + (id === plateId ? "" : ` (stored on ${id})`));
+      }
+    }
+    return [...new Set(out)];
+  }
+
+  function renderMetaPanel() {
+    const st = selected && plateState.get(selected.plateId);
+    $("metaIdle").hidden = !!st;
+    $("metaBody").hidden = !st;
+    if (!st) return;
+    const sub = selected.sub, rec = hexRecord(st, sub, false) || {};
+    const addr = selAddress();
+    const file = `hexes/${addr}.yaml`;
+
+    $("metaAddr").textContent = addr;
+    const shared = atlas.own.sharersOf(selected.plateId, sub)
+      .filter(c => c.plateId !== selected.plateId).map(c => `${c.plateId} (as ${c.sub})`);
+    const lines = linesThrough(selected.plateId, sub);
+    const ro = [
+      ["36-mile hex", `${selected.plateId}${st.name ? " · " + st.name : ""}`],
+      ["Subhex", sub],
+      ["Also shown on", shared.length ? shared.join(", ") : "—"],
+      ["Scale", "3 miles (1 league)"],
+      ["Lines", lines.length ? lines.join(", ") : "none"],
+      ["File", rec.file ? file : file + " (not created yet)"],
+    ];
+    $("metaDerived").innerHTML = ro.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
+
+    $("metaName").value = rec.name || "";
+    $("metaTerrain").value = st.terrain[sub] || st.defaultTerrain;
+    $("metaFeatureType").value = (rec.feature && rec.feature.type) || "";
+    $("metaFeatureName").value = (rec.feature && rec.feature.name) || "";
+    $("metaFeatureName").disabled = !(rec.feature && rec.feature.type);
+    $("metaVisibility").value = rec.visibility || "public";
+
+    const story = [];
+    if (rec.local_memory) story.push(`<div class="mem">${esc(rec.local_memory)}</div>`);
+    for (const c of (rec.chronicle || [])) {
+      story.push(`<div class="cx"><b>${esc(c.date)}${c.visibility === "gm-only" ? " · gm-only" : ""}</b>${esc(c.text)}</div>`);
+    }
+    $("metaStory").innerHTML = story.length ? story.join("") : `<span class="empty">Nothing recorded yet.</span>`;
+  }
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function metaEdit(mutate) {
+    if (!selected) return;
+    const st = plateState.get(selected.plateId);
+    if (!st) return;
+    const rec = hexRecord(st, selected.sub, true);
+    mutate(rec, st);
+    st.dirtyHexes.add(selected.sub);
+    markDirty(selected.plateId, "dirtyMeta");
+    // the feature set decides which hexes have an anchor, so the roads that
+    // reach this hex are re-routed along with the icon
+    atlas.invalidate(selected.plateId);
+    atlas.refresh();
+    drawSelection();
+  }
+
+  function wireMetaPanel() {
+    $("metaName").addEventListener("input", () => metaEdit(rec => { rec.name = $("metaName").value.trim() || null; }));
+    $("metaFeatureName").addEventListener("input", () => metaEdit(rec => {
+      if (rec.feature) rec.feature.name = $("metaFeatureName").value.trim() || null;
+    }));
+    $("metaFeatureType").addEventListener("change", () => {
+      const type = $("metaFeatureType").value;
+      metaEdit(rec => {
+        if (!type) rec.feature = null;
+        else rec.feature = { type, name: rec.feature ? rec.feature.name : null };
+      });
+      renderMetaPanel();
     });
-    slotIndex = a.empty.map(t => {
+    $("metaVisibility").addEventListener("change", () => metaEdit(rec => { rec.visibility = $("metaVisibility").value; }));
+    // Terrain is plate data — same path the brush takes, undo included.
+    $("metaTerrain").addEventListener("change", () => {
+      if (!selected) return;
+      const st = plateState.get(selected.plateId);
+      if (!st) return;
+      const from = st.terrain[selected.sub], to = $("metaTerrain").value;
+      if (from === to) return;
+      setTerrainAt(selected.plateId, selected.sub, to);
+      flushTerrainRebuilds();
+      markDirty(selected.plateId, "dirtyTerrain");
+      undoStack.push([{ plateId: selected.plateId, sub: selected.sub, from, to }]);
+      redoStack.length = 0; updateUndoButtons();
+    });
+  }
+
+  /* ============================================================= *
+   * The containing plate's own fields
+   * ============================================================= */
+  const PLATE_FIELDS = [
+    ["plateName", "name"], ["plateTitle", "title"], ["plateCanton", "canton"],
+    ["plateRealm", "realm"], ["plateContinent", "continent_hex"],
+    ["plateScale", "scale_label"], ["plateSummary", "summary"],
+  ];
+  function renderPlatePanel() {
+    const st = selected && plateState.get(selected.plateId);
+    $("platePanel").hidden = !st;
+    if (!st) return;
+    $("plateWho").textContent = `36-mile hex ${st.id}`;
+    for (const [elId, key] of PLATE_FIELDS) $(elId).value = st[key] == null ? "" : st[key];
+  }
+  function wirePlatePanel() {
+    for (const [elId, key] of PLATE_FIELDS) {
+      $(elId).addEventListener("input", () => {
+        const st = selected && plateState.get(selected.plateId);
+        if (!st) return;
+        const raw = $(elId).value;
+        st[key] = key === "continent_hex" ? (parseInt(raw, 10) || null) : (raw.trim() || null);
+        markDirty(st.id, "dirtyMeta");
+        st.dirtyPlateMeta = true;
+        if (key === "name") { refreshPlateLabels(st); }
+      });
+    }
+  }
+  function refreshPlateLabels(st) {
+    const rec = atlas.recs.get(st.id);
+    if (rec) rec.label.textContent = st.name || st.id;
+  }
+
+  /* ============================================================= *
+   * EMPTY POSITIONS — an editor affordance, and only ever that
+   *
+   * A lattice position with no 36-mile hex in it yet is somewhere you can make
+   * one. That is a fact about EDITING, not about the world, so none of this
+   * lives in shared/plate-draw.js: the shared renderer has no concept of a
+   * slot, cannot be asked to draw one, and there is no flag that could be set
+   * wrong. The published site gets the map and nothing else because the code
+   * that would draw editor chrome is not in the module it loads.
+   *
+   * The marker itself is just the glyph and its label — no outline, no fill.
+   * The HIT TARGET is unchanged and is geometric, not the drawn shape: the
+   * whole 36-mile hexagon is clickable, exactly as when it had a border. Since
+   * there is nothing to see at the edges of that target, hover brightens the
+   * glyph so it is still discoverable.
+   * ============================================================= */
+  function setSlots(list) {
+    slotIndex = (list || []).map(t => {
       const o = plateToPx(t.coord[0], t.coord[1]);
-      return { kind: "slot", from: t.from, dir: t.dir, x: o.x, y: o.y };
+      return { from: t.from, dir: t.dir, x: o.x, y: o.y, key: t.from + "|" + t.dir };
     });
-    // positions changed wholesale — drop every built group and let the viewport
-    // pass rebuild only what is on screen.
-    for (const id of [...rendered.keys()]) removeRendered(id);
-    for (const [, g] of renderedSlots) g.remove();
-    renderedSlots.clear();
-
-    const problems = [];
-    if (a.orphans && a.orphans.length) problems.push(`${a.orphans.length} plate(s) not linked to this map`);
-    if (a.dangling && a.dangling.length) problems.push(`${a.dangling.length} neighbour link(s) point at a missing plate`);
-    if (a.conflicts && a.conflicts.length) problems.push(`${a.conflicts.length} inconsistent neighbour link(s)`);
-    if (problems.length) setStatus(problems.join(" · "), "err");
-
-    updateViewport();
+    for (const [, g] of slotEls) g.remove();
+    slotEls.clear();
+    updateSlots();
   }
 
-  function refetchAtlas() {
-    return fetch("/api/atlas?origin=" + encodeURIComponent(plateId))
-      .then(r => r.json()).then(loadAtlas)
-      .catch(() => setStatus("atlas failed to load", "err"));
-  }
-
-  /* re-origin the atlas so the (already-mounted) new active plate sits at 0,0 */
-  function reorigin(wx, wy) {
-    for (const e of atlasIndex) { e.x -= wx; e.y -= wy; }
-    for (const t of slotIndex) { t.x -= wx; t.y -= wy; }
-    for (const rec of rendered.values()) {
-      rec.x -= wx; rec.y -= wy;
-      rec.g.setAttribute("transform", `translate(${rec.x.toFixed(1)} ${rec.y.toFixed(1)})`);
-    }
-    for (const [, g] of renderedSlots) g.remove();     // slots are cheap; rebuilt by updateViewport
-    renderedSlots.clear();
-  }
-
-  function viewportWorldRect() {
-    const v = viewSize();
-    return { xmin: (PAD_LEFT - tx) / s, xmax: (v.w - tx) / s, ymin: (0 - ty) / s, ymax: (v.h - ty) / s };
-  }
-  function inView(e, vp) {
-    return e.x + RL + CULL_MARGIN > vp.xmin && e.x - RL - CULL_MARGIN < vp.xmax
-        && e.y + RL + CULL_MARGIN > vp.ymin && e.y - RL - CULL_MARGIN < vp.ymax;
-  }
-
-  let vpScheduled = false;
-  function scheduleViewport() {
-    if (vpScheduled) return;
-    vpScheduled = true;
-    requestAnimationFrame(() => { vpScheduled = false; updateViewport(); });
-  }
-
-  /*
-   * The heart of the slippy map: decide what is on screen, at what LOD, build
-   * the deltas, tear down what left. Off-screen plates are never built and
-   * their detail is never fetched, so node count stays bounded as the map grows.
-   */
-  function updateViewport() {
-    if (!atlasIndex.length && !slotIndex.length) return;
-    const vp = viewportWorldRect();
-    const cx = (vp.xmin + vp.xmax) / 2, cy = (vp.ymin + vp.ymax) / 2;
-
-    const vis = atlasIndex.filter(e => e.id !== plateId && inView(e, vp));
-
-    // above DETAIL_ZOOM, the MAX_FULL nearest visible plates get full detail
-    const detailIds = new Set();
-    if (s >= DETAIL_ZOOM) {
-      vis.map(e => ({ e, d: Math.hypot(e.x - cx, e.y - cy) }))
-        .sort((a, b) => a.d - b.d)
-        .slice(0, MAX_FULL)
-        .forEach(o => detailIds.add(o.e.id));
-    }
-
-    const want = new Set(vis.map(e => e.id));
-    for (const id of [...rendered.keys()]) if (!want.has(id) || id === plateId) removeRendered(id);
-    for (const e of vis) ensureRendered(e, detailIds.has(e.id) ? "detail" : "summary");
-
-    const visSlots = slotIndex.filter(t => inView(t, vp));
-    const wantSlots = new Set(visSlots.map(slotKey));
-    for (const [k, g] of renderedSlots) if (!wantSlots.has(k)) { g.remove(); renderedSlots.delete(k); }
-    for (const t of visSlots) ensureSlot(t);
-
-    // counter-scale plate labels so they stay a constant size on screen
-    const k = (1 / s).toFixed(4);
-    for (const rec of rendered.values()) rec.label.setAttribute("transform", `translate(0 ${LABEL_Y}) scale(${k})`);
-  }
-
-  function removeRendered(id) {
-    const rec = rendered.get(id);
-    if (rec) { rec.g.remove(); rendered.delete(id); }
-  }
-
-  function ensureRendered(e, lod) {
-    let rec = rendered.get(e.id);
-    if (!rec) {
-      const g = el("g", { transform: `translate(${e.x.toFixed(1)} ${e.y.toFixed(1)})`, style: "opacity:0.86" }, gAtlas);
-      const label = el("text", { "text-anchor": "middle", "font-size": 30, "font-family": "'IM Fell English SC',serif", fill: "rgba(43,43,35,0.6)" }, g);
-      label.textContent = `${e.id}${e.name ? " · " + e.name : ""}`;
+  /* built only where they are on screen, like everything else on this canvas */
+  function updateSlots() {
+    if (!atlas) return;
+    const vp = viewportRect(), margin = RL * 0.6;
+    const vis = slotIndex.filter(t =>
+      t.x + RL + margin > vp.xmin && t.x - RL - margin < vp.xmax &&
+      t.y + RL + margin > vp.ymin && t.y - RL - margin < vp.ymax);
+    const want = new Set(vis.map(t => t.key));
+    for (const [k, g] of slotEls) if (!want.has(k)) { g.remove(); slotEls.delete(k); }
+    for (const t of vis) {
+      if (slotEls.has(t.key)) continue;
+      const g = el("g", { class: "addmark", transform: `translate(${t.x.toFixed(1)} ${t.y.toFixed(1)})` }, gSlots);
+      const plus = el("text", { "text-anchor": "middle", y: 46, "font-size": 132, "font-weight": 700, "font-family": "'Alegreya Sans',sans-serif" }, g);
+      plus.textContent = "+";
+      const cap = el("text", { "text-anchor": "middle", y: 104, "font-size": 30, "letter-spacing": "4", "font-family": "'IBM Plex Mono',monospace" }, g);
+      cap.textContent = "ADD 36-MI HEX";
       const title = document.createElementNS(SVGNS, "title");
-      title.textContent = `Go to plate ${e.id}${e.name ? " (" + e.name + ")" : ""}`;
+      title.textContent = `Add a new 36-mile hex ${DIR_NAME[t.dir]} of plate ${t.from}`;
       g.appendChild(title);
-      rec = { g, label, content: null, lod: null, x: e.x, y: e.y, entry: e };
-      rendered.set(e.id, rec);
-    }
-    if (lod === "detail") {
-      const d = detailCache.get(e.id);
-      if (d) setLod(rec, "detail", d);
-      else { if (rec.lod !== "detail") setLod(rec, "summary"); requestDetail(e.id); }
-    } else {
-      setLod(rec, "summary");
+      slotEls.set(t.key, g);
     }
   }
 
-  // cross-fade content so an LOD flip eases in rather than popping
-  function setLod(rec, lod, detail) {
-    if (rec.lod === lod) return;
-    const old = rec.content;
-    const fresh = el("g", { style: `opacity:0;transition:opacity ${FADE_MS}ms ease` });
-    rec.g.insertBefore(fresh, rec.label);       // keep the label on top
-    if (lod === "detail") renderDetailInto(fresh, rec.entry, detail);
-    else renderSummaryInto(fresh, rec.entry);
-    requestAnimationFrame(() => { fresh.style.opacity = "1"; });
-    if (old) { old.style.transition = `opacity ${FADE_MS}ms ease`; old.style.opacity = "0"; setTimeout(() => old.remove(), FADE_MS + 40); }
-    rec.content = fresh; rec.lod = lod;
-  }
+  /* the whole hexagon, not the glyph — the target never depended on the border */
+  const slotAtWorld = (wx, wy) => slotIndex.find(t => insidePlate(wx - t.x, wy - t.y, RL)) || null;
 
-  function renderSummaryInto(g, e) {
-    el("polygon", { points: HexGeo.plateCorners(RL + SIZE * 0.2), fill: terrainColor(e.default_terrain), stroke: "#3f5c56", "stroke-width": 3, "stroke-linejoin": "round" }, g);
-  }
-  function renderDetailInto(g, e, d) {
-    for (const h of geo) {
-      el("polygon", { points: HexGeo.hexCorners(h.x, h.y, SIZE), fill: terrainColor(d.terrain[h.sub] || d.default_terrain), stroke: "rgba(0,0,0,0.14)", "stroke-width": 1 }, g);
-    }
-    for (const ln of (d.lines || [])) {
-      const pts = ln.path.map(sub => pd.hexBySub.get(sub)).filter(Boolean);
-      if (pts.length < 2) continue;
-      const st = pd.lineStyle(ln.type);
-      const attrs = { d: smoothPath(pts), fill: "none", stroke: st.color, "stroke-width": st.width, "stroke-linecap": "round" };
-      if (st.dash) attrs["stroke-dasharray"] = st.dash;
-      el("path", attrs, g);
-    }
-    for (const [sub, c] of Object.entries(d.features || {})) {
-      const h = pd.hexBySub.get(sub);
-      if (h && c.feature) PlateDraw.drawIcon(g, c.feature.type, h.x, h.y, 1);
-    }
-    el("polygon", { points: HexGeo.plateCorners(RL + SIZE * 0.2), fill: "none", stroke: "#3f5c56", "stroke-width": 3, "stroke-linejoin": "round" }, g);
-  }
-
-  function requestDetail(id) {
-    if (detailCache.has(id) || fetching.has(id)) return;
-    fetching.add(id);
-    fetch("/api/plate/" + id + "/detail")
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(d => { detailCache.set(id, d); fetching.delete(id); scheduleViewport(); })
-      .catch(() => { fetching.delete(id); });
-  }
-
-  const slotKey = t => t.from + "|" + t.dir;
-  function ensureSlot(t) {
-    const key = slotKey(t);
-    if (renderedSlots.has(key)) return;
-    const g = el("g", { transform: `translate(${t.x.toFixed(1)} ${t.y.toFixed(1)})`, class: "slot" }, gAtlas);
-    el("polygon", { points: HexGeo.plateCorners(RL - SIZE * 0.25), fill: "rgba(233,226,207,0.06)", stroke: "#4b6a63", "stroke-width": 4, "stroke-dasharray": "18 14", "stroke-linejoin": "round" }, g);
-    const plus = el("text", { "text-anchor": "middle", y: 46, "font-size": 132, "font-weight": 700, "font-family": "'Alegreya Sans',sans-serif", fill: "#4b6a63" }, g);
-    plus.textContent = "+";
-    const cap = el("text", { "text-anchor": "middle", y: 104, "font-size": 30, "letter-spacing": "4", "font-family": "'IBM Plex Mono',monospace", fill: "#4b6a63" }, g);
-    cap.textContent = "ADD 36-MI HEX";
-    const title = document.createElementNS(SVGNS, "title");
-    title.textContent = `Add a new 36-mile hex ${DIR_NAME[t.dir]} of plate ${t.from}`;
-    g.appendChild(title);
-    renderedSlots.set(key, g);
-  }
-
-  /* hit-test in world coords (see the SVG-click caveat at the top) */
-  function atlasAt(clientX, clientY) {
-    const wx = (clientX - tx) / s, wy = (clientY - ty) / s;
-    for (const t of slotIndex) if (HexGeo.insidePlate(wx - t.x, wy - t.y, RL)) return t;
-    for (const e of atlasIndex) if (e.id !== plateId && HexGeo.insidePlate(wx - e.x, wy - e.y, RL)) return { kind: "plate", id: e.id };
-    return null;
-  }
-
-  /* ---------- in-place plate switching (no reload) ---------- */
-  function confirmLeave() {
-    if (!dirtyTerrain && !dirtyLines) return true;
-    return confirm(`Plate ${plateId} has unsaved changes that will be lost. Leave anyway?`);
-  }
-
-  async function gotoPlate(id) {
-    if (id === plateId) return;
-    if (!confirmLeave()) return;
-    const e = atlasIndex.find(x => x.id === id);
-    if (!e) { location.search = "?plate=" + encodeURIComponent(id); return; }   // not indexed: hard fallback
-    const wx = e.x, wy = e.y;
-    setStatus("loading plate " + id + "…");
-    let m;
-    try { m = await getModel(id); } catch (err) { setStatus("failed to load " + id + ": " + err.message, "err"); return; }
-    mountActivePlate(m);
-    reorigin(wx, wy);            // the new active plate is now at (0,0)…
-    tx += wx * s; ty += wy * s;  // …and the camera is compensated so nothing moves
-    applyTransform();
-    updateViewport();
-    setStatus("plate " + id + (m.plate.name ? " · " + m.plate.name : ""));
+  /* hover, since there is no longer an outline to aim at */
+  function hoverSlot(clientX, clientY) {
+    const w = toWorld(clientX, clientY);
+    const t = slotAtWorld(w.x, w.y);
+    const key = t ? t.key : null;
+    if (key === hotSlot) return;
+    hotSlot = key;
+    for (const [k, g] of slotEls) g.classList.toggle("hot", k === hotSlot);
   }
 
   /* ---------- add-new-plate flow ---------- */
@@ -529,7 +722,7 @@
     if (!addFrom || !addDir) return;
     const sel = $("addProfile");
     if (!sel.options.length) {
-      for (const [key, spec] of Object.entries((atlas && atlas.profiles) || {})) {
+      for (const [key, spec] of Object.entries((atlasDoc && atlasDoc.profiles) || {})) {
         const o = document.createElement("option");
         o.value = key; o.textContent = spec.label || key;
         sel.appendChild(o);
@@ -538,9 +731,8 @@
     $("addWhere").textContent = `${DIR_NAME[addDir]} of plate ${addFrom}`;
     $("addName").value = "";
     $("addSeed").value = "";
-    const fromP = atlasIndex.find(p => p.id === addFrom);
-    $("addContinent").value = (fromP && fromP.continent_hex != null) ? fromP.continent_hex
-      : (model.plate.continent_hex != null ? model.plate.continent_hex : 1);
+    const fromP = atlas.plates.find(p => p.id === addFrom);
+    $("addContinent").value = (fromP && fromP.continent_hex != null) ? fromP.continent_hex : 1;
     $("addModal").hidden = false;
     $("addName").focus();
     rollPreview();
@@ -558,21 +750,18 @@
       blend: $("addBlend").checked,
     };
   }
-
   async function rollPreview() {
     const btns = ["addReroll", "addCreate"];
     btns.forEach(b => $(b).disabled = true);
     $("addStats").textContent = "rolling…";
     try {
       const body = addBody();
-      // Only write the field back when WE generated the seed — never while the
-      // user is typing one, or their preview and the created plate would drift.
       if (!body.seed) { body.seed = `${addFrom}-${addDir}-${Math.random().toString(36).slice(2, 8)}`; $("addSeed").value = body.seed; }
       previewData = await post("/api/plate/preview", body);
       drawPreview(previewData);
       const total = Object.values(previewData.counts).reduce((a, b) => a + b, 0);
       const mix = Object.entries(previewData.counts).sort((a, b) => b[1] - a[1])
-        .map(([k, v]) => `${(model.registry.terrain[k] || {}).label || k} ${Math.round(v / total * 100)}%`).join(" · ");
+        .map(([k, v]) => `${(registry.terrain[k] || {}).label || k} ${Math.round(v / total * 100)}%`).join(" · ");
       $("addStats").textContent = previewData.edge_seeds
         ? `${mix} — ${previewData.edge_seeds} border hexes matched to neighbours` : mix;
     } catch (e) {
@@ -582,62 +771,53 @@
     btns.forEach(b => $(b).disabled = false);
     $("addCreate").disabled = !previewData;
   }
-
+  /* the rolled candidate, drawn through the same mesh so the preview shows the
+   * coastlines you will actually get */
   function drawPreview(data) {
     const svgEl = $("addPreview");
     svgEl.textContent = "";
-    const T = model.registry.terrain;
-    for (const h of geo) {
-      el("polygon", { points: HexGeo.hexCorners(h.x, h.y, SIZE), fill: (T[data.terrain[h.sub] || data.default_terrain] || {}).color || "#ccc", stroke: "rgba(0,0,0,0.14)", "stroke-width": "1" }, svgEl);
-    }
-    el("polygon", { points: HexGeo.plateCorners(RL + SIZE * 0.2), fill: "none", stroke: "#2e6f6a", "stroke-width": "5", "stroke-linejoin": "round" }, svgEl);
+    PlateDraw.renderTerrainInto(svgEl, atlas.mesh, s2 => data.terrain[s2] || data.default_terrain,
+      atlas.colorOf, { gridStroke: HEX_STROKE });
+    el("polygon", { points: plateCorners(RL + SIZE * 0.2), fill: "none", stroke: "#2e6f6a", "stroke-width": "5", "stroke-linejoin": "round" }, svgEl);
   }
-
   async function createPlate() {
     if (!previewData) return;
     $("addCreate").disabled = true;
-    $("addStats").textContent = "writing…";
-    let res;
+    setStatus("creating plate…");
     try {
-      res = await post("/api/plate", addBody());
+      const res = await post("/api/plate", addBody());
+      closeAdd();
+      await refetchAtlas();
+      scheduleViewport();
+      setStatus(`created plate ${res.id} · ${res.overrides} terrain overrides`
+        + (res.back_linked && res.back_linked.length ? ` · linked to ${res.back_linked.join(", ")}` : ""), "ok");
     } catch (e) {
-      $("addStats").textContent = "create failed: " + e.message;
+      setStatus("create failed: " + e.message, "err");
       $("addCreate").disabled = false;
-      return;
     }
-    // world position the new plate will occupy in the CURRENT frame
-    const fromP = atlasIndex.find(p => p.id === addFrom) || { x: 0, y: 0 };
-    const dpx = plateToPx(DIR_AXIAL[addDir][0], DIR_AXIAL[addDir][1]);
-    const nw = { x: fromP.x + dpx.x, y: fromP.y + dpx.y };
-    closeAdd();
-
-    if (!confirmLeave()) { setStatus(`created plate ${res.id} (staying on ${plateId})`, "ok"); refetchAtlas(); return; }
-
-    let m;
-    try { m = await getModel(res.id); } catch (e) { setStatus(`created ${res.id} but could not open it: ${e.message}`, "err"); refetchAtlas(); return; }
-    mountActivePlate(m);
-    tx += nw.x * s; ty += nw.y * s;    // keep the view put; new plate becomes origin after refetch
-    applyTransform();
-    await refetchAtlas();               // origin=newId → coords are already new-plate-centred
-    updateViewport();
-    setStatus(`created plate ${res.id}`, "ok");
   }
 
-  /* ---------- pointer handling ---------- */
+  /* ============================================================= *
+   * Pointer input — every interaction routes through the hit test
+   * ============================================================= */
   const pointers = new Map();
   let panning = false, painting = false, moved = false, lastPinch = 0;
-  function wantPan(e) { return spaceHeld || e.button === 1 || tool === "lines"; }
+  const wantPan = e => spaceHeld || e.button === 1 || tool === "lines" || tool === "meta";
 
   svg.addEventListener("pointerdown", e => {
-    e.preventDefault();                 // suppresses `click` on SVG children (see top-of-file caveat)
+    e.preventDefault();                 // suppresses `click` on SVG children
     svg.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 2) { const [a, b] = [...pointers.values()]; lastPinch = Math.hypot(a.x - b.x, a.y - b.y); return; }
     moved = false;
     if (wantPan(e)) { panning = true; svg.classList.add("panning"); }
     else if (tool === "paint") { painting = true; curStroke = {}; paintAt(e.clientX, e.clientY); }
-    // lines: acted on pointerup (tap)
   });
+  // hover runs whether or not a pointer is down, so it needs its own listener
+  svg.addEventListener("pointermove", e => {
+    if (!panning && !painting) hoverSlot(e.clientX, e.clientY);
+  });
+  svg.addEventListener("pointerleave", () => hoverSlot(-1e9, -1e9));
   svg.addEventListener("pointermove", e => {
     if (!pointers.has(e.pointerId)) return;
     const p = pointers.get(e.pointerId);
@@ -653,10 +833,11 @@
     if (panning) { tx += dx; ty += dy; applyTransform(); }
     else if (painting) paintAt(e.clientX, e.clientY);
   });
+
   function endPointer(e) {
     const wasTap = pointers.size === 1 && !moved;
-    const target = wasTap ? atlasAt(e.clientX, e.clientY) : null;
-    if (wasTap && !target && tool === "lines") lineTap(e.clientX, e.clientY);
+    const slot = wasTap ? slotAt(e.clientX, e.clientY) : null;
+    const hit = (wasTap && !slot) ? hexAt(e.clientX, e.clientY) : null;
     pointers.delete(e.pointerId); lastPinch = 0;
     if (panning && pointers.size === 0) { panning = false; svg.classList.remove("panning"); }
     if (painting && pointers.size === 0) {
@@ -664,44 +845,130 @@
       const changes = curStroke ? Object.values(curStroke).filter(c => c.to !== c.from) : [];
       if (changes.length) { undoStack.push(changes); redoStack.length = 0; updateUndoButtons(); }
       curStroke = null;
+      flushTerrainRebuilds();
     }
-    // navigate / open the add dialog only after the stroke is closed out
-    if (target) { if (target.kind === "slot") openAdd(target.from, target.dir); else gotoPlate(target.id); }
+    if (slot) { openAdd(slot.from, slot.dir); return; }
+    if (!hit) return;
+    // ONE click: select the hex, and act on it with whatever tool is in hand
+    selectHex(hit);
+    if (tool === "lines") lineTap(hit);
   }
   svg.addEventListener("pointerup", endPointer);
   svg.addEventListener("pointercancel", endPointer);
   svg.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0016)); }, { passive: false });
 
-  /* ---------- undo / redo (terrain) ---------- */
-  function applyChanges(changes, dir) { for (const c of changes) pd.setTerrain(c.sub, dir === "undo" ? c.from : c.to); }
-  function undo() { const c = undoStack.pop(); if (!c) return; applyChanges(c, "undo"); redoStack.push(c); markTerrainDirty(); updateUndoButtons(); }
-  function redo() { const c = redoStack.pop(); if (!c) return; applyChanges(c, "redo"); undoStack.push(c); markTerrainDirty(); updateUndoButtons(); }
+  /* ---------- undo / redo (terrain, across plates) ---------- */
+  function applyChanges(changes, dir) {
+    for (const c of changes) {
+      setTerrainAt(c.plateId, c.sub, dir === "undo" ? c.from : c.to);
+      markDirty(c.plateId, "dirtyTerrain");
+    }
+    flushTerrainRebuilds();
+  }
+  function undo() { const c = undoStack.pop(); if (!c) return; applyChanges(c, "undo"); redoStack.push(c); updateUndoButtons(); }
+  function redo() { const c = redoStack.pop(); if (!c) return; applyChanges(c, "redo"); undoStack.push(c); updateUndoButtons(); }
   function updateUndoButtons() { $("undo").disabled = !undoStack.length; $("redo").disabled = !redoStack.length; }
 
   /* ---------- dirty / save ---------- */
-  function markTerrainDirty() { dirtyTerrain = true; $("save").disabled = false; setStatus("unsaved changes"); }
-  function markLinesDirty() { dirtyLines = true; $("save").disabled = false; }
+  function markDirty(id, kind) {
+    const st = plateState.get(id);
+    if (!st) return;
+    st[kind] = true;
+    dirtyPlates.add(id);
+    $("save").disabled = false;
+    setStatus(dirtyPlates.size === 1
+      ? `unsaved changes on ${[...dirtyPlates][0]}`
+      : `unsaved changes on ${dirtyPlates.size} plates`);
+  }
   function setStatus(msg, kind) { const e = $("status"); e.textContent = msg; e.className = kind || ""; }
 
+  /*
+   * Every dirty plate, written through its own endpoints — one file each.
+   *
+   * A plate that fails KEEPS its dirty flags and stays in dirtyPlates, so Save
+   * stays available and nothing is quietly lost; a plate that succeeds is
+   * cleared independently of its neighbours. The report names both.
+   */
   async function save() {
-    if (!dirtyTerrain && !dirtyLines) return;
+    if (!dirtyPlates.size) return;
     setStatus("saving…");
-    try {
-      if (dirtyTerrain) {
-        const overrides = {};
-        for (const h of geo) { const t = model.terrainByNum[h.sub]; if (t !== defaultTerrain) overrides[h.sub] = t; }
-        await put(`/api/plate/${plateId}/terrain`, { default_terrain: defaultTerrain, terrain: overrides });
-        dirtyTerrain = false;
+    const written = [], failed = [];
+
+    for (const id of [...dirtyPlates]) {
+      const st = plateState.get(id);
+      if (!st) { dirtyPlates.delete(id); continue; }
+      let ok = true;
+      const fail = (what, err) => { ok = false; failed.push(`${id} ${what}: ${err.message}`); };
+
+      if (st.dirtyTerrain) {
+        try {
+          // Only the positions this plate OWNS: the seam positions it merely
+          // shows belong to the lower-numbered neighbour and are that plate's
+          // to write.
+          const overrides = {};
+          for (const h of geo) {
+            if (atlas.own.isBorrowed(id, h.sub)) continue;
+            const t = st.terrain[h.sub];
+            if (t !== st.defaultTerrain) overrides[h.sub] = t;
+          }
+          await put(`/api/plate/${id}/terrain`, { default_terrain: st.defaultTerrain, terrain: overrides });
+          st.dirtyTerrain = false;
+          written.push(`plates/${id}.yaml (terrain)`);
+        } catch (err) { fail("terrain", err); }
       }
-      if (dirtyLines) {
-        await put(`/api/plate/${plateId}/lines`, { lines: workingLines });
-        dirtyLines = false;
+
+      if (st.dirtyLines) {
+        // THE HAZARD: this endpoint replaces the plate's whole lines array. A
+        // plate is only ever in plateState with its full detail loaded, so this
+        // cannot send a truncated list — but assert it rather than trust it.
+        if (!Array.isArray(st.lines)) { fail("lines", new Error("interior not loaded")); }
+        else {
+          try {
+            await put(`/api/plate/${id}/lines`, { lines: st.lines });
+            st.dirtyLines = false;
+            written.push(`plates/${id}.yaml (lines)`);
+          } catch (err) { fail("lines", err); }
+        }
       }
-      $("save").disabled = true;
-      setStatus(`saved to plates/${plateId}.yaml`, "ok");
-      detailCache.delete(plateId);   // the on-disk detail changed; refetch if shown as context later
-    } catch (err) { setStatus("save failed: " + err.message, "err"); }
+
+      if (st.dirtyPlateMeta) {
+        try {
+          await put(`/api/plate/${id}/meta`, {
+            name: st.name, title: st.title, canton: st.canton, realm: st.realm,
+            summary: st.summary, continent_hex: st.continent_hex, scale_label: st.scale_label,
+          });
+          st.dirtyPlateMeta = false;
+          written.push(`plates/${id}.yaml (description)`);
+        } catch (err) { fail("description", err); }
+      }
+
+      for (const sub of [...st.dirtyHexes]) {
+        const rec = st.hexes[sub] || {};
+        try {
+          // The three MAP keys, named explicitly. chronicle and local_memory are
+          // held in `rec` for display and are structurally unable to travel.
+          await put(`/api/hex/${id}/${sub}`, {
+            name: rec.name || null,
+            visibility: rec.visibility || "public",
+            feature: (rec.feature && rec.feature.type) ? { type: rec.feature.type, name: rec.feature.name || null } : null,
+          });
+          rec.file = `hexes/${atlas.own.addressOf(id, sub)}.yaml`;
+          written.push(rec.file);
+          st.dirtyHexes.delete(sub);
+        } catch (err) { fail(`hex ${sub}`, err); }
+      }
+
+      if (ok) { st.dirtyMeta = false; dirtyPlates.delete(id); }
+    }
+
+    $("save").disabled = dirtyPlates.size === 0;
+    if (failed.length) {
+      setStatus(`saved ${written.length} file(s); FAILED — ${failed.join(" · ")}`, "err");
+    } else {
+      setStatus(written.length === 1 ? `saved ${written[0]}` : `saved ${written.length} files: ${written.join(", ")}`, "ok");
+    }
   }
+
   async function send(method, url, body) {
     const r = await fetch(url, { method, headers: { "Content-Type": "application/json", "x-editor-token": window.EDITOR_TOKEN }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
@@ -716,10 +983,11 @@
     if (tool === "lines" && t !== "lines" && editing) cancelLine();
     tool = t;
     for (const b of document.querySelectorAll(".tool")) b.classList.toggle("active", b.dataset.tool === t);
-    // Lines acts on taps, so a drag there is free to pan — hence no Pan mode.
-    svg.classList.toggle("tool-pan", t === "lines");
-    $("palette").hidden = (t === "lines");
+    svg.classList.toggle("tool-pan", t === "lines" || t === "meta");
+    $("palette").hidden = (t !== "paint");
     $("linePanel").hidden = (t !== "lines");
+    $("metaPanel").hidden = (t !== "meta");
+    if (t === "meta") renderPanels();
   }
   function wireTools() {
     for (const b of document.querySelectorAll(".tool")) b.addEventListener("click", () => setTool(b.dataset.tool));
@@ -755,8 +1023,11 @@
       else if (tool === "lines" && e.key === "Escape") { e.preventDefault(); cancelLine(); }
       else if (e.key === "b" || e.key === "B") setTool("paint");
       else if (e.key === "l" || e.key === "L") setTool("lines");
+      else if (e.key === "m" || e.key === "M") setTool("meta");
     });
     window.addEventListener("keyup", e => { if (e.code === "Space") { spaceHeld = false; if (tool !== "lines") svg.classList.remove("tool-pan"); } });
-    window.addEventListener("beforeunload", e => { if (dirtyTerrain || dirtyLines) { e.preventDefault(); e.returnValue = ""; } });
+    window.addEventListener("beforeunload", e => { if (dirtyPlates.size) { e.preventDefault(); e.returnValue = ""; } });
   }
+
+  boot();      // last: everything above is in scope by the time it runs
 })();

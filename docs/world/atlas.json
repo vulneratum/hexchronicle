@@ -1,0 +1,330 @@
+{
+  "generatedFrom": "repo data files (README §4)",
+  "origin": "0001",
+  "registry": {
+    "terrain": {
+      "water": {
+        "color": "#93b7b3",
+        "label": "Water"
+      },
+      "swamp": {
+        "color": "#8a9a77",
+        "label": "Swamp"
+      },
+      "plains": {
+        "color": "#cdd39c",
+        "label": "Plains"
+      },
+      "forest": {
+        "color": "#5e8c5e",
+        "label": "Forest"
+      },
+      "hills": {
+        "color": "#c9ae7b",
+        "label": "Hills"
+      },
+      "mountains": {
+        "color": "#a2988a",
+        "label": "Mountains"
+      }
+    },
+    "features": {
+      "village": {
+        "label": "Village"
+      },
+      "town": {
+        "label": "Town"
+      },
+      "city": {
+        "label": "City"
+      },
+      "dungeon": {
+        "label": "Dungeon"
+      },
+      "ruin": {
+        "label": "Ruins"
+      },
+      "lair": {
+        "label": "Monster lair"
+      },
+      "burned": {
+        "label": "Burned settlement"
+      }
+    },
+    "lines": {
+      "stream": {
+        "category": "water",
+        "label": "Stream",
+        "color": "#7ea6c9",
+        "width": 2
+      },
+      "river": {
+        "category": "water",
+        "label": "River",
+        "color": "#7ea6c9",
+        "width": 3
+      },
+      "path": {
+        "category": "road",
+        "label": "Path",
+        "color": "#6b5138",
+        "width": 1.6,
+        "dash": "5 4"
+      },
+      "road": {
+        "category": "road",
+        "label": "Road",
+        "color": "#6b5138",
+        "width": 2.4
+      },
+      "paved": {
+        "category": "road",
+        "label": "Paved road",
+        "color": "#6b5138",
+        "width": 3.2
+      }
+    }
+  },
+  "plates": [
+    {
+      "id": "0001",
+      "coord": [
+        0,
+        0
+      ],
+      "name": "Central Harrow",
+      "title": "Central portion of Harrow Canton, Karvosia",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "summary": "The heart of Harrow canton: a lake-country of plains and low hills about the town of Merrowgate, hemmed by forest and high ground."
+    },
+    {
+      "id": "0002",
+      "coord": [
+        1,
+        0
+      ],
+      "name": "Plate 0002",
+      "title": "Plate 0002",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0003",
+      "coord": [
+        1,
+        -1
+      ],
+      "name": "qwer",
+      "title": "qwer",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0004",
+      "coord": [
+        2,
+        -1
+      ],
+      "name": "Plate 0004",
+      "title": "Plate 0004",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0005",
+      "coord": [
+        3,
+        -2
+      ],
+      "name": "Plate 0005",
+      "title": "Plate 0005",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0006",
+      "coord": [
+        2,
+        -2
+      ],
+      "name": "Plate 0006",
+      "title": "Plate 0006",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0007",
+      "coord": [
+        0,
+        1
+      ],
+      "name": "Plate 0007",
+      "title": "Plate 0007",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0008",
+      "coord": [
+        -1,
+        1
+      ],
+      "name": "Central Harrow2",
+      "title": "Plate 0008",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0009",
+      "coord": [
+        -1,
+        0
+      ],
+      "name": "Plate 0009",
+      "title": "Plate 0009",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "hills",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0010",
+      "coord": [
+        0,
+        -1
+      ],
+      "name": "Plate 0010",
+      "title": "Plate 0010",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0011",
+      "coord": [
+        -2,
+        1
+      ],
+      "name": "Plate 0011",
+      "title": "Plate 0011",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0012",
+      "coord": [
+        -2,
+        2
+      ],
+      "name": "Plate 0012",
+      "title": "Plate 0012",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0013",
+      "coord": [
+        -1,
+        2
+      ],
+      "name": "Plate 0013",
+      "title": "Plate 0013",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0014",
+      "coord": [
+        1,
+        -2
+      ],
+      "name": "Plate 0014",
+      "title": "Plate 0014",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0015",
+      "coord": [
+        0,
+        -2
+      ],
+      "name": "Plate 0015",
+      "title": "Plate 0015",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "hills",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0016",
+      "coord": [
+        -1,
+        -1
+      ],
+      "name": "Plate 0016",
+      "title": "Plate 0016",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    }
+  ]
+}
