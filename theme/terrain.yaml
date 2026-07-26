@@ -1,0 +1,29 @@
+# Terrain registry (README §7) — the single source of truth for terrain
+# types. Every consumer (site, editor palette, future exports) reads this.
+#
+# RULES:
+#   - `key` is a permanent identifier. Once any hex references a type, that
+#     key is frozen forever: retire it from the palette, never rename or
+#     delete it (README §7, §11 — the chronicle references it forever).
+#   - Adding a type here makes it available everywhere on the next build.
+#
+# Each entry: color (hex fill on the plate) + label (human-facing name).
+
+types:
+  water:     { color: "#93b7b3", label: "Water" }
+  swamp:     { color: "#8a9a77", label: "Swamp" }
+  plains:    { color: "#cdd39c", label: "Plains" }
+  forest:    { color: "#5e8c5e", label: "Forest" }
+  hills:     { color: "#c9ae7b", label: "Hills" }
+  mountains: { color: "#a2988a", label: "Mountains" }
+
+# Feature legend labels (icons are drawn by the renderer for now; SVG icon
+# files under theme/icons/ are a later step per README §7).
+features:
+  village: { label: "Village" }
+  town:    { label: "Town" }
+  city:    { label: "City" }
+  dungeon: { label: "Dungeon" }
+  ruin:    { label: "Ruins" }
+  lair:    { label: "Monster lair" }
+  burned:  { label: "Burned settlement" }

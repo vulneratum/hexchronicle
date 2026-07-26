@@ -1,0 +1,13 @@
+# Subhex 0001-104 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+
+address: "0001-104"
+visibility: public          # public | gm-only (README §4)
+feature:
+  type: city
+  name: "Merrowgate"
+local_memory: >
+  Merrowgate sits where the lake road meets the water; its wharves take barge traffic from the whole of Harrow.
+chronicle:
+  - date: "1 Harvestmoon 4712"
+    text: "The canton fair opened under the Reeve's peace; wool prices ran high."

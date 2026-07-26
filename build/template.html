@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HexChronicle — Atlas plate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1e2a26;
+    --parchment:#e9e2cf;
+    --brass:#b98d3e;
+    --madder:#9e3d34;
+    --teal:#2e6f6a;
+    --text-dark:#2b2b23;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--ink)}
+  body{font-family:'Alegreya Sans',system-ui,sans-serif;color:var(--parchment)}
+  #map{
+    position:fixed;inset:0;width:100vw;height:100vh;touch-action:none;cursor:grab;display:block;
+    user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  }
+  #map text{user-select:none;-webkit-user-select:none}
+  #map:active{cursor:grabbing}
+
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:20;
+    display:flex;align-items:center;gap:.6rem;
+    padding:.55rem .8rem;
+    background:linear-gradient(to bottom, rgba(20,28,25,.92), rgba(20,28,25,.5) 75%, transparent);
+    pointer-events:none;
+  }
+  header *{pointer-events:auto}
+  .brand{display:flex;flex-direction:column;line-height:1.05;margin-right:auto}
+  .brand h1{font-family:'IM Fell English SC',serif;font-weight:400;font-size:1.25rem;color:var(--parchment)}
+  .brand span{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#9fb0a6}
+  .hbtn{
+    appearance:none;border:1px solid #55655c;border-radius:.55rem;cursor:pointer;
+    background:transparent;color:#c9d3ca;font:inherit;font-size:.78rem;font-weight:500;
+    padding:.42rem .65rem;
+  }
+  .hbtn:focus-visible{outline:2px solid var(--brass);outline-offset:-2px}
+
+  #plateTitle{
+    position:fixed;top:3.2rem;left:.6rem;z-index:15;
+    background:var(--parchment);color:var(--madder);
+    border:2px solid var(--madder);border-radius:.3rem;
+    padding:.4rem .65rem;max-width:min(62vw,17rem);
+    box-shadow:0 4px 14px rgba(0,0,0,.4);
+  }
+  #plateTitle .t1{font-family:'IM Fell English SC',serif;font-size:.95rem;line-height:1.15}
+  #plateTitle .t2{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--teal);margin-top:.15rem;letter-spacing:.02em}
+  #plateTitle .t3{font-size:.62rem;color:var(--text-dark);font-weight:700;margin-top:.1rem;letter-spacing:.04em}
+
+  #legend{
+    position:fixed;left:.6rem;bottom:.6rem;z-index:15;
+    display:flex;flex-wrap:wrap;gap:.3rem;max-width:78vw;
+  }
+  .chip{
+    display:flex;align-items:center;gap:.32rem;
+    background:rgba(20,28,25,.78);border:1px solid #45544c;border-radius:.45rem;
+    padding:.18rem .45rem;font-size:.64rem;letter-spacing:.03em;color:#cdd6cd;
+  }
+  .chip i{width:.7rem;height:.7rem;border-radius:.15rem;display:inline-block}
+  .chip svg{display:block}
+
+  #toast{
+    position:fixed;top:3.4rem;left:50%;transform:translateX(-50%) translateY(-8px);
+    z-index:30;background:var(--parchment);color:var(--text-dark);
+    border-left:4px solid var(--madder);border-radius:.4rem;
+    padding:.55rem .8rem;font-size:.8rem;max-width:min(92vw,26rem);
+    box-shadow:0 6px 18px rgba(0,0,0,.45);opacity:0;transition:opacity .35s, transform .35s;
+    pointer-events:none;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  #card{
+    position:fixed;left:0;right:0;bottom:0;z-index:25;
+    background:var(--parchment);color:var(--text-dark);
+    border-radius:.9rem .9rem 0 0;
+    box-shadow:0 -8px 28px rgba(0,0,0,.5);
+    max-height:46vh;overflow-y:auto;
+    transform:translateY(105%);transition:transform .3s ease;
+    padding:.8rem 1rem 1.1rem;
+  }
+  #card.open{transform:translateY(0)}
+  #card .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.12em;color:#7c7256;text-transform:uppercase}
+  #card h2{font-family:'IM Fell English SC',serif;font-weight:400;font-size:1.35rem;margin:.1rem 0 .45rem}
+  #card .rows{display:grid;grid-template-columns:auto 1fr;gap:.2rem .8rem;font-size:.85rem;margin-bottom:.6rem}
+  #card .rows dt{color:#7c7256;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;padding-top:.12rem}
+  #card h3{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#7c7256;margin:.55rem 0 .25rem}
+  #card .chron p{font-size:.85rem;line-height:1.4;margin-bottom:.35rem}
+  #card .chron .empty{color:#8b8168;font-style:italic}
+  #card pre{
+    font-family:'IBM Plex Mono',monospace;font-size:.72rem;line-height:1.45;
+    background:#241f15;color:#d8cfae;border-radius:.45rem;padding:.55rem .7rem;overflow-x:auto;
+  }
+  #card .actions{display:flex;gap:.5rem;margin-top:.7rem}
+  #card .actions button{
+    appearance:none;border:1px solid var(--brass);background:var(--brass);color:#241d10;
+    border-radius:.5rem;padding:.4rem .7rem;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;
+  }
+  #cardClose{
+    position:absolute;top:.55rem;right:.7rem;appearance:none;border:0;background:transparent;
+    font-size:1.15rem;line-height:1;color:#7c7256;cursor:pointer;padding:.2rem;
+  }
+  @media (prefers-reduced-motion: reduce){ #card,#toast{transition:none !important} }
+</style>
+</head>
+<body>
+
+<svg id="map" aria-label="Atlas plate"></svg>
+
+<header>
+  <div class="brand">
+    <h1>HexChronicle</h1>
+    <span>Atlas plate view</span>
+  </div>
+  <button class="hbtn" id="fitBtn">Fit plate</button>
+</header>
+
+<div id="plateTitle">
+  <div class="t1" id="t-title"></div>
+  <div class="t2" id="t-addr"></div>
+  <div class="t3" id="t-scale"></div>
+</div>
+
+<div id="legend" aria-hidden="true"></div>
+<div id="toast" role="status"></div>
+
+<div id="card" role="dialog" aria-modal="false">
+  <button id="cardClose" aria-label="Close panel">✕</button>
+  <div id="cardBody"></div>
+</div>
+
+<!-- Compiled by build/build.js — do not edit docs/ by hand; edit the data files and rebuild. -->
+<script>/*__GEOMETRY_JS__*/</script>
+<script>window.WORLD = /*__WORLD_DATA__*/;</script>
+<script>/*__RENDERER_JS__*/</script>
+</body>
+</html>

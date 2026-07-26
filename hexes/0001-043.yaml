@@ -1,0 +1,15 @@
+# Subhex 0001-043 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+
+address: "0001-043"
+visibility: public          # public | gm-only (README §4)
+feature:
+  type: village
+  name: "Harlow's Ford"
+local_memory: >
+  The folk of Harlow's Ford still talk about the night the troll's head came through the door.
+chronicle:
+  - date: "9 Harvestmoon 4712"
+    text: "Four strangers out of the west lodged at the inn."
+  - date: "12 Harvestmoon 4712"
+    text: "The marsh troll of the mill road was slain; its head hangs above the bar. Drinks poured free for Brakka's company."

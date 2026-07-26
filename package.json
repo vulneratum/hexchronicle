@@ -1,0 +1,13 @@
+{
+  "name": "hexchronicle",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A living sandbox continent for old-school tabletop play, managed as data and published as an interactive atlas.",
+  "type": "commonjs",
+  "scripts": {
+    "build": "node build/build.js"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

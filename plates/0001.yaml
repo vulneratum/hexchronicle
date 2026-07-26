@@ -1,0 +1,128 @@
+# Atlas plate 0001 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0001-NNN.yaml.
+
+id: "0001"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Central Harrow"
+canton: Harrow
+realm: Karvosia
+title: "Central portion of Harrow Canton, Karvosia"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  The heart of Harrow canton: a lake-country of plains and low hills
+  about the town of Merrowgate, hemmed by forest and high ground.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: null
+  ne: null
+  nw: null
+  w: null
+  sw: null
+  se: null
+
+default_terrain: plains
+terrain:                     # subhex number -> terrain type (non-default only)
+  "001": mountains
+  "002": mountains
+  "003": mountains
+  "004": mountains
+  "005": hills
+  "006": mountains
+  "007": mountains
+  "008": mountains
+  "009": hills
+  "010": forest
+  "011": hills
+  "012": forest
+  "013": mountains
+  "014": mountains
+  "015": mountains
+  "016": hills
+  "017": hills
+  "020": hills
+  "021": hills
+  "022": hills
+  "023": mountains
+  "024": mountains
+  "025": mountains
+  "026": mountains
+  "027": hills
+  "028": hills
+  "032": hills
+  "033": hills
+  "034": hills
+  "035": hills
+  "036": mountains
+  "037": mountains
+  "038": hills
+  "039": forest
+  "045": hills
+  "046": hills
+  "047": forest
+  "048": mountains
+  "049": mountains
+  "050": hills
+  "051": forest
+  "059": forest
+  "060": forest
+  "061": hills
+  "062": forest
+  "067": water
+  "068": water
+  "073": hills
+  "074": forest
+  "079": water
+  "080": water
+  "081": water
+  "086": forest
+  "087": forest
+  "091": water
+  "092": water
+  "093": water
+  "098": hills
+  "099": hills
+  "100": hills
+  "104": swamp
+  "105": water
+  "106": swamp
+  "107": swamp
+  "111": hills
+  "112": hills
+  "119": swamp
+  "123": mountains
+  "124": hills
+  "125": hills
+  "126": hills
+  "127": forest
+  "130": swamp
+  "131": swamp
+  "135": hills
+  "136": mountains
+  "137": hills
+  "138": hills
+  "139": forest
+  "145": forest
+  "146": hills
+  "147": forest
+  "150": swamp
+  "152": forest
+  "153": forest
+  "157": forest
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:
+  - type: river
+    path: ["023", "036", "049", "062", "075", "076", "077", "078", "079"]
+  - type: river
+    path: ["013", "025", "038", "051", "064", "077", "078", "079"]
+  - type: river
+    path: ["024", "037", "050", "063", "076", "077", "078", "079"]
+  - type: road
+    path: ["104", "103", "102", "114", "113", "112", "111"]
+  - type: road
+    path: ["104", "117", "129", "141", "149", "155"]
+  - type: road
+    path: ["111", "099", "087", "075", "063"]

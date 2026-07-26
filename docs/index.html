@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HexChronicle — Atlas plate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1e2a26;
+    --parchment:#e9e2cf;
+    --brass:#b98d3e;
+    --madder:#9e3d34;
+    --teal:#2e6f6a;
+    --text-dark:#2b2b23;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--ink)}
+  body{font-family:'Alegreya Sans',system-ui,sans-serif;color:var(--parchment)}
+  #map{
+    position:fixed;inset:0;width:100vw;height:100vh;touch-action:none;cursor:grab;display:block;
+    user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  }
+  #map text{user-select:none;-webkit-user-select:none}
+  #map:active{cursor:grabbing}
+
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:20;
+    display:flex;align-items:center;gap:.6rem;
+    padding:.55rem .8rem;
+    background:linear-gradient(to bottom, rgba(20,28,25,.92), rgba(20,28,25,.5) 75%, transparent);
+    pointer-events:none;
+  }
+  header *{pointer-events:auto}
+  .brand{display:flex;flex-direction:column;line-height:1.05;margin-right:auto}
+  .brand h1{font-family:'IM Fell English SC',serif;font-weight:400;font-size:1.25rem;color:var(--parchment)}
+  .brand span{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#9fb0a6}
+  .hbtn{
+    appearance:none;border:1px solid #55655c;border-radius:.55rem;cursor:pointer;
+    background:transparent;color:#c9d3ca;font:inherit;font-size:.78rem;font-weight:500;
+    padding:.42rem .65rem;
+  }
+  .hbtn:focus-visible{outline:2px solid var(--brass);outline-offset:-2px}
+
+  #plateTitle{
+    position:fixed;top:3.2rem;left:.6rem;z-index:15;
+    background:var(--parchment);color:var(--madder);
+    border:2px solid var(--madder);border-radius:.3rem;
+    padding:.4rem .65rem;max-width:min(62vw,17rem);
+    box-shadow:0 4px 14px rgba(0,0,0,.4);
+  }
+  #plateTitle .t1{font-family:'IM Fell English SC',serif;font-size:.95rem;line-height:1.15}
+  #plateTitle .t2{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--teal);margin-top:.15rem;letter-spacing:.02em}
+  #plateTitle .t3{font-size:.62rem;color:var(--text-dark);font-weight:700;margin-top:.1rem;letter-spacing:.04em}
+
+  #legend{
+    position:fixed;left:.6rem;bottom:.6rem;z-index:15;
+    display:flex;flex-wrap:wrap;gap:.3rem;max-width:78vw;
+  }
+  .chip{
+    display:flex;align-items:center;gap:.32rem;
+    background:rgba(20,28,25,.78);border:1px solid #45544c;border-radius:.45rem;
+    padding:.18rem .45rem;font-size:.64rem;letter-spacing:.03em;color:#cdd6cd;
+  }
+  .chip i{width:.7rem;height:.7rem;border-radius:.15rem;display:inline-block}
+  .chip svg{display:block}
+
+  #toast{
+    position:fixed;top:3.4rem;left:50%;transform:translateX(-50%) translateY(-8px);
+    z-index:30;background:var(--parchment);color:var(--text-dark);
+    border-left:4px solid var(--madder);border-radius:.4rem;
+    padding:.55rem .8rem;font-size:.8rem;max-width:min(92vw,26rem);
+    box-shadow:0 6px 18px rgba(0,0,0,.45);opacity:0;transition:opacity .35s, transform .35s;
+    pointer-events:none;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  #card{
+    position:fixed;left:0;right:0;bottom:0;z-index:25;
+    background:var(--parchment);color:var(--text-dark);
+    border-radius:.9rem .9rem 0 0;
+    box-shadow:0 -8px 28px rgba(0,0,0,.5);
+    max-height:46vh;overflow-y:auto;
+    transform:translateY(105%);transition:transform .3s ease;
+    padding:.8rem 1rem 1.1rem;
+  }
+  #card.open{transform:translateY(0)}
+  #card .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.12em;color:#7c7256;text-transform:uppercase}
+  #card h2{font-family:'IM Fell English SC',serif;font-weight:400;font-size:1.35rem;margin:.1rem 0 .45rem}
+  #card .rows{display:grid;grid-template-columns:auto 1fr;gap:.2rem .8rem;font-size:.85rem;margin-bottom:.6rem}
+  #card .rows dt{color:#7c7256;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;padding-top:.12rem}
+  #card h3{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#7c7256;margin:.55rem 0 .25rem}
+  #card .chron p{font-size:.85rem;line-height:1.4;margin-bottom:.35rem}
+  #card .chron .empty{color:#8b8168;font-style:italic}
+  #card pre{
+    font-family:'IBM Plex Mono',monospace;font-size:.72rem;line-height:1.45;
+    background:#241f15;color:#d8cfae;border-radius:.45rem;padding:.55rem .7rem;overflow-x:auto;
+  }
+  #card .actions{display:flex;gap:.5rem;margin-top:.7rem}
+  #card .actions button{
+    appearance:none;border:1px solid var(--brass);background:var(--brass);color:#241d10;
+    border-radius:.5rem;padding:.4rem .7rem;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;
+  }
+  #cardClose{
+    position:absolute;top:.55rem;right:.7rem;appearance:none;border:0;background:transparent;
+    font-size:1.15rem;line-height:1;color:#7c7256;cursor:pointer;padding:.2rem;
+  }
+  @media (prefers-reduced-motion: reduce){ #card,#toast{transition:none !important} }
+</style>
+</head>
+<body>
+
+<svg id="map" aria-label="Atlas plate"></svg>
+
+<header>
+  <div class="brand">
+    <h1>HexChronicle</h1>
+    <span>Atlas plate view</span>
+  </div>
+  <button class="hbtn" id="fitBtn">Fit plate</button>
+</header>
+
+<div id="plateTitle">
+  <div class="t1" id="t-title"></div>
+  <div class="t2" id="t-addr"></div>
+  <div class="t3" id="t-scale"></div>
+</div>
+
+<div id="legend" aria-hidden="true"></div>
+<div id="toast" role="status"></div>
+
+<div id="card" role="dialog" aria-modal="false">
+  <button id="cardClose" aria-label="Close panel">✕</button>
+  <div id="cardBody"></div>
+</div>
+
+<!-- Compiled by build/build.js — do not edit docs/ by hand; edit the data files and rebuild. -->
+<script>/*
+ * HexChronicle plate geometry — the single source of truth for subhex
+ * positions and numbering. Loaded by the Node build (via require) AND inlined
+ * into the browser renderer, so both sides compute the exact same layout.
+ *
+ * Three nested 12-across scales (README §2). This module handles one plate:
+ * a point-up atlas hexagon tiled with pointy-top subhexes, numbered row by
+ * row top-left -> bottom-right (README §2 addressing), giving addresses
+ * 0001-001 ... 0001-NNN.
+ */
+(function (global) {
+  "use strict";
+
+  const SQ3 = Math.sqrt(3);
+  const SIZE = 26;            // subhex circumradius in px
+  const RL = 12 * SIZE;       // plate circumradius: 12 subhexes across the flats
+
+  const axialToPx = (q, r) => ({ x: SQ3 * SIZE * (q + r / 2), y: 1.5 * SIZE * r });
+
+  function pxToAxial(x, y) {
+    const q = (SQ3 / 3 * x - y / 3) / SIZE, r = (2 / 3 * y) / SIZE;
+    const sf = -q - r;
+    let qq = Math.round(q), rr = Math.round(r), ss = Math.round(sf);
+    const dq = Math.abs(qq - q), dr = Math.abs(rr - r), ds = Math.abs(ss - sf);
+    if (dq > dr && dq > ds) qq = -rr - ss; else if (dr > ds) rr = -qq - ss;
+    return { q: qq, r: rr };
+  }
+
+  function hexCorners(cx, cy, size) {
+    const pts = [];
+    for (let k = 0; k < 6; k++) {
+      const ang = Math.PI / 180 * (60 * k - 30);
+      pts.push((cx + size * Math.cos(ang)).toFixed(2) + "," + (cy + size * Math.sin(ang)).toFixed(2));
+    }
+    return pts.join(" ");
+  }
+
+  function plateCorners(size) {            // point-up big hexagon
+    const pts = [];
+    for (let k = 0; k < 6; k++) {
+      const ang = Math.PI / 180 * (60 * k + 30);
+      pts.push((size * Math.cos(ang)).toFixed(2) + "," + (size * Math.sin(ang)).toFixed(2));
+    }
+    return pts.join(" ");
+  }
+
+  const insidePlate = (x, y, R) => {
+    const dx = Math.abs(x), dy = Math.abs(y);
+    return dx <= SQ3 / 2 * R + 0.01 && dy <= R - dx / SQ3 + 0.01;
+  };
+
+  /*
+   * The canonical subhex set for a plate, numbered 1..N. Deterministic:
+   * change this and every existing address would shift, so it is frozen
+   * (README §2 — renumbering is forbidden). Returns objects with axial coords
+   * (q,r), pixel center (x,y), the padded subhex number "NNN", and 1-based num.
+   */
+  function buildPlateHexes() {
+    const list = [];
+    for (let q = -16; q <= 16; q++) for (let r = -16; r <= 16; r++) {
+      const px = axialToPx(q, r);
+      if (!insidePlate(px.x, px.y, RL)) continue;
+      list.push({ q, r, x: px.x, y: px.y, key: q + "," + r });
+    }
+    // row by row, top-left to bottom-right
+    list.sort((a, b) => a.r - b.r || a.x - b.x);
+    list.forEach((h, i) => {
+      h.num = i + 1;
+      h.sub = String(i + 1).padStart(3, "0");
+    });
+    return list;
+  }
+
+  const neighborDirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+
+  const HexGeo = {
+    SQ3, SIZE, RL,
+    axialToPx, pxToAxial, hexCorners, plateCorners, insidePlate,
+    buildPlateHexes, neighborDirs,
+  };
+
+  if (typeof module !== "undefined" && module.exports) module.exports = HexGeo;
+  else global.HexGeo = HexGeo;
+})(typeof window !== "undefined" ? window : this);
+</script>
+<script>window.WORLD = {"generatedFrom":"repo data files (README §4)","plate":{"id":"0001","continent_hex":1,"name":"Central Harrow","title":"Central portion of Harrow Canton, Karvosia","canton":"Harrow","realm":"Karvosia","scale_label":"1 HEX = 3 MILES (1 LEAGUE)","summary":"The heart of Harrow canton: a lake-country of plains and low hills about the town of Merrowgate, hemmed by forest and high ground.","default_terrain":"plains","neighbors":{"e":null,"ne":null,"nw":null,"w":null,"sw":null,"se":null}},"registry":{"terrain":{"water":{"color":"#93b7b3","label":"Water"},"swamp":{"color":"#8a9a77","label":"Swamp"},"plains":{"color":"#cdd39c","label":"Plains"},"forest":{"color":"#5e8c5e","label":"Forest"},"hills":{"color":"#c9ae7b","label":"Hills"},"mountains":{"color":"#a2988a","label":"Mountains"}},"features":{"village":{"label":"Village"},"town":{"label":"Town"},"city":{"label":"City"},"dungeon":{"label":"Dungeon"},"ruin":{"label":"Ruins"},"lair":{"label":"Monster lair"},"burned":{"label":"Burned settlement"}}},"terrainByNum":{"100":"hills","101":"plains","102":"plains","103":"plains","104":"swamp","105":"water","106":"swamp","107":"swamp","108":"plains","109":"plains","110":"plains","111":"hills","112":"hills","113":"plains","114":"plains","115":"plains","116":"plains","117":"plains","118":"plains","119":"swamp","120":"plains","121":"plains","122":"plains","123":"mountains","124":"hills","125":"hills","126":"hills","127":"forest","128":"plains","129":"plains","130":"swamp","131":"swamp","132":"plains","133":"plains","134":"plains","135":"hills","136":"mountains","137":"hills","138":"hills","139":"forest","140":"plains","141":"plains","142":"plains","143":"plains","144":"plains","145":"forest","146":"hills","147":"forest","148":"plains","149":"plains","150":"swamp","151":"plains","152":"forest","153":"forest","154":"plains","155":"plains","156":"plains","157":"forest","001":"mountains","002":"mountains","003":"mountains","004":"mountains","005":"hills","006":"mountains","007":"mountains","008":"mountains","009":"hills","010":"forest","011":"hills","012":"forest","013":"mountains","014":"mountains","015":"mountains","016":"hills","017":"hills","018":"plains","019":"plains","020":"hills","021":"hills","022":"hills","023":"mountains","024":"mountains","025":"mountains","026":"mountains","027":"hills","028":"hills","029":"plains","030":"plains","031":"plains","032":"hills","033":"hills","034":"hills","035":"hills","036":"mountains","037":"mountains","038":"hills","039":"forest","040":"plains","041":"plains","042":"plains","043":"plains","044":"plains","045":"hills","046":"hills","047":"forest","048":"mountains","049":"mountains","050":"hills","051":"forest","052":"plains","053":"plains","054":"plains","055":"plains","056":"plains","057":"plains","058":"plains","059":"forest","060":"forest","061":"hills","062":"forest","063":"plains","064":"plains","065":"plains","066":"plains","067":"water","068":"water","069":"plains","070":"plains","071":"plains","072":"plains","073":"hills","074":"forest","075":"plains","076":"plains","077":"plains","078":"plains","079":"water","080":"water","081":"water","082":"plains","083":"plains","084":"plains","085":"plains","086":"forest","087":"forest","088":"plains","089":"plains","090":"plains","091":"water","092":"water","093":"water","094":"plains","095":"plains","096":"plains","097":"plains","098":"hills","099":"hills"},"hexContent":{"104":{"feature":{"type":"city","name":"Merrowgate"},"local_memory":"Merrowgate sits where the lake road meets the water; its wharves take barge traffic from the whole of Harrow.","chronicle":[{"date":"1 Harvestmoon 4712","text":"The canton fair opened under the Reeve's peace; wool prices ran high."}]},"110":{"feature":{"type":"village","name":"Stanmoor"}},"111":{"feature":{"type":"town","name":"Adris"}},"122":{"feature":{"type":"village","name":"Redthorn"}},"152":{"feature":{"type":"ruin","name":"Tower of Veyl"}},"155":{"feature":{"type":"town","name":"Stonepoint"}},"024":{"feature":{"type":"dungeon","name":"The Undercrag"}},"026":{"feature":{"type":"dungeon","name":"Barrow of Kings"}},"027":{"feature":{"type":"dungeon","name":"Gloomdelve"}},"043":{"feature":{"type":"village","name":"Harlow's Ford"},"local_memory":"The folk of Harlow's Ford still talk about the night the troll's head came through the door.","chronicle":[{"date":"9 Harvestmoon 4712","text":"Four strangers out of the west lodged at the inn."},{"date":"12 Harvestmoon 4712","text":"The marsh troll of the mill road was slain; its head hangs above the bar. Drinks poured free for Brakka's company."}]},"057":{"feature":{"type":"village","name":"Bracken"}},"063":{"feature":{"type":"village","name":"Wyther"}},"094":{"feature":{"type":"village","name":"Old Mere"}}},"lines":[{"type":"river","path":["023","036","049","062","075","076","077","078","079"]},{"type":"river","path":["013","025","038","051","064","077","078","079"]},{"type":"river","path":["024","037","050","063","076","077","078","079"]},{"type":"road","path":["104","103","102","114","113","112","111"]},{"type":"road","path":["104","117","129","141","149","155"]},{"type":"road","path":["111","099","087","075","063"]}]};</script>
+<script>/*
+ * HexChronicle plate renderer — browser-side SVG drawn from compiled
+ * world-state (README §3). Static, no server. Reads two globals:
+ *   HexGeo  — shared geometry/numbering (build/geometry.js)
+ *   WORLD   — the compiled plate, inlined by the build (build/build.js)
+ *
+ * Unlike the demo prototype, this renderer INVENTS NOTHING: terrain,
+ * features, chronicle, and line features all come from committed data files.
+ */
+(function () {
+  "use strict";
+  const { SIZE, RL, SQ3, hexCorners, plateCorners, pxToAxial } = HexGeo;
+  const T = WORLD.registry.terrain;   // key -> {color,label}
+  const F = WORLD.registry.features;  // key -> {label}
+
+  /* ---- geometry: the canonical subhex layout, indexed by number ---- */
+  const geo = HexGeo.buildPlateHexes();
+  const bySub = new Map(geo.map(h => [h.sub, h]));
+  const byKey = new Map(geo.map(h => [h.key, h]));
+
+  /* merge compiled content onto each geometry hex */
+  for (const h of geo) {
+    h.terrain = WORLD.terrainByNum[h.sub] || WORLD.plate.default_terrain;
+    const c = WORLD.hexContent[h.sub];
+    h.feature = c && c.feature ? c.feature : null;      // {type,name}
+    h.name = h.feature ? h.feature.name : null;
+    h.chronicle = c && c.chronicle ? c.chronicle : [];
+    h.memory = c && c.local_memory ? c.local_memory : null;
+    h.river = false; h.road = false;
+  }
+  /* flag line-feature membership for the card */
+  for (const ln of WORLD.lines) for (const sub of ln.path) {
+    const h = bySub.get(sub); if (!h) continue;
+    if (ln.type === "river") h.river = true; else h.road = true;
+  }
+
+  const addr = h => WORLD.plate.id + "-" + h.sub;
+
+  /* ---- svg scaffold ---- */
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("map");
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(SVGNS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  const world = el("g", {}, svg);
+  const gFill = el("g", {}, world);
+  const gWater = el("g", {}, world);
+  const gRoad = el("g", {}, world);
+  const gIcon = el("g", {}, world);
+  const gNum = el("g", { style: "transition:opacity .3s" }, world);
+  const gFrame = el("g", {}, world);
+  const gSel = el("g", {}, world);
+
+  /* ---- terrain fills ---- */
+  for (const h of geo) {
+    const spec = T[h.terrain] || { color: "#cccccc" };
+    el("polygon", {
+      points: hexCorners(h.x, h.y, SIZE),
+      fill: spec.color, stroke: "rgba(0,0,0,0.16)", "stroke-width": 1
+    }, gFill);
+  }
+
+  /* ---- line features (paths of subhex centers) ---- */
+  function smoothPath(pts) {
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i].x + pts[i + 1].x) / 2, my = (pts[i].y + pts[i + 1].y) / 2;
+      d += ` Q ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
+    }
+    const L = pts[pts.length - 1];
+    d += ` L ${L.x.toFixed(1)} ${L.y.toFixed(1)}`;
+    return d;
+  }
+  for (const ln of WORLD.lines) {
+    const pts = ln.path.map(s => bySub.get(s)).filter(Boolean);
+    if (pts.length < 2) continue;
+    if (ln.type === "river") {
+      el("path", { d: smoothPath(pts), fill: "none", stroke: "#7ea6c9",
+        "stroke-width": 3, "stroke-linecap": "round", opacity: 0.9 }, gWater);
+    } else {
+      el("path", { d: smoothPath(pts), fill: "none", stroke: "#6b5138",
+        "stroke-width": 2.4, "stroke-linecap": "round" }, gRoad);
+    }
+  }
+
+  /* ---- feature icons (same vocabulary as the prototype) ---- */
+  function drawIcon(parent, feature, cx, cy, scale) {
+    const g = el("g", { transform: `translate(${cx} ${cy}) scale(${scale})` }, parent);
+    if (feature === "village") {
+      el("circle", { r: 4.6, fill: "none", stroke: "#2b2b23", "stroke-width": 2 }, g);
+    } else if (feature === "town") {
+      el("circle", { r: 6, fill: "none", stroke: "#2b2b23", "stroke-width": 2 }, g);
+      el("circle", { r: 2.6, fill: "none", stroke: "#2b2b23", "stroke-width": 1.6 }, g);
+    } else if (feature === "city") {
+      el("circle", { r: 7, fill: "#f0ead2", stroke: "#2b2b23", "stroke-width": 2.2 }, g);
+      el("circle", { r: 2.6, fill: "#2b2b23" }, g);
+    } else if (feature === "burned") {
+      el("circle", { r: 4.6, fill: "none", stroke: "#2c2622", "stroke-width": 2 }, g);
+      el("path", { d: "M 0 -12 C 3 -8 4.5 -7 3.5 -3.5 C 2.5 -1 -2.5 -1 -3.5 -3.5 C -4.5 -7 -3 -8 0 -12 Z", fill: "#b04a2e" }, g);
+    } else if (feature === "ruin") {
+      el("rect", { x: -6, y: -5, width: 3.4, height: 11, fill: "#5c5142" }, g);
+      el("rect", { x: 2, y: -2, width: 3.4, height: 8, fill: "#5c5142", transform: "rotate(14 3.7 2)" }, g);
+    } else if (feature === "dungeon") {
+      el("path", { d: "M -6 6 L -6 -2 A 6 6 0 0 1 6 -2 L 6 6 Z", fill: "#38322b" }, g);
+      el("path", { d: "M -2.2 6 L -2.2 0 A 2.2 2.2 0 0 1 2.2 0 L 2.2 6 Z", fill: "#171412" }, g);
+    } else if (feature === "lair") {
+      el("rect", { x: -5.4, y: -5.4, width: 10.8, height: 10.8, fill: "#f0ead2", stroke: "#9e3d34", "stroke-width": 2, transform: "rotate(45)" }, g);
+      const t = el("text", { "text-anchor": "middle", y: 3.4, "font-size": 9, "font-weight": 700, fill: "#9e3d34", "font-family": "'Alegreya Sans',sans-serif" }, g);
+      t.textContent = "M";
+    }
+    return g;
+  }
+  for (const h of geo) if (h.feature) h.iconEl = drawIcon(gIcon, h.feature.type, h.x, h.y, 1);
+
+  /* name the settlements the plate calls out (city + towns) */
+  for (const h of geo) {
+    if (!h.feature) continue;
+    if (h.feature.type === "city" || h.feature.type === "town") {
+      const t = el("text", {
+        x: h.x, y: h.y + 22, "text-anchor": "middle",
+        "font-family": "'IM Fell English SC',serif",
+        "font-size": h.feature.type === "city" ? 15 : 12, fill: "#2b2b23"
+      }, gIcon);
+      t.textContent = h.name;
+    }
+  }
+
+  /* ---- subhex numbers (shown past a zoom threshold) ---- */
+  for (const h of geo) {
+    const t = el("text", {
+      x: h.x, y: h.y - SIZE * 0.42, "text-anchor": "middle",
+      "font-family": "'IBM Plex Mono',monospace", "font-size": 8.5, fill: "rgba(43,43,35,0.6)"
+    }, gNum);
+    t.textContent = h.num;
+  }
+
+  /* ---- plate frame + six neighbor chips ---- */
+  el("polygon", { points: plateCorners(RL + SIZE * 0.2), fill: "none",
+    stroke: "#2e6f6a", "stroke-width": 4, "stroke-linejoin": "round" }, gFrame);
+  const NEI = [
+    { dir: "e",  ang: 0 }, { dir: "se", ang: 60 }, { dir: "sw", ang: 120 },
+    { dir: "w",  ang: 180 }, { dir: "nw", ang: 240 }, { dir: "ne", ang: 300 }
+  ];
+  for (const n of NEI) {
+    const a = Math.PI / 180 * n.ang, R = RL + SIZE * 1.35;
+    const cx = Math.cos(a) * R, cy = Math.sin(a) * R;
+    const g = el("g", { transform: `translate(${cx.toFixed(1)} ${cy.toFixed(1)})`, style: "cursor:pointer" }, gFrame);
+    el("polygon", { points: hexCorners(0, 0, 20), fill: "#e9e2cf", stroke: "#2e6f6a", "stroke-width": 2.5 }, g);
+    const t1 = el("text", { "text-anchor": "middle", y: -2, "font-size": 6.4, fill: "#2e6f6a", "font-family": "'IBM Plex Mono',monospace" }, g);
+    t1.textContent = "36-MI HEX";
+    const nid = WORLD.plate.neighbors ? WORLD.plate.neighbors[n.dir] : null;
+    const t2 = el("text", { "text-anchor": "middle", y: 9, "font-size": 11, "font-weight": 700, fill: "#2e6f6a", "font-family": "'Alegreya Sans',sans-serif" }, g);
+    t2.textContent = nid ? nid : "—";
+    g.addEventListener("click", ev => {
+      ev.stopPropagation();
+      if (nid) showToast(`Plate ${nid} — the adjoining plate would load here.`);
+      else showToast(`No plate to the ${n.dir.toUpperCase()} yet. It gets created and numbered when the map grows.`);
+    });
+  }
+
+  /* ---- pan / zoom ---- */
+  let s = 1, tx = 0, ty = 0;
+  function applyTransform() {
+    world.setAttribute("transform", `translate(${tx} ${ty}) scale(${s})`);
+    gNum.style.opacity = s >= 0.95 ? 1 : 0;    // numbers past a zoom threshold (README §3)
+  }
+  function viewSize() {
+    const r = svg.getBoundingClientRect();
+    return { w: r.width || innerWidth, h: r.height || innerHeight };
+  }
+  let interacted = false;
+  function fitPlate() {
+    const v = viewSize(), pad = 60;
+    s = Math.min(3, Math.max(0.3, Math.min(
+      (v.w - pad) / (SQ3 * RL + SIZE * 5),
+      (v.h - 170) / (2 * RL + SIZE * 5)
+    )));
+    tx = v.w / 2; ty = v.h / 2 + 14;
+    applyTransform();
+  }
+  fitPlate();
+  window.addEventListener("load", fitPlate);
+  window.addEventListener("resize", () => { if (!interacted) fitPlate(); });
+  window.addEventListener("orientationchange", () => setTimeout(fitPlate, 250));
+  requestAnimationFrame(fitPlate);
+  document.getElementById("fitBtn").addEventListener("click", () => { closeCard(); interacted = false; fitPlate(); });
+
+  const pointers = new Map();
+  let movedFlag = false, lastPinch = 0;
+  svg.addEventListener("pointerdown", e => {
+    e.preventDefault();                 // stop drag-/double-click text selection on the plate
+    svg.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) movedFlag = false;
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      lastPinch = Math.hypot(a.x - b.x, a.y - b.y);
+    }
+  });
+  svg.addEventListener("pointermove", e => {
+    if (!pointers.has(e.pointerId)) return;
+    const p = pointers.get(e.pointerId);
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    if (pointers.size === 1) {
+      if (Math.hypot(dx, dy) > 4) { movedFlag = true; interacted = true; }
+      tx += dx; ty += dy; p.x = e.clientX; p.y = e.clientY;
+      applyTransform();
+    } else if (pointers.size === 2) {
+      p.x = e.clientX; p.y = e.clientY;
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (lastPinch > 0) { zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, d / lastPinch); movedFlag = true; }
+      lastPinch = d;
+    }
+  });
+  svg.addEventListener("pointerup", e => {
+    if (pointers.size === 1 && !movedFlag) tapAt(e.clientX, e.clientY);
+    pointers.delete(e.pointerId); lastPinch = 0;
+  });
+  svg.addEventListener("pointercancel", e => pointers.delete(e.pointerId));
+  svg.addEventListener("wheel", e => {
+    e.preventDefault();
+    zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0016));
+  }, { passive: false });
+  function zoomAt(cx, cy, k) {
+    interacted = true;
+    const ns = Math.min(3.2, Math.max(0.3, s * k));
+    const real = ns / s;
+    tx = cx - (cx - tx) * real;
+    ty = cy - (cy - ty) * real;
+    s = ns;
+    applyTransform();
+  }
+
+  /* ---- tap + card ---- */
+  let selEl = null;
+  function clearSel() { if (selEl) { selEl.remove(); selEl = null; } }
+  function esc(x) { return String(x == null ? "" : x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+  function tapAt(cx, cy) {
+    const wx = (cx - tx) / s, wy = (cy - ty) / s;
+    const a = pxToAxial(wx, wy);
+    const h = byKey.get(a.q + "," + a.r);
+    if (!h) { closeCard(); return; }
+    clearSel();
+    selEl = el("polygon", { points: hexCorners(h.x, h.y, SIZE), fill: "none", stroke: "#f3ead0", "stroke-width": 3 }, gSel);
+    const rows = [];
+    if (h.feature) {
+      const flabel = (F[h.feature.type] && F[h.feature.type].label) || h.feature.type;
+      rows.push(`<dt>Feature</dt><dd><b>${esc(h.name)}</b> — ${esc(flabel)}</dd>`);
+    }
+    const lf = [];
+    if (h.river) lf.push("stream");
+    if (h.road) lf.push("road");
+    if (lf.length) rows.push(`<dt>Line features</dt><dd>${lf.join(", ")}</dd>`);
+    const chron = h.chronicle.length
+      ? h.chronicle.map(x => `<p><b>${esc(x.date)}</b> — ${esc(x.text)}</p>`).join("")
+      : `<p class="empty">Nothing chronicled here yet.</p>`;
+    const mem = h.memory ? `<h3>Local memory</h3><div class="chron"><p>${esc(h.memory)}</p></div>` : "";
+    const tspec = T[h.terrain] || { label: h.terrain };
+    const srcFile = h.feature || h.chronicle.length || h.memory
+      ? `hexes/${addr(h)}.yaml` : `plates/${WORLD.plate.id}.yaml (terrain grid)`;
+    openCard(`
+      <div class="eyebrow">Hex ${esc(addr(h))} · 3-mile · plate ${esc(WORLD.plate.id)} · #${h.num}</div>
+      <h2>${esc(h.name || tspec.label)}</h2>
+      <dl class="rows">
+        <dt>Terrain</dt><dd>${esc(tspec.label)}</dd>
+        ${rows.join("")}
+        <dt>Canton</dt><dd>${esc(WORLD.plate.canton)}, ${esc(WORLD.plate.realm)}</dd>
+      </dl>
+      <h3>Chronicle</h3><div class="chron">${chron}</div>
+      ${mem}
+      <h3>Source</h3>
+      <pre>${esc(srcFile)}</pre>
+    `);
+  }
+  const card = document.getElementById("card"), cardBody = document.getElementById("cardBody");
+  function openCard(html) { cardBody.innerHTML = html; card.classList.add("open"); }
+  function closeCard() { card.classList.remove("open"); clearSel(); }
+  document.getElementById("cardClose").addEventListener("click", closeCard);
+
+  /* ---- toast ---- */
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(showToast._h);
+    showToast._h = setTimeout(() => t.classList.remove("show"), 6000);
+  }
+
+  /* ---- cartouche + legend, populated from the compiled plate ---- */
+  const P = WORLD.plate;
+  document.getElementById("t-title").textContent = P.title || P.name;
+  document.getElementById("t-addr").textContent =
+    `36-MILE HEX #${P.id} · within 432-MILE HEX #${P.continent_hex}`;
+  document.getElementById("t-scale").textContent = `SCALE: ${P.scale_label}`;
+  svg.setAttribute("aria-label", `Atlas plate ${P.id} — ${P.name}`);
+  document.title = `HexChronicle — Plate ${P.id} · ${P.name}`;
+
+  const legend = document.getElementById("legend");
+  function chipSVG(kind) {
+    const sv = document.createElementNS(SVGNS, "svg");
+    sv.setAttribute("width", 14); sv.setAttribute("height", 14); sv.setAttribute("viewBox", "-7 -7 14 14");
+    drawIcon(sv, kind, 0, 0, 0.85);
+    return sv;
+  }
+  // terrain swatches: only the types actually present on this plate
+  const present = new Set(geo.map(h => h.terrain));
+  for (const key of Object.keys(T)) {
+    if (!present.has(key)) continue;
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.innerHTML = `<i style="background:${T[key].color}"></i>${esc(T[key].label)}`;
+    legend.appendChild(chip);
+  }
+  const presentFeatures = new Set(geo.filter(h => h.feature).map(h => h.feature.type));
+  for (const key of Object.keys(F)) {
+    if (!presentFeatures.has(key)) continue;
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.appendChild(chipSVG(key));
+    chip.appendChild(document.createTextNode(F[key].label));
+    legend.appendChild(chip);
+  }
+
+  /* ---- intro card ---- */
+  openCard(`
+    <div class="eyebrow">Atlas plate view</div>
+    <h2>Plate ${esc(P.id)} — ${esc(P.name)}</h2>
+    <div class="chron">
+      <p><b>One atlas hex is the page.</b> This is 36-mile hex #${esc(P.id)} inside 432-mile hex #${esc(P.continent_hex)}, drawn as 3-mile subhexes (1 league), numbered row by row.</p>
+      <p><b>Tap any hex</b> for its card — addresses like <b>${esc(P.id)}-104</b> come straight from the nesting. Everything you see was compiled from the repo's data files, not generated in the browser.</p>
+      <p><b>The teal chips</b> on each edge are the six adjoining plates; none exist yet, so they show “—”.</p>
+    </div>
+    <div class="actions"><button id="introGo">Explore the plate</button></div>
+  `);
+  document.getElementById("introGo").addEventListener("click", closeCard);
+  applyTransform();
+})();
+</script>
+</body>
+</html>
