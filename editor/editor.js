@@ -643,13 +643,11 @@
         st[key] = key === "continent_hex" ? (parseInt(raw, 10) || null) : (raw.trim() || null);
         markDirty(st.id, "dirtyMeta");
         st.dirtyPlateMeta = true;
-        if (key === "name") { refreshPlateLabels(st); }
+        // Nothing on the map to refresh. `name` and `title` are stored, saved
+        // and edited here, but the map draws only the plate id, so editing
+        // them repaints nothing on the canvas.
       });
     }
-  }
-  function refreshPlateLabels(st) {
-    const rec = atlas.recs.get(st.id);
-    if (rec) rec.label.textContent = st.name || st.id;
   }
 
   /* ============================================================= *

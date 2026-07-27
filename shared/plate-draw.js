@@ -867,10 +867,13 @@
    *   water   rivers and streams        ── under the lake fill, so a river
    *   shore   water overlay + hex grid     running into a lake merges with it
    *   road    paths, roads, paved       ── over the water, so a crossing reads
-   *   content icons, names, numbers        as a bridge
+   *   content icons, settlement names,     as a bridge
+   *           subhex numbers — all PER HEX; nothing here is per plate
    *   frame   the plate lattice: ONE path for the whole map, above the terrain
    *           it crosses, so the line is clean and unbroken (see THE PLATE
-   *           LATTICE above for why it is drawn there and at that radius)
+   *           LATTICE above for why it is drawn there and at that radius). This
+   *           line is the ONLY thing on the map that says where a 36-mile hex
+   *           begins and ends — there is no plate label of any kind.
    *   ui      empty, for whatever the CALLER draws on top
    *
    * `ui` is the one layer this module never puts anything in. It is where a
@@ -903,7 +906,6 @@
     const bySub = new Map(geo.map(h => [h.sub, h]));
     const byKey = new Map(geo.map(h => [h.q + "," + h.r, h]));
     const mesh = terrainMesh(geo);
-    const LABEL_Y = -(G.RL - G.SIZE * 0.55);
     const registry = opts.registry || {};
     const T = registry.terrain || {}, LN = registry.lines || {};
     const stateOf = opts.stateOf || (() => null);
@@ -987,19 +989,21 @@
       };
       rec.gIcons = el("g", {}, rec.gContent);
       rec.gNum = el("g", {}, rec.gContent);
-      rec.label = el("text", {
-        "text-anchor": "middle", "font-size": 30,
-        "font-family": "'IM Fell English SC',serif", fill: "rgba(43,43,35,0.6)",
-      }, rec.gContent);
-      // its NAME if it has one, else its id — at a constant 30 screen px these
-      // sit shoulder to shoulder across a row of plates, so keep them short
-      rec.label.textContent = e.name || e.id;
-      // NO per-plate frame here: the boundary is one path for the whole map
-      // (drawBoundary), because a frame per plate strokes every interior seam
-      // twice. The plate's name is its label; the tooltip went with the frame.
-      const title = document.createElementNS(SVGNS, "title");
-      title.textContent = `36-mile hex ${e.id}${e.name ? " (" + e.name + ")" : ""}`;
-      rec.gContent.appendChild(title);
+      // NO PLATE-LEVEL TEXT AT ALL. Not the name, not the title, not the id.
+      // A 36-mile hex is shown by its BOUNDARY LINE and by nothing else; what
+      // the map writes is per-hex — the subhex address, and a settlement's own
+      // name. `id`, `name` and `title` remain real fields: they are in
+      // plates/*.yaml, compiled into the atlas payload, and edited in the
+      // editor's plate panel. They are simply not map labels.
+      //
+      // There is no flag for this and there is not meant to be one — no label
+      // element is created, so there is nothing to hide, fade or misconfigure.
+      // Nor is there a <title>: an SVG tooltip is plate text that appears on
+      // hover, which is the same thing again.
+      //
+      // NO per-plate frame here either: the boundary is one path for the whole
+      // map (drawBoundary), because a frame per plate strokes every interior
+      // seam twice.
       recs.set(e.id, rec);
       return rec;
     }
@@ -1144,9 +1148,7 @@
       // 157 text nodes a plate: only worth existing inside the zoom band where
       // they can actually be read
       const showNums = numOpacity() > 0.01;
-      const k = (1 / view.s).toFixed(4);
       for (const rec of recs.values()) {
-        rec.label.setAttribute("transform", `translate(0 ${LABEL_Y}) scale(${k})`);
         if (showNums && !rec.numsBuilt && rec.built) drawNumbers(rec);
         else if (!showNums && rec.numsBuilt) { rec.gNum.textContent = ""; rec.numsBuilt = false; }
       }
