@@ -1,34 +1,34 @@
-# Atlas plate 0005 (README §3, §4). One atlas hex = one page.
+# Atlas plate 0041 (README §3, §4). One atlas hex = one page.
 # Terrain lives here as a compact grid: a default plus per-subhex
 # overrides keyed by subhex number. Rich per-hex content (features,
-# names, chronicle) lives in hexes/0005-NNN.yaml.
+# names, chronicle) lives in hexes/0041-NNN.yaml.
 #
 # Interior rolled by the editor's plate generator:
-#   profile coastal · seed "0004-ne-ouu3d5" · 14 border hexes matched to neighbours
+#   profile woodland · seed "0032-ne-f5q4xj" · 25 border hexes matched to neighbours
 # Re-rolling reproduces this exactly given the same seed, profile, AND
 # border conditions — the matched-border count above changes as adjoining
 # plates are added or edited, so a later re-roll may differ near the seams.
 
-id: "0005"
+id: "0041"
 continent_hex: 1            # the 432-mile hex this plate sits within
-name: "Plate 0005"
+name: "Plate 0041"
 canton: Harrow
 realm: Karvosia
-title: "Plate 0005"
+title: "Plate 0041"
 scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
 summary: >
   Newly surveyed ground; no account of it has been written yet.
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: "0044"
-  ne: "0033"
-  nw: "0031"
-  w: "0006"
-  sw: "0004"
-  se: "0023"
+  e: null
+  ne: null
+  nw: null
+  w: "0036"
+  sw: "0032"
+  se: "0042"
 
-default_terrain: plains
+default_terrain: forest
 terrain:                     # subhex number -> terrain type (non-default only)
   "001": water
   "002": water
@@ -52,7 +52,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "020": water
   "021": water
   "022": water
-  "023": water
   "024": water
   "025": water
   "026": water
@@ -77,13 +76,8 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "045": water
   "046": water
   "047": water
-  "048": water
   "049": water
   "050": water
-  "051": water
-  "052": water
-  "053": water
-  "054": water
   "055": water
   "056": water
   "057": water
@@ -91,72 +85,44 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "059": water
   "060": water
   "061": water
-  "062": water
-  "063": water
-  "064": water
-  "065": water
-  "066": water
-  "067": water
   "068": water
   "069": water
   "070": water
   "071": water
   "072": water
-  "073": water
-  "074": water
-  "075": water
-  "076": water
-  "077": water
-  "078": water
-  "079": water
+  "075": mountains
+  "076": mountains
+  "077": mountains
   "080": water
   "081": water
   "082": water
   "083": water
   "084": water
   "085": water
-  "086": water
-  "087": water
-  "088": water
-  "089": water
-  "090": water
-  "091": water
-  "092": water
+  "088": mountains
+  "089": hills
   "093": water
   "094": water
   "095": water
   "096": water
   "097": water
-  "098": water
-  "099": water
-  "100": water
-  "101": water
-  "102": water
-  "103": water
-  "104": water
+  "100": hills
+  "101": hills
   "105": water
   "106": water
   "107": water
   "108": water
   "109": water
   "110": water
-  "111": water
-  "112": water
-  "113": water
-  "114": water
-  "115": water
-  "116": water
+  "111": hills
+  "112": hills
   "117": water
   "118": water
   "119": water
   "120": water
   "121": water
   "122": water
-  "124": water
-  "125": water
-  "126": water
-  "127": water
-  "128": water
+  "124": hills
   "129": water
   "130": water
   "131": water
@@ -164,17 +130,12 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "133": water
   "134": water
   "135": water
-  "137": water
-  "138": water
-  "139": water
   "140": water
   "141": water
   "142": water
   "143": water
   "144": water
   "145": water
-  "147": water
-  "148": water
   "149": water
   "150": water
   "151": water

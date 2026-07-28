@@ -21,118 +21,119 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
+  e: "0017"
   ne: "0002"
   nw: "0001"
   w: "0008"
   sw: "0013"
-  se: null
+  se: "0018"
 
 default_terrain: forest
 terrain:                     # subhex number -> terrain type (non-default only)
-  "003": plains
-  "014": plains
-  "024": plains
-  "025": plains
-  "029": plains
-  "030": plains
-  "031": plains
-  "037": plains
-  "042": plains
-  "043": plains
-  "044": plains
+  "007": hills
+  "011": hills
+  "014": hills
+  "019": hills
+  "020": hills
+  "021": hills
+  "024": hills
+  "025": hills
+  "030": hills
+  "031": hills
+  "032": hills
+  "033": hills
+  "034": hills
+  "036": hills
+  "037": hills
+  "038": hills
+  "039": hills
+  "040": hills
+  "043": hills
+  "044": hills
+  "045": hills
   "046": hills
-  "048": plains
-  "055": plains
-  "056": plains
-  "057": plains
+  "047": hills
+  "048": hills
+  "049": hills
+  "050": hills
+  "051": hills
+  "052": hills
+  "056": hills
+  "057": hills
   "058": hills
   "059": hills
   "060": hills
-  "061": plains
-  "062": plains
-  "067": plains
-  "068": plains
-  "069": water
-  "070": water
-  "071": water
+  "061": hills
+  "062": hills
+  "063": hills
+  "064": hills
+  "068": hills
+  "069": hills
+  "070": hills
+  "071": hills
   "072": hills
-  "073": plains
-  "074": plains
-  "075": plains
-  "079": plains
-  "080": swamp
-  "081": swamp
-  "082": water
-  "083": water
-  "084": water
-  "085": hills
-  "086": plains
+  "073": hills
+  "074": hills
+  "075": hills
+  "076": hills
+  "081": hills
+  "082": hills
+  "083": hills
+  "085": water
+  "086": hills
   "087": plains
-  "088": plains
-  "090": plains
-  "091": plains
-  "092": swamp
-  "093": swamp
-  "094": water
-  "095": water
-  "096": water
-  "097": water
+  "088": hills
+  "093": hills
+  "094": hills
+  "095": hills
+  "097": hills
   "098": plains
-  "099": plains
-  "100": plains
-  "101": plains
-  "102": plains
-  "103": plains
-  "104": swamp
-  "105": swamp
-  "106": swamp
-  "107": water
-  "108": water
-  "109": water
+  "099": hills
+  "100": hills
+  "101": hills
+  "105": hills
+  "106": hills
+  "107": hills
+  "109": hills
   "110": water
   "111": hills
   "112": hills
   "116": hills
-  "117": swamp
-  "118": swamp
-  "119": swamp
-  "120": swamp
-  "121": plains
-  "122": plains
+  "117": hills
+  "118": hills
+  "119": hills
+  "121": hills
+  "122": water
   "123": hills
-  "124": hills
   "127": hills
   "128": hills
-  "129": swamp
-  "130": swamp
-  "131": swamp
-  "132": swamp
-  "133": plains
-  "134": plains
-  "135": plains
+  "129": hills
+  "130": hills
+  "133": hills
+  "134": water
+  "135": water
   "136": hills
   "137": hills
   "138": hills
   "139": hills
   "140": hills
-  "141": swamp
-  "142": swamp
-  "143": swamp
-  "144": plains
-  "145": plains
+  "141": hills
+  "142": hills
+  "143": hills
+  "144": hills
+  "145": hills
   "146": hills
   "147": hills
   "148": hills
-  "149": swamp
-  "150": swamp
-  "151": swamp
-  "152": swamp
+  "149": hills
+  "150": hills
+  "151": hills
+  "152": water
   "153": hills
   "154": hills
   "155": plains
-  "156": swamp
-  "157": plains
+  "156": water
+  "157": water
 
 # Line features (README §4): paths crossing subhexes, not per-hex fills.
 lines:

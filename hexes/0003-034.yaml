@@ -3,6 +3,3 @@
 
 address: "0003-034"
 visibility: public          # public | gm-only (README §4)
-name: "SlateHolm"
-feature:
-  type: town

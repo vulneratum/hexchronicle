@@ -21,7 +21,7 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
+  e: "0018"
   ne: "0007"
   nw: "0008"
   w: "0012"
@@ -30,25 +30,25 @@ neighbors:
 
 default_terrain: plains
 terrain:                     # subhex number -> terrain type (non-default only)
-  "003": hills
-  "004": hills
+  "003": water
+  "004": water
   "008": hills
-  "009": hills
-  "010": hills
-  "011": hills
+  "009": water
+  "010": water
+  "011": water
   "016": hills
   "017": hills
   "018": hills
   "019": hills
-  "020": hills
-  "021": hills
+  "020": water
+  "021": water
   "027": hills
   "028": hills
   "030": hills
   "031": hills
   "032": hills
-  "033": hills
-  "034": hills
+  "033": water
+  "034": water
   "038": forest
   "039": forest
   "043": hills

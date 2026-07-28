@@ -54,7 +54,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "032": hills
   "033": hills
   "034": hills
-  "035": forest
+  "035": hills
   "036": mountains
   "037": mountains
   "038": hills
@@ -72,16 +72,19 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "062": forest
   "067": water
   "068": water
+  "072": forest
   "073": hills
   "074": forest
   "079": water
   "080": water
   "081": water
+  "085": forest
   "086": forest
   "087": forest
   "091": water
   "092": water
   "093": water
+  "097": forest
   "098": hills
   "099": hills
   "100": hills
@@ -89,9 +92,11 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "105": water
   "106": swamp
   "107": swamp
+  "110": forest
   "111": hills
   "112": hills
   "119": swamp
+  "122": forest
   "123": mountains
   "124": hills
   "125": hills
@@ -99,18 +104,19 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "127": forest
   "130": swamp
   "131": swamp
-  "135": hills
+  "135": forest
   "136": mountains
   "137": hills
   "138": hills
   "139": forest
-  "145": forest
+  "145": hills
   "146": hills
   "147": forest
   "150": swamp
-  "152": forest
+  "152": hills
   "153": forest
-  "157": forest
+  "156": hills
+  "157": hills
 
 # Line features (README §4): paths crossing subhexes, not per-hex fills.
 lines:

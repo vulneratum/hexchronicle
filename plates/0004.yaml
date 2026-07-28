@@ -21,12 +21,12 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
+  e: "0023"
   ne: "0005"
   nw: "0006"
   w: "0003"
   sw: "0002"
-  se: null
+  se: "0020"
 
 default_terrain: forest
 terrain:                     # subhex number -> terrain type (non-default only)
@@ -52,7 +52,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "020": water
   "021": water
   "022": water
-  "023": hills
   "024": hills
   "025": water
   "026": water
@@ -77,7 +76,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "045": water
   "046": water
   "047": water
-  "048": hills
   "049": water
   "050": water
   "051": water
@@ -93,6 +91,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "061": water
   "062": water
   "063": water
+  "064": water
   "065": water
   "066": water
   "067": water
@@ -100,16 +99,16 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "069": water
   "070": water
   "072": plains
-  "073": hills
   "074": water
   "075": water
+  "076": water
+  "077": water
   "078": water
   "079": water
   "080": water
   "081": water
   "082": water
   "084": water
-  "085": water
   "086": water
   "087": water
   "088": water
@@ -120,9 +119,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "093": water
   "094": water
   "095": water
-  "096": water
-  "097": water
-  "098": hills
   "099": water
   "100": water
   "101": water
@@ -141,8 +137,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "117": water
   "118": water
   "119": water
-  "120": hills
-  "123": hills
   "124": water
   "125": water
   "126": water
@@ -151,27 +145,17 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "129": water
   "130": water
   "131": water
-  "132": hills
-  "133": water
-  "134": water
-  "135": water
-  "136": water
   "137": water
   "138": water
   "139": water
   "140": water
   "141": water
   "142": water
-  "144": hills
-  "145": water
-  "146": water
   "147": water
   "148": water
   "149": water
   "150": water
-  "153": water
   "154": water
-  "156": water
 
 # Line features (README §4): paths crossing subhexes, not per-hex fills.
 lines:

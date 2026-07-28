@@ -19,71 +19,155 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
+  e: "0020"
   ne: "0004"
   nw: "0003"
   w: "0001"
   sw: "0007"
-  se: null
+  se: "0017"
 
 default_terrain: forest
 terrain:                     # subhex number -> terrain type (non-default only)
+  "002": hills
+  "003": hills
   "004": water
   "005": water
   "006": swamp
+  "007": hills
+  "008": hills
   "009": water
   "010": water
   "011": water
   "012": water
+  "013": hills
+  "015": hills
+  "016": hills
+  "017": hills
   "018": water
   "019": water
   "020": water
   "021": water
   "022": water
+  "024": hills
+  "025": hills
+  "026": hills
+  "027": hills
+  "028": hills
   "029": water
   "030": water
   "031": water
   "032": water
   "033": water
   "034": water
+  "037": hills
+  "038": hills
+  "039": hills
+  "040": hills
+  "041": hills
   "042": water
   "043": water
   "044": water
   "045": water
   "046": water
+  "049": hills
+  "050": hills
+  "051": hills
+  "052": hills
+  "053": hills
+  "054": hills
   "055": water
   "056": water
   "057": water
-  "063": water
-  "067": plains
+  "058": plains
+  "059": plains
+  "062": hills
+  "063": hills
+  "064": hills
+  "065": hills
+  "066": hills
+  "067": hills
   "068": water
   "069": water
-  "073": plains
-  "075": water
-  "076": water
-  "080": plains
+  "070": plains
+  "071": plains
+  "072": plains
+  "074": hills
+  "075": hills
+  "076": hills
+  "077": hills
+  "078": hills
+  "079": hills
+  "080": hills
   "081": water
   "082": water
-  "083": water
-  "092": plains
-  "093": plains
+  "083": plains
+  "084": plains
+  "087": hills
+  "088": hills
+  "089": hills
+  "090": hills
+  "091": hills
+  "092": hills
+  "093": hills
   "094": water
-  "096": water
-  "098": plains
-  "104": plains
-  "105": plains
-  "106": plains
+  "095": plains
+  "096": plains
+  "097": plains
+  "099": hills
+  "100": hills
+  "101": hills
+  "102": hills
+  "103": hills
+  "104": hills
+  "105": hills
+  "106": hills
   "107": water
-  "109": water
-  "111": plains
-  "117": plains
-  "118": plains
-  "119": plains
-  "123": plains
-  "129": plains
-  "131": plains
-  "132": plains
-  "143": plains
+  "108": plains
+  "109": plains
+  "112": hills
+  "113": hills
+  "114": hills
+  "115": hills
+  "116": hills
+  "117": hills
+  "118": hills
+  "119": hills
+  "120": water
+  "121": plains
+  "122": plains
+  "124": hills
+  "125": hills
+  "126": hills
+  "127": hills
+  "128": hills
+  "129": hills
+  "130": hills
+  "131": hills
+  "132": water
+  "133": plains
+  "134": plains
+  "135": plains
+  "136": hills
+  "137": hills
+  "138": hills
+  "139": hills
+  "140": hills
+  "141": hills
+  "142": hills
+  "143": hills
+  "144": water
+  "145": plains
+  "146": hills
+  "147": hills
+  "148": hills
+  "149": hills
+  "150": hills
+  "151": hills
+  "152": water
+  "153": hills
+  "154": hills
+  "155": hills
+  "157": hills
 
 # Line features (README §4): paths crossing subhexes, not per-hex fills.
 lines:

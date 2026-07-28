@@ -1,0 +1,105 @@
+# Atlas plate 0028 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0028-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile woodland · seed "0026-nw-vc2oa5" · 25 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0028"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0028"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0028"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0027"
+  ne: "0029"
+  nw: "0038"
+  w: "0039"
+  sw: "0040"
+  se: "0026"
+
+default_terrain: forest
+terrain:                     # subhex number -> terrain type (non-default only)
+  "001": plains
+  "002": plains
+  "003": plains
+  "004": plains
+  "006": plains
+  "007": plains
+  "013": plains
+  "014": plains
+  "015": plains
+  "021": plains
+  "022": plains
+  "023": plains
+  "024": plains
+  "025": plains
+  "026": plains
+  "033": plains
+  "034": plains
+  "036": plains
+  "037": plains
+  "038": plains
+  "039": plains
+  "046": plains
+  "047": plains
+  "048": plains
+  "049": plains
+  "050": plains
+  "051": plains
+  "052": plains
+  "056": water
+  "057": swamp
+  "058": swamp
+  "061": plains
+  "062": plains
+  "063": plains
+  "064": hills
+  "065": hills
+  "068": water
+  "069": water
+  "070": swamp
+  "071": swamp
+  "073": plains
+  "074": plains
+  "075": plains
+  "076": hills
+  "077": hills
+  "078": hills
+  "079": water
+  "080": water
+  "081": water
+  "086": plains
+  "087": plains
+  "088": hills
+  "089": hills
+  "092": hills
+  "098": hills
+  "099": hills
+  "100": hills
+  "101": hills
+  "102": hills
+  "105": hills
+  "106": hills
+  "107": hills
+  "113": hills
+  "114": hills
+  "117": hills
+  "118": hills
+  "119": hills
+  "126": hills
+  "130": hills
+  "131": hills
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:
