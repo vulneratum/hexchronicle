@@ -7,15 +7,40 @@
 #     delete it (README §7, §11 — the chronicle references it forever).
 #   - Adding a type here makes it available everywhere on the next build.
 #
-# Each entry: color (hex fill on the plate) + label (human-facing name).
+# Each entry: color (hex fill on the plate) + label (human-facing name), plus
+# the optional flag:
+#
+#   water: true   this type IS water. The renderer reads the flag, never a list
+#                 of keys: a flagged type gets the softened sector transitions,
+#                 joins the one smoothed coastline, has rivers merge into it,
+#                 and pushes a hex's feature icon onto the dry part of the hex.
+#                 `water` (inland lakes and rivers) and `ocean` are two types
+#                 with two colours and ONE shared shore where they meet.
+#
+# ORDER IS THE PALETTE ORDER — the editor's brush, the site legend and the
+# metadata dropdown all iterate this map as written. Grouped by family so it
+# stays scannable: wet, vegetated, dry/rough, cold.
 
 types:
-  water:     { color: "#93b7b3", label: "Water" }
-  swamp:     { color: "#8a9a77", label: "Swamp" }
+  # wet
+  water:     { color: "#93b7b3", label: "Water", water: true }
+  ocean:     { color: "#6f9fb5", label: "Ocean", water: true }
+  # vegetated
   plains:    { color: "#cdd39c", label: "Plains" }
+  savanna:   { color: "#d4c77a", label: "Savanna" }
+  scrub:     { color: "#b3ad7c", label: "Scrub" }
   forest:    { color: "#5e8c5e", label: "Forest" }
+  taiga:     { color: "#4a6b5a", label: "Taiga" }
+  jungle:    { color: "#3d7a4a", label: "Jungle" }
+  swamp:     { color: "#8a9a77", label: "Swamp" }
+  # dry / rough
   hills:     { color: "#c9ae7b", label: "Hills" }
+  badlands:  { color: "#b98a5e", label: "Badlands" }
+  desert:    { color: "#e3d3a3", label: "Desert" }
   mountains: { color: "#a2988a", label: "Mountains" }
+  # cold
+  tundra:    { color: "#c3ccc0", label: "Tundra" }
+  glacier:   { color: "#dcecef", label: "Glacier" }
 
 # Feature legend labels (icons are drawn by the renderer for now; SVG icon
 # files under theme/icons/ are a later step per README §7).

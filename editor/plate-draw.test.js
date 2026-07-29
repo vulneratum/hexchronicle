@@ -872,5 +872,128 @@ console.log("the plate lattice:");
     "…while the owner still draws every one of them");
 }
 
+console.log("water is a registry FLAG, not the key `water`:");
+
+/*
+ * README §7: adding a tile type is a theme edit, never a code edit. `ocean` is
+ * the case that could quietly break that rule, because water is the one terrain
+ * the renderer has real behaviour for — the softened sector transitions, the
+ * smoothed coast, the anchor that keeps an icon out of the wet, the layer a
+ * river merges under. All of it must key off `water: true` in the registry, so
+ * these tests SET A WATER SET and assert the geometry follows it.
+ *
+ * The default is restored at the end of the block; nothing after it may assume
+ * otherwise.
+ */
+{
+  const theme = jsyaml.load(fs.readFileSync(path.join(ROOT, "theme", "terrain.yaml"), "utf8"));
+  const T = theme.types;
+
+  const flagged = PlateDraw.setWaterTypes(T);
+  ok(flagged.join(",") === "water,ocean",
+    `the registry's water types come from the flag, in file order (got ${flagged.join(",") || "none"})`);
+  ok(PlateDraw.isWater("ocean") && PlateDraw.isWater("water"),
+    "both `water` and `ocean` are water");
+  ok(!PlateDraw.isWater("swamp") && !PlateDraw.isWater("glacier"),
+    "swamp and glacier are LAND — a wet-looking label is not the flag");
+
+  /* ---- ocean is treated EXACTLY as water: relabel and nothing moves ---- */
+  {
+    const lake = {}, sea = {};
+    for (const h of geo) { lake[h.sub] = "plains"; sea[h.sub] = "plains"; }
+    for (const s of ["067", "068", "080", "081", "092", "093", "105"]) {
+      lake[s] = "water"; sea[s] = "ocean";
+    }
+    const a = PlateDraw.waterOverlayPath(mesh, s => lake[s]);
+    const b = PlateDraw.waterOverlayPath(mesh, s => sea[s]);
+    ok(a.length > 0 && a === b,
+      "a bay of `ocean` produces the byte-identical smoothed shoreline a bay of `water` does");
+
+    // …and the softened sector transitions beneath it are the same shape too
+    const la = PlateDraw.meshSubpaths(mesh, s => lake[s]);
+    const sa = PlateDraw.meshSubpaths(mesh, s => sea[s]);
+    ok((la.byType.get("plains") || []).join("|") === (sa.byType.get("plains") || []).join("|"),
+      "…and the land underlay borrows neighbours' colours across an ocean hex exactly as across a water hex");
+
+    // open water — no land neighbour anywhere to borrow from — falls back to the
+    // hex's OWN type. On an all-ocean plate that must be ocean, not the key
+    // `water`, or a plate of open sea would paint itself the wrong colour.
+    const open = {};
+    for (const h of geo) open[h.sub] = "ocean";
+    const oa = PlateDraw.meshSubpaths(mesh, s => open[s]);
+    ok(oa.byType.size === 1 && oa.byType.get("ocean").length === geo.length * 7,
+      `an all-OCEAN plate is one ocean path of core + 6 sectors per hex (${geo.length * 7} subpaths)`);
+  }
+
+  /* ---- a lake meeting the sea is ONE coast, not two ---- */
+  {
+    const t = {};
+    for (const h of geo) t[h.sub] = "plains";
+    // 080 and its neighbour 081: one painted ocean, one lake, so they touch
+    t["080"] = "ocean"; t["081"] = "water";
+    const rings = PlateDraw.waterBoundary(mesh, s => t[s]);
+    ok(rings.length === 1,
+      `lake-meets-sea is a single water region with one shore (got ${rings.length} rings)`);
+
+    // the shared edge between them is INTERIOR: neither body grows a coast
+    // against the other, so the two-hex region is the same shape as a two-hex
+    // lake would be
+    const both = {};
+    for (const h of geo) both[h.sub] = "plains";
+    both["080"] = "water"; both["081"] = "water";
+    ok(PlateDraw.waterOverlayPath(mesh, s => t[s]) === PlateDraw.waterOverlayPath(mesh, s => both[s]),
+      "…and its outline is identical to the same two hexes painted all one water type");
+
+    // per-type overlay: the merged region first, then the lake over the sea
+    const node = fakeNode("g");
+    PlateDraw.renderTerrainInto(node, mesh, s => t[s], k => "#" + k.slice(0, 3), {});
+    const fills = node.children.filter(c => c.attrs["fill-rule"] === "evenodd");
+    ok(fills.length === 2, `two water types on a plate paint two overlay passes (got ${fills.length})`);
+    ok(fills[0].attrs.fill === "#wat" && fills[1].attrs.fill === "#oce",
+      "…in registry order, each in its OWN colour — ocean is not painted as water");
+    ok(fills[0].attrs.d === PlateDraw.waterOverlayPath(mesh, s => t[s]),
+      "…and the first pass is the whole merged region, so the join is covered");
+
+    ok(PlateDraw.waterTypesPresent(mesh, s => t[s]).join(",") === "water,ocean",
+      "only the water types actually on the plate are painted, in registry order");
+  }
+
+  /* ---- a feature on an ocean shore is displaced onto its land, as on a lake ---- */
+  {
+    // 079 is itself wet, with an inlet running off it: its CENTRE is under the
+    // smoothed shore, so a settlement there has to move onto the dry part of its
+    // own hex — the case anchorIndex exists for.
+    const anchorOn = key => {
+      const t = {};
+      for (const h of geo) t[h.sub] = "plains";
+      for (const s of ["079", "067", "080", "092"]) t[s] = key;
+      const rings = PlateDraw.waterBoundary(mesh, s => t[s]).map(r => PlateDraw.smoothRing(r));
+      return { a: PlateDraw.anchorIndex(mesh, s => t[s], s => s === "079").of("079"), rings };
+    };
+    const sea = anchorOn("ocean"), lake = anchorOn("water");
+    const home = bySub.get("079");
+    ok(PlateDraw.inWater(home.x, home.y, sea.rings),
+      "079's hex CENTRE is under the smoothed ocean — the case the anchor exists for");
+    ok(!PlateDraw.inWater(sea.a.x, sea.a.y, sea.rings),
+      "a settlement on an OCEAN hex is anchored on the dry part of it, not under the shore");
+    ok(Math.hypot(sea.a.x - home.x, sea.a.y - home.y) > 1,
+      `…and it really did move off the centre (${Math.hypot(sea.a.x - home.x, sea.a.y - home.y).toFixed(2)} px)`);
+    ok(sea.a.x === lake.a.x && sea.a.y === lake.a.y,
+      "…to the exact point the same terrain painted `water` would have given");
+  }
+
+  /* ---- water types sort last in the underlay, in registry order ---- */
+  {
+    const byType = new Map([["ocean", []], ["plains", []], ["water", []], ["forest", []]]);
+    ok(PlateDraw.typeDrawOrder(byType).join(",") === "plains,forest,water,ocean",
+      "land keeps its collected order and every water type is drawn last, in registry order");
+  }
+
+  // back to the module default, so nothing downstream inherits this
+  PlateDraw.setWaterTypes(null);
+  ok(PlateDraw.waterTypes.join(",") === "water",
+    "with no registry the water set falls back to the single key `water`");
+}
+
 console.log(`\n${pass} checks passed${fail ? `, ${fail} FAILED` : ""}.`);
 process.exit(fail ? 1 : 0);

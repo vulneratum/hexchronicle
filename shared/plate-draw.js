@@ -17,7 +17,7 @@
  * the site — the map disagreeing with itself.
  *
  * opts = {
- *   registry,           // { terrain:{key:{color,label}}, features, lines }
+ *   registry,           // { terrain:{key:{color,label,water?}}, features, lines }
  *   stateOf(id),        // a plate's interior, or null while it is loading
  *   request(id),        // "please load this one" — the caller does the fetching
  *   viewportRect(),     // the visible world rect, for culling
@@ -124,13 +124,49 @@
    * and the water is painted over the top — there is then no seam to misalign,
    * however far the smoothing moves the edge.
    *
-   * Only the literal `water` key does this. Land — swamp included — is a plain
-   * hexagon, and nothing bleeds outward into it.
+   * Only WATER TYPES do this. Land — swamp included — is a plain hexagon, and
+   * nothing bleeds outward into it.
    *
    * All of it is deterministic: same terrain data, same coastline, every render,
    * in both the editor and the published site.
    * ============================================================= */
+
+  /*
+   * WHICH TYPES ARE WATER IS REGISTRY DATA, not a constant in here. A type
+   * marked `water: true` in theme/terrain.yaml is water everywhere below: the
+   * softened sector transitions, the one smoothed shoreline, the anchor
+   * displacement that keeps a feature icon out of the wet, and the layer order
+   * that lets a river merge into what it runs into. So `ocean` is water without
+   * this file learning the word — the registry adds a type, the renderer does
+   * not change (README §7).
+   *
+   * Kept as an ORDERED list in registry order, because that is also the order
+   * the water overlay paints in. Set once by createAtlas from its registry: the
+   * registry is one document for the whole page, and threading it through every
+   * geometry helper would churn signatures the guard tests pin. With no
+   * registry — the geometry tests — it stays the single key `water`, exactly as
+   * it has always been.
+   */
   const WATER = "water";
+  let WATER_KEYS = [WATER];
+  let WATER_SET = new Set(WATER_KEYS);
+  const isWater = type => WATER_SET.has(type);
+  function setWaterTypes(terrain) {
+    const keys = Object.keys(terrain || {}).filter(k => terrain[k] && terrain[k].water);
+    WATER_KEYS = keys.length ? keys : [WATER];
+    WATER_SET = new Set(WATER_KEYS);
+    return WATER_KEYS.slice();
+  }
+  /* the water types actually present on this plate, in registry order */
+  function waterTypesPresent(mesh, terrainOf) {
+    const seen = new Set();
+    for (const c of mesh.cells) {
+      const t = terrainOf(c.sub);
+      if (isWater(t)) seen.add(t);
+    }
+    return WATER_KEYS.filter(k => seen.has(k));
+  }
+
   const CORE_R = 0.45;          // water core, as a fraction of the subhex circumradius
   const SHORE_PASSES = 2;       // Chaikin iterations: 2 is a natural shore, 3 very soft
   const EPS = 1e3;              // edge keys are rounded to 1/EPS so float noise cannot
@@ -209,7 +245,7 @@
    * the plate rim keeps a hard edge rather than dissolving into the background */
   function waterAcross(mesh, c, k, terrainOf) {
     const n = neighbourOf(mesh, c, k);
-    return !n || terrainOf(n.sub) === WATER;
+    return !n || isWater(terrainOf(n.sub));
   }
 
   /*
@@ -222,8 +258,14 @@
    *
    * Multiple rings are expected and correct: separate lakes each give one, and
    * land entirely enclosed by water gives an interior ring.
+   *
+   * `only` restricts which hexes CONTRIBUTE to one water type, for painting a
+   * lake's colour over the sea's. It does not narrow what counts as water for
+   * the sector test: an ocean hex facing a lake still extends to the full hex
+   * edge, so the per-type shapes tile the merged region exactly rather than
+   * each growing its own private shore against the other.
    */
-  function waterBoundary(mesh, terrainOf) {
+  function waterBoundary(mesh, terrainOf, only) {
     const key = p => Math.round(p[0] * EPS) + "," + Math.round(p[1] * EPS);
     const seen = new Map();       // edge key -> { a, b, count }
     const addEdge = (p, q) => {
@@ -237,7 +279,9 @@
     const addShape = pts => { for (let i = 0; i < pts.length; i++) addEdge(pts[i], pts[(i + 1) % pts.length]); };
 
     for (const c of mesh.cells) {
-      if (terrainOf(c.sub) !== WATER) continue;
+      const here = terrainOf(c.sub);
+      if (!isWater(here)) continue;
+      if (only && here !== only) continue;
       addShape(c.inner);
       for (let k = 0; k < 6; k++) if (waterAcross(mesh, c, k, terrainOf)) addShape(c.sectorPts[k]);
     }
@@ -300,8 +344,8 @@
   }
 
   /* every smoothed ring as ONE path string; evenodd makes enclosed land a hole */
-  function waterOverlayPath(mesh, terrainOf, passes) {
-    return waterBoundary(mesh, terrainOf)
+  function waterOverlayPath(mesh, terrainOf, passes, only) {
+    return waterBoundary(mesh, terrainOf, only)
       .map(r => ringPath(smoothRing(r, passes))).join(" ");
   }
 
@@ -417,7 +461,7 @@
       const hi = Math.min(ANCHOR_REACH, -dq + ANCHOR_REACH);
       for (let dr = lo; dr <= hi; dr++) {
         const n = mesh.byKey.get((c.q + dq) + "," + (c.r + dr));
-        if (n && terrainOf(n.sub) === WATER) return true;
+        if (n && isWater(terrainOf(n.sub))) return true;
       }
     }
     return false;
@@ -478,8 +522,8 @@
    * complete to sit on. Land hexes take their own colour. A water hex is filled
    * per sector with the neighbour's colour across that side; where that
    * neighbour is water there is no land colour to borrow, so it falls back to
-   * this hex's own nearest land neighbour, and failing that to water (open water
-   * is covered by the overlay regardless).
+   * this hex's own nearest land neighbour, and failing that to the hex's OWN
+   * water type (open water is covered by the overlay regardless).
    */
   function meshSubpaths(mesh, terrainOf, owns) {
     const byType = new Map();
@@ -500,29 +544,31 @@
       if (owns && !owns(c.sub)) continue;
       grid.push(c.full);
       const here = terrainOf(c.sub);
-      if (here !== WATER) { push(here, c.full); continue; }
+      if (!isWater(here)) { push(here, c.full); continue; }
 
       let fallback = null;
       for (let k = 0; k < 6 && !fallback; k++) {
         const n = neighbourOf(mesh, c, k);
         const t = n && terrainOf(n.sub);
-        if (t && t !== WATER) fallback = t;
+        if (t && !isWater(t)) fallback = t;
       }
-      if (!fallback) fallback = WATER;
+      if (!fallback) fallback = here;
 
       push(fallback, c.core);
       for (let k = 0; k < 6; k++) {
         const n = neighbourOf(mesh, c, k);
         const nt = n ? terrainOf(n.sub) : null;
-        push(nt && nt !== WATER ? nt : fallback, c.sectors[k]);
+        push(nt && !isWater(nt) ? nt : fallback, c.sectors[k]);
       }
     }
     return { byType, grid: grid.join(" ") };
   }
 
-  /* stable, so a rebuild never reshuffles the paths */
+  /* stable, so a rebuild never reshuffles the paths: land first in the order it
+   * was collected, then the water types in registry order */
   function typeDrawOrder(byType) {
-    return [...byType.keys()].sort((a, b) => (a === WATER ? 1 : 0) - (b === WATER ? 1 : 0));
+    const rank = t => (isWater(t) ? 1 + WATER_KEYS.indexOf(t) : 0);
+    return [...byType.keys()].sort((a, b) => rank(a) - rank(b));
   }
 
   /*
@@ -548,8 +594,23 @@
     for (const type of typeDrawOrder(byType)) {
       el("path", { d: byType.get(type).join(" "), fill: colorOf(type), stroke: "none" }, parent);
     }
-    const water = waterOverlayPath(mesh, terrainOf, opts.passes);
-    if (water) el("path", { d: water, fill: colorOf(WATER), "fill-rule": "evenodd", stroke: "none" }, over);
+    /*
+     * THE WATER OVERLAY. The shoreline is computed from every water type AT
+     * ONCE: a river mouth opening into the sea is one body of water with one
+     * coast, not two coasts meeting along the hex edge between them. So the
+     * first pass lays down the WHOLE region, and each further water type paints
+     * its own share over the top in registry order — the join between two water
+     * bodies is then covered by the type above rather than left as a hairline of
+     * the land underlay showing through.
+     *
+     * With one water type on the plate — the usual case, and every plate in the
+     * repo today — the merged region IS that type's region, so this emits the
+     * single path it always did.
+     */
+    waterTypesPresent(mesh, terrainOf).forEach((type, i) => {
+      const d = waterOverlayPath(mesh, terrainOf, opts.passes, i === 0 ? null : type);
+      if (d) el("path", { d, fill: colorOf(type), "fill-rule": "evenodd", stroke: "none" }, over);
+    });
     el("path", {
       d: grid, fill: "none",
       stroke: opts.gridStroke || "rgba(0,0,0,0.16)", "stroke-width": opts.gridWidth || 1,
@@ -908,6 +969,8 @@
     const mesh = terrainMesh(geo);
     const registry = opts.registry || {};
     const T = registry.terrain || {}, LN = registry.lines || {};
+    // which types are water is theme data — read it before anything is drawn
+    setWaterTypes(T);
     const stateOf = opts.stateOf || (() => null);
     const request = opts.request || (() => {});
     const colorOf = type => (T[type] || { color: "#cccccc" }).color;
@@ -1237,6 +1300,8 @@
     waterBoundary, smoothRing, waterOverlayPath,
     plateBoundaryEdges, plateBoundaryPath,
     anchorIndex, anchorLattice, inWater,
+    isWater, setWaterTypes, waterTypesPresent,
+    get waterTypes() { return WATER_KEYS.slice(); },
     WATER, CORE_R, SHORE_PASSES, ICON_R,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = PlateDraw;

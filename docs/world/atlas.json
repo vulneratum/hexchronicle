@@ -5,27 +5,65 @@
     "terrain": {
       "water": {
         "color": "#93b7b3",
-        "label": "Water"
+        "label": "Water",
+        "water": true
       },
-      "swamp": {
-        "color": "#8a9a77",
-        "label": "Swamp"
+      "ocean": {
+        "color": "#6f9fb5",
+        "label": "Ocean",
+        "water": true
       },
       "plains": {
         "color": "#cdd39c",
         "label": "Plains"
       },
+      "savanna": {
+        "color": "#d4c77a",
+        "label": "Savanna"
+      },
+      "scrub": {
+        "color": "#b3ad7c",
+        "label": "Scrub"
+      },
       "forest": {
         "color": "#5e8c5e",
         "label": "Forest"
+      },
+      "taiga": {
+        "color": "#4a6b5a",
+        "label": "Taiga"
+      },
+      "jungle": {
+        "color": "#3d7a4a",
+        "label": "Jungle"
+      },
+      "swamp": {
+        "color": "#8a9a77",
+        "label": "Swamp"
       },
       "hills": {
         "color": "#c9ae7b",
         "label": "Hills"
       },
+      "badlands": {
+        "color": "#b98a5e",
+        "label": "Badlands"
+      },
+      "desert": {
+        "color": "#e3d3a3",
+        "label": "Desert"
+      },
       "mountains": {
         "color": "#a2988a",
         "label": "Mountains"
+      },
+      "tundra": {
+        "color": "#c3ccc0",
+        "label": "Tundra"
+      },
+      "glacier": {
+        "color": "#dcecef",
+        "label": "Glacier"
       }
     },
     "features": {
