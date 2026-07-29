@@ -143,11 +143,13 @@ land–sea mask
   water (fresh) ${s.fresh.toLocaleString()}  ${pct(s.fresh)}
   water total   ${(s.waterFraction * 100).toFixed(2)}%   (target ${(mask.params.targetWater * 100).toFixed(0)}%)
 
-${s.continents.map(c => `  ${c.side.padEnd(5)} mass    ${c.sqMi.toLocaleString()} sq mi`).join("\n")}
+${s.continents.map(c => `  ${c.name.padEnd(8)} mass ${String(c.sqMi.toLocaleString()).padStart(9)} sq mi   coast ${String(c.coastMi.toLocaleString()).padStart(6)} mi   SDI ${c.sdi}`).join("\n")}
   archipelago   ${a.count} islands on the drowned ridge, ${a.overThreeHundred} over 300 sq mi
                 ${a.sizesSqMi.join(", ")} sq mi
   other islands ${s.otherIslands.length ? s.otherIslands.join(", ") + " sq mi" : "none"}
   shelf         ${s.shelfCells.toLocaleString()} shallow subhexes over the ridge
+  ring (plates) min ${s.ring.min}  p10 ${s.ring.p10}  median ${s.ring.p50}  mean ${s.ring.mean}  p90 ${s.ring.p90}  max ${s.ring.max}  sd ${s.ring.sd}
+  shoreline     longest run ${s.coastRuns.worst} subhexes; ${s.coastRuns.over} over the 6-subhex cap
   fresh bodies  ${s.freshBodies.slice(0, 6).join(", ")}${s.freshBodies.length > 6 ? ` …${s.freshBodies.length} total` : ""}
   threshold     ${mask.thresh.toFixed(6)}
 wrote ${out}  (${W}×${H})`);

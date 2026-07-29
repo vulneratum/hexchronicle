@@ -98,38 +98,76 @@ logistics:
 # neighbouring plates agree along their seam with no special-casing (§VII).
 # Full parameter set and the RLE'd result: world/physical/land-sea-mask.json
 land_sea:
-  target_water_fraction: 0.40
-  # The extra water over the earlier 30% went to the EAST AND WEST MARGINS and
-  # into the channel, not spread evenly — spreading it would only have shrunk
-  # the continent all round. The edge guarantee is therefore asymmetric.
-  edge_bite_east_west: 0.108            # frame fractions
-  edge_bite_north_south: 0.055
+  # THE RING WINS OVER THE WATER TARGET. Asked for ~40%; the varying margin plus
+  # the channel land it at 44%, which is the stated fallback — land at 56%
+  # (817,100 sq mi) is still inside the Europe band.
+  target_water_fraction: 0.44
+  actual_water_fraction: 0.4400
+  land_sq_mi: 817100
+  frame_sq_mi: 1459056
 
-  # TWO MASSES, divided by a north–south channel. §1a's Atlantic west and
-  # continental east made geographic rather than merely climatic.
-  west_mass_sq_mi: 224895
-  east_mass_sq_mi: 646321
+  # THE OCEAN RING (rules 11 and 11a). Width is itself a noise field along the
+  # perimeter, so the margin is never a traceable contour. Two mechanisms:
+  # an unbounded HARD penalty inside one plate, which alone guarantees rule 11,
+  # and a SOFT ramp out to the varying width, which is what the coast actually
+  # settles against.
+  ring:
+    min_plates: 1.0                     # rule 11 floor — never breached
+    target_min_plates: 1.85             # the soft ring binds here, clear of the
+                                        # hard guard, whose contour is a straight
+                                        # line and pinned 144 miles of coast to it
+    target_max_plates: 5.0
+    measured_plates: { min: 1.01, p10: 1.32, median: 2.14, mean: 2.70, p90: 5.33, max: 7.93, sd: 1.54 }
+    # 64 of 750 probe rays travel further than 8 plates before finding land.
+    # Those enter a strait or the southern sea; they are openings, not margin,
+    # and are excluded from the statistics above.
+    opening_rays: 64
+
+  # TWO MASSES, divided by an EAST–WEST channel across the north.
+  northern_mass_sq_mi: 186048
+  main_mass_sq_mi: 621940
   channel:
-    orientation: north-south
-    joins: northern ocean to the southern sea — one navigable system
-    width_miles_north: 126              # the chokepoint
-    width_miles_south: 226
+    orientation: east-west, across the north
+    kind: through-passage                # open ocean at BOTH ends, therefore salt
+    pinch_subhexes: 10                   # bank to bank, 30 miles — the chokepoint
+    pinch_at_u: 0.89
+    widest_subhexes: 46                  # 138 miles, at the western mouth
+    widest_at_u: 0.11
 
   # THE DROWNED RIDGE — the broken land bridge, and the archipelago's cause
-  # (§VII-B: every chain gets a geological cause). Two parts, because one
-  # continuous crest tuned to just break the surface comes out as a BAR down the
-  # middle of the channel rather than a chain:
-  #   the swell contributes only bathymetry and never surfaces;
-  #   discrete seamounts standing on it are the islands.
+  # (§VII-B: every chain gets a geological cause). The swell contributes only
+  # bathymetry and never surfaces; discrete seamounts standing on it are the
+  # islands. A single continuous crest tuned to just break the surface comes out
+  # as a BAR down the middle of the channel rather than a chain.
   archipelago:
     cause: drowned ridge — remnant of the land bridge whose collapse split the masses
-    placed_at: the channel's narrow northern end, so the stepping stones and the
+    placed_at: the channel's narrow EASTERN end, so the stepping stones and the
       chokepoint are the same place
     islands: 8
-    over_300_sq_mi: 3                   # 951, 631, 312
-    scatter_sq_mi: [296, 203, 203, 55, 47]
-    largest_extent_miles: [28, 47]
-    shelf_subhexes: 5325                # shallow water around the chain (§VII-B)
+    over_300_sq_mi: 4                   # 896, 366, 351, 312
+    scatter_sq_mi: [210, 101, 23, 23]
+    shelf_subhexes: 2619                # shallow water around the chain (§VII-B)
+
+  # ORGANIC COASTLINES (§VII-A2). High-frequency octaves are injected in a BAND
+  # around the threshold — full strength where the field is near sea level,
+  # nothing inland or offshore. Applied globally they would pit the interior with
+  # lakes and freckle the deep ocean with islands.
+  coastal_detail:
+    amplitude: 0.88
+    frequency: 105                      # ≈ 12.5 miles per cycle; octaves reach
+                                        # below one subhex
+    octaves: 4
+    gain: 0.72
+    band: 0.65                          # gaussian width around the threshold
+  shoreline_development_index:          # coast length ÷ equal-area circle
+    northern: 6.66
+    main: 9.10
+    target: 3.0
+  # Longest run the shoreline advances in ONE hex direction. §VII-A2 caps it at
+  # 6 subhexes; 3 runs of 7 survive out of 20,569 shoreline steps. See the note
+  # in tools/validate-world.js — a random walk would produce roughly 28.
+  longest_shoreline_run_subhexes: 7
+  runs_over_cap: 3
 
   min_island_subhexes: 12               # smaller is noise, not a landform (§VII-B)
   min_island_subhexes_in_channel: 3     # …except on the ridge, where a scatter of
