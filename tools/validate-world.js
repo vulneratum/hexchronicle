@@ -12,6 +12,11 @@
  *
  *   11   Land touching the frame edge. Tightened per the brief: NO LAND WITHIN
  *        ONE PLATE (36 miles) of the frame edge, anywhere.
+ *   22   Every subhex has an elevation and a relief class, and both agree with
+ *        the field they were sampled from.
+ *   23   a. no water subhex carries a positive elevation
+ *        b. no river reach flows uphill  (INERT until the drainage graph exists)
+ *
  *   11a  The margin and the coastline are organic, not machined:
  *          a. the border ring is not a constant width
  *          b. no coastal run follows one hex-grid direction for more than 6
@@ -120,6 +125,103 @@ if (want("11a")) {
       `coast ${c.coastMi.toLocaleString()} mi, SDI ${c.sdi}`);
     if (c.sdi < 3.0) {
       fail("11a", `${c.name} landmass`, `shoreline development index ${c.sdi} is under 3.0`);
+    }
+  }
+}
+
+/* ---------------- rules 22 and 23 ---------------- */
+if (want(22) || want(23)) {
+  const fsx = require("fs");
+  const elevPath = "world/physical/elevation.json";
+  if (!fsx.existsSync(elevPath)) {
+    fail(22, "world/physical", "elevation.json is missing — Phase A step 2 has not run");
+  } else {
+    const doc = JSON.parse(fsx.readFileSync(elevPath, "utf8"));
+    const { buildElevation, RELIEF_CODE, RELIEF_NAME } = require("./worldgen/elevation.js");
+
+    // decode what was written
+    const buf = Buffer.from(doc.elevation, "base64");
+    const stored = new Int16Array(buf.buffer, buf.byteOffset, buf.byteLength / 2);
+    const rbuf = Buffer.from(doc.relief, "base64");
+    const storedRelief = i => RELIEF_NAME[(rbuf[i >> 2] >> ((i & 3) * 2)) & 3];
+
+    // re-derive from the field and compare — this is what "disagreeing with the
+    // field" means, and it is only checkable because generation is deterministic
+    // from world_seed plus position (§0)
+    buildElevation(hashSeed(doc.world_seed), m);
+    const canonical = order.slice().sort((a, c) => a.r - c.r || a.q - c.q);
+
+    if (want(22)) {
+      let missing = 0, mismatch = 0, reliefBad = 0;
+      if (stored.length !== canonical.length) {
+        fail(22, "world/physical", `elevation.json holds ${stored.length} cells, the lattice has ${canonical.length}`);
+      }
+      for (let i = 0; i < Math.min(stored.length, canonical.length); i++) {
+        const c = canonical[i];
+        if (!Number.isInteger(c.elevation)) {
+          if (missing < LIMIT) fail(22, `${c.owner}-${c.sub}`, "no elevation");
+          missing++;
+        } else if (stored[i] !== c.elevation) {
+          if (mismatch < LIMIT) {
+            fail(22, `${c.owner}-${c.sub}`,
+              `elevation ${stored[i]} ft disagrees with the field (${c.elevation} ft)`);
+          }
+          mismatch++;
+        }
+        if (RELIEF_CODE[c.relief] === undefined) {
+          if (reliefBad < LIMIT) fail(22, `${c.owner}-${c.sub}`, "no relief class");
+          reliefBad++;
+        } else if (storedRelief(i) !== c.relief) {
+          if (reliefBad < LIMIT) {
+            fail(22, `${c.owner}-${c.sub}`,
+              `relief "${storedRelief(i)}" disagrees with the field ("${c.relief}")`);
+          }
+          reliefBad++;
+        }
+      }
+      console.log(`  rule 22   elevation/relief present and agreeing with the field: ` +
+        `${missing + mismatch + reliefBad === 0 ? "all " + canonical.length.toLocaleString() + " subhexes"
+          : `${missing} missing, ${mismatch} elevation mismatches, ${reliefBad} relief mismatches`}`);
+      if (mismatch > LIMIT) notes.push(`rule 22: ${mismatch - LIMIT} further mismatches not listed`);
+    }
+
+    if (want(23)) {
+      let wet = 0;
+      for (const c of order) {
+        if (c.land || c.elevation <= 0) continue;
+        if (wet < LIMIT) fail(23, `${c.owner}-${c.sub}`,
+          `water subhex carries elevation ${c.elevation} ft`);
+        wet++;
+      }
+      console.log(`  rule 23a  water subhexes with a positive elevation: ${wet === 0 ? "none" : wet}`);
+      if (wet > LIMIT) notes.push(`rule 23: ${wet - LIMIT} further water subhexes not listed`);
+
+      /*
+       * The uphill-river half of rule 23 needs the drainage graph, which is a
+       * later Phase A step. It is written and wired, and it will check every
+       * reach the moment world/physical/drainage.json exists — but it is INERT
+       * today, and saying so is the point: a rule that silently passes because
+       * its input is missing is indistinguishable from one that found nothing.
+       */
+      const drainPath = "world/physical/drainage.json";
+      if (!fsx.existsSync(drainPath)) {
+        console.log("  rule 23b  river reaches flowing uphill: INERT — no drainage graph yet");
+      } else {
+        const dr = JSON.parse(fsx.readFileSync(drainPath, "utf8"));
+        let uphill = 0;
+        for (const reach of dr.reaches || []) {
+          for (let i = 1; i < reach.path.length; i++) {
+            const a = cells.get(reach.path[i - 1]), b2 = cells.get(reach.path[i]);
+            if (!a || !b2) continue;
+            if (b2.elevation > a.elevation) {
+              if (uphill < LIMIT) fail(23, `${b2.owner}-${b2.sub}`,
+                `reach ${reach.id} flows uphill: ${a.elevation} ft → ${b2.elevation} ft`);
+              uphill++;
+            }
+          }
+        }
+        console.log(`  rule 23b  river reaches flowing uphill: ${uphill === 0 ? "none" : uphill}`);
+      }
     }
   }
 }

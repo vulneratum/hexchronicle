@@ -178,6 +178,61 @@ land_sea:
   # ocean, never by size (§VII-G, validation rule 14).
   salt_rule: connected-to-world-ocean
 
+# ---------------------------------------------------------------- elevation
+# Phase A step 2. Every subhex carries an integer `elevation` in FEET (negative
+# for bathymetry) and a `relief` class. G1 writes both BEFORE terrain, because
+# §VII-G resolves terrain from (temperature × moisture × elevation × drainage)
+# and reads elevation as an input.
+#
+# Full parameters and the encoded per-subhex data: world/physical/elevation.json
+elevation:
+  units: feet
+  # RELIEF IS RANGE, NOT HEIGHT — the local elevation spread within 2 subhexes
+  # (6 miles). A high plateau is `flat`; low broken country is `hills`. That is
+  # the distinction the biome matrix needs, and absolute height cannot express it.
+  relief_radius_subhexes: 2
+  relief_bands_ft:
+    flat: 250            # local range under this
+    rolling: 800
+    hills: 2000
+    mountains: null      # anything above
+  measured:
+    land: { min: 1, median: 617, p90: 3383, p99: 10923, max: 13485, mean: 1241 }
+    sea:  { shallowest: -1, median: -294, deepest: -15883, mean: -1387 }
+    relief_land_pct: { flat: 20.8, rolling: 58.3, hills: 13.8, mountains: 7.2 }
+    above_8500ft_subhexes: 2197        # §1a's alpine glacier and tundra need this
+
+  # OROGENY IS EXPLICIT (§VII-C). Sampling the continentality field alone gives
+  # a smooth dome: relief would be flat or rolling everywhere, nothing would
+  # qualify as mountains, and the alpine zone would have nowhere to exist.
+  # Ranges are LINES with asymmetric foothills.
+  ranges:
+    - name: western cordillera
+      peak_ft: 7800
+      cause: coastal collision range; the rain shadow east of it is what §1a's
+        badlands and desert require, since the westerlies need a north-south barrier
+    - name: the great spine
+      peak_ft: 13600
+      cause: the principal collision spine; the only ground above the snowline
+    - name: northern uplands
+      peak_ft: 5200
+      cause: an older eroded range on the northern mass; §1a puts taiga in
+        northern upland and nowhere else
+    - name: eastern escarpment
+      peak_ft: 3800
+      cause: trailing-margin shoulder (§VII-C), not a collision — low and one-sided
+
+  # The base is read from the PRE-DETAIL field (h0). The §VII-A2 coastal detail
+  # exists to perturb the land/sea boundary at the subhex scale and is not
+  # topography; reading it here put ~1,300 ft of spurious relief along every
+  # shoreline and left the continent with 41 flat subhexes in total.
+  base_reads_field: h0
+  # Regional swell at the 100-300 mile scale. Without it the base saturates near
+  # its ceiling and the interior is one flat expanse — four ridges on a billiard
+  # table. This is the scale at which watersheds become distinguishable, so
+  # drainage depends on it.
+  regional_swell_ft: 980
+
 # ---------------------------------------------------------------- NOT YET SET
 # Both of these are required before Phase G1 can write a single terrain value,
 # and both are deliberately absent rather than guessed:

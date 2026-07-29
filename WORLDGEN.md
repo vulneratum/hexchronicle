@@ -34,8 +34,13 @@ Read `README.md` first. Nothing here overrides it.
 ## 1. World extent — settled
 
 - **Grid: 36 plates wide × 36 plates tall = 1,296 plates.**
-- 36 × 36 miles = **1,296 miles** edge to edge, in both directions.
-- 1,296 × 157 = **203,472 subhexes** of ground and water.
+- 36 × 36 plates in an **offset-axial** layout: row r spans q in [-floor(r/2), 35-floor(r/2)].
+  A raw q,r block would be a 30° sheared rhombus, so rows are offset instead.
+- **~1,296 miles wide × ~1,122 tall.** Not square, and that is fine — 1.16:1 is closer to
+  Europe's proportions than a square, and squaring it would need 42 rows and break the
+  clean 3 × 3 continent-hex tiling.
+- **187,197 unique subhexes.** Not 1,296 × 157 = 203,472; that figure double-counts the
+  16,275 seam positions shared by two or three plates.
 - Frame area ≈ **1.59 million square miles**; at ~60% land that is **~950,000 square
   miles of continent** — Europe from Ireland to Ukraine, minus Russia and the far north.
 - Plate ids run `0001`–`1296`.
@@ -180,7 +185,7 @@ they're field computations and they're cheap. Phases D–F do **not**. Generate 
 realms, houses, actors, and hooks for one starting region of roughly 60–100 plates — about
 one continent hex, or a twelfth of the world — plus
 a thin sketch of the powers on its horizon. The rest of the world gets its physical and
-economic truth now and its politics when play moves toward it. A fully detailed 1,296-mile
+economic truth now and its politics when play moves toward it. A fully detailed 1,300-mile
 continent is months of tokens and most of it will never see a table.
 
 ---
@@ -223,8 +228,37 @@ tractable: the field is small, the plates are derived.
 
 **A. The land–sea mask, first.** Before any terrain, decide what is land and what is
 ocean across the whole frame. This is the single most consequential call in the project
-and everything else is downstream of it. Land should reach the frame edge nowhere —
-open water rings the world.
+and everything else is downstream of it.
+
+**Open ocean rings the world on all four sides.** Not a hairline guarantee at the border
+but a real margin: never less than one plate (36 miles) of water at any point on the
+frame edge, averaging two to three, and **varying between one and five so the ring is
+never a uniform band**. A constant-width margin reads as a rounded rectangle and gives
+the whole world away as generated.
+
+**A2. Coastlines are fractal, and straightness is the tell.** Real coasts have bays
+inside bays and capes inside capes at every scale down to the one you're rendering. Three
+requirements:
+
+- **Layer octaves at the threshold.** The land–sea boundary needs high-frequency detail
+  applied *at the coastline* specifically, not just the low-frequency noise that shapes
+  the silhouette. Detail at the 3-mile subhex scale is the point.
+- **Never let the falloff dominate the noise.** Wherever an edge penalty or dome falloff
+  is stronger than the local noise, the coast collapses onto the falloff contour and goes
+  straight. Ramp the penalty softly and modulate it with its own noise so its contour is
+  never traceable.
+- **No axis-aligned runs.** A coastline that follows one hex-grid direction for more than
+  about 6 subhexes (18 miles) is a generation artifact, not a shore. Test for it.
+
+Measure the result with a **shoreline development index** — coastline length divided by
+the circumference of a circle of equal area. A perfect circle scores 1.0. A blob scores
+under 2. Aim for **3.0 or higher** on the main landmasses; Europe's Atlantic face is
+far higher still.
+
+**Fine coastal character waits for elevation.** Rias, fjords, cliffs, and estuaries come
+from drowning a landscape that has relief (§VII-F), so don't over-tune the mask chasing
+detail that elevation will produce better. The mask's job is a large-scale silhouette
+that is organic rather than geometric.
 
 **B. Ocean.** Water is not empty space; it is the cheapest transport surface in the
 world (§III) and half the climate engine.
@@ -284,11 +318,21 @@ The editor palette is now **15 types**: `water`, `ocean`, `plains`, `savanna`, `
   (temperature band × moisture band) → terrain id, with elevation and drainage as
   overrides. Every terrain written in Phase G must be reproducible from that matrix plus
   the fields. No terrain gets assigned by vibe.
-- **Two of these are landform, not biome.** `hills` and `mountains` describe relief;
-  the other twelve describe climate. The palette can't express "forested hills," so
-  decide the rule once: either relief wins above a stated elevation threshold and the
-  climate is recorded in metadata, or it doesn't. Record the choice and apply it
-  everywhere. Flag it to me if you think it needs a separate `relief` field instead.
+- **Two of these are landform, not biome — resolved.** `hills` and `mountains` describe
+  relief; the other twelve describe climate. They are different axes and the palette
+  cannot hold both, so **elevation is stored as data, not as paint**:
+  - Every subhex carries **`elevation`**, an integer in feet, sampled from the continuous
+    field (§VII-C). Negative values are bathymetry, so one field covers land and sea.
+  - Every subhex carries **`relief`**, a class derived from local elevation *range* rather
+    than absolute height — `flat`, `rolling`, `hills`, `mountains`. A plateau at 4,000 ft
+    is flat; a 900 ft ridge above a valley floor is hills. Relief is about what it costs
+    to cross, which is what the map is for.
+  - **`terrain` stays the biome.** `hills` and `mountains` remain in the palette for
+    hand-painting and for cases where relief genuinely is the defining feature, but
+    generated plates record forest-on-a-ridge as `terrain: forest` + `relief: hills`,
+    not as `terrain: hills` with the forest lost.
+  - Rendering shows biome as the hex colour with relief as an overlay, per the reference
+    atlas style. Nothing about this touches frozen geometry.
 - **`water` vs `ocean` is fresh vs salt**, not big vs small. Inland seas, lakes, and
   rivers are `water`; anything connected to the world ocean is `ocean`. Shelf depth and
   current belong in metadata, not in a second blue.
@@ -347,7 +391,11 @@ reasoning file. It happens in two passes that are never mixed.
 not a border, not a ruin, not a worked mine, not a place name. The map at the end of G1
 is the world as it was before anyone walked on it.
 
-- **Terrain** ← sampled continental field (§VII-G), all 1,296 plates.
+- **Elevation and relief** ← sampled directly from the continental field, every subhex,
+  land and sea (§VII-G). These are written *before* terrain, because the biome matrix
+  reads elevation as one of its inputs. Because both are sampled from one continuous
+  field, seam subhexes agree by construction.
+- **Terrain** ← the biome matrix (§VII-G), all 1,296 plates / 187,197 subhexes.
 - **Water** ← the land–sea mask. Ocean plates use the compact form (§4-B). The existing
   shoreline smoothing and sector-blend rules apply unchanged at coast.
 - **Rivers and streams** ← the river graph (§VII-E). These are the **only** line features
@@ -453,7 +501,10 @@ Build `tools/validate-world.js` and run it at the end of every phase. It should 
    `chronicle` / `local_memory`.
 9. A seam subhex whose values differ between its two parent plates.
 10. Any write to a hex flagged `authored: true`.
-11. Land touching the frame edge, or a sea lane with no named harbour at both ends.
+11. Any land within one plate (36 miles) of the frame edge, a border ocean ring of
+    constant width, or a sea lane with no named harbour at both ends.
+11a. A coastal run following a single hex-grid direction for more than 6 subhexes, or a
+    landmass whose shoreline development index falls below 3.0.
 12. A terrain assignment the biome matrix doesn't reproduce from that hex's fields.
 13. A terrain id missing a row in the per-terrain constants table.
 14. `ocean` on a hex with no path to the world ocean, or `water` on one that has one.
@@ -469,6 +520,9 @@ Build `tools/validate-world.js` and run it at the end of every phase. It should 
     or creature lair anywhere in `plates/`.
 21. A waterway whose `stream`/`river` class disagrees with its Strahler order, or a reach
     with no navigability and low-water season recorded.
+22. A subhex with no `elevation` or no `relief`, an `elevation` that disagrees with the
+    continental field, or a water subhex with a positive elevation.
+23. A river reach that flows from a lower `elevation` to a higher one.
 
 Failures print the address and the rule number. Do not auto-fix — report and stop.
 
