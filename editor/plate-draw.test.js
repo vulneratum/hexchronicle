@@ -15,6 +15,16 @@ const path = require("path");
 const jsyaml = require("js-yaml");
 
 const ROOT = path.resolve(__dirname, "..");
+/*
+ * The renderer fixtures are the PROTOTYPE map, archived at
+ * world/archive/prototype/ when the 36x36 frame was generated clean
+ * (WORLDGEN §3). These tests assert renderer GEOMETRY -- sector mapping,
+ * shoreline rings, anchors, seam ownership -- not which map is live, so they
+ * keep reading the archived plates rather than chasing generated output that
+ * changes every time the world seed does.
+ */
+const FIXTURES = path.join(ROOT, "world", "archive", "prototype", "plates");
+const HEX_FIXTURES = path.join(ROOT, "world", "archive", "prototype", "hexes");
 const HexGeo = require("../shared/geometry.js");
 
 // plate-draw builds SVG nodes at create() time only; the pure geometry helpers
@@ -183,7 +193,7 @@ console.log("blend rules:");
 
 /* ---- 7. the real lake in plates/0001.yaml ---- */
 {
-  const plate = jsyaml.load(fs.readFileSync(path.join(ROOT, "plates/0001.yaml"), "utf8"));
+  const plate = jsyaml.load(fs.readFileSync(path.join(FIXTURES, "0001.yaml"), "utf8"));
   const terrain = {};
   for (const h of geo) terrain[h.sub] = plate.default_terrain;
   for (const [sub, t] of Object.entries(plate.terrain || {})) terrain[sub] = t;
@@ -297,7 +307,7 @@ const flat = t => { const o = {}; for (const h of geo) o[h.sub] = t; return o; }
 
 /* ---- 11. determinism ---- */
 {
-  const plate = jsyaml.load(fs.readFileSync(path.join(ROOT, "plates/0001.yaml"), "utf8"));
+  const plate = jsyaml.load(fs.readFileSync(path.join(FIXTURES, "0001.yaml"), "utf8"));
   const terrain = flat(plate.default_terrain);
   for (const [s, v] of Object.entries(plate.terrain || {})) terrain[s] = v;
   const a = PlateDraw.waterOverlayPath(mesh, s => terrain[s]);
@@ -307,7 +317,7 @@ const flat = t => { const o = {}; for (const h of geo) o[h.sub] = t; return o; }
 
 /* ---- 12. plate 0001's lake ---- */
 {
-  const plate = jsyaml.load(fs.readFileSync(path.join(ROOT, "plates/0001.yaml"), "utf8"));
+  const plate = jsyaml.load(fs.readFileSync(path.join(FIXTURES, "0001.yaml"), "utf8"));
   const terrain = flat(plate.default_terrain);
   for (const [s, v] of Object.entries(plate.terrain || {})) terrain[s] = v;
 
@@ -341,7 +351,7 @@ console.log("hex anchors:");
 
 /* the terrain of a whole plate file, as a plain lookup */
 function plateTerrain(id) {
-  const plate = jsyaml.load(fs.readFileSync(path.join(ROOT, "plates/" + id + ".yaml"), "utf8"));
+  const plate = jsyaml.load(fs.readFileSync(path.join(FIXTURES, "" + id + ".yaml"), "utf8"));
   const t = flat(plate.default_terrain);
   for (const [s, v] of Object.entries(plate.terrain || {})) t[s] = v;
   return t;
@@ -356,10 +366,10 @@ const smoothedRings = terrain =>
  */
 function plateFeatures(id) {
   const set = new Set();
-  for (const f of fs.readdirSync(path.join(ROOT, "hexes")).filter(f => /\.ya?ml$/i.test(f))) {
+  for (const f of fs.readdirSync(HEX_FIXTURES).filter(f => /\.ya?ml$/i.test(f))) {
     const m = /^(\d{4})-(\d{3})\.ya?ml$/i.exec(f);
     if (!m || m[1] !== id) continue;
-    const doc = jsyaml.load(fs.readFileSync(path.join(ROOT, "hexes", f), "utf8")) || {};
+    const doc = jsyaml.load(fs.readFileSync(path.join(HEX_FIXTURES, f), "utf8")) || {};
     if (doc.feature && doc.feature.type) set.add(m[2]);
   }
   return set;
@@ -368,7 +378,7 @@ const has = set => sub => set.has(sub);
 const NO_FEATURES = () => false;
 /* the plate's own line features */
 const plateLines = id =>
-  (jsyaml.load(fs.readFileSync(path.join(ROOT, "plates/" + id + ".yaml"), "utf8")).lines || []);
+  (jsyaml.load(fs.readFileSync(path.join(FIXTURES, "" + id + ".yaml"), "utf8")).lines || []);
 
 /* distance from a point to the nearest shoreline segment — the test's own
  * implementation, so "furthest from the water" is checked against something
@@ -816,10 +826,10 @@ console.log("the plate lattice:");
 
   // 3. the real repo cluster, from the plate files' own neighbour graph
   {
-    const ids = fs.readdirSync(path.join(ROOT, "plates"))
+    const ids = fs.readdirSync(FIXTURES)
       .map(f => /^(\d{4})\.ya?ml$/i.exec(f)).filter(Boolean).map(m => m[1]).sort();
     const nb = new Map(ids.map(id =>
-      [id, (jsyaml.load(fs.readFileSync(path.join(ROOT, "plates", id + ".yaml"), "utf8")).neighbors || {})]));
+      [id, (jsyaml.load(fs.readFileSync(path.join(FIXTURES, id + ".yaml"), "utf8")).neighbors || {})]));
     const coord = { [ids[0]]: [0, 0] }, queue = [ids[0]];
     while (queue.length) {
       const id = queue.shift(), [q, r] = coord[id];

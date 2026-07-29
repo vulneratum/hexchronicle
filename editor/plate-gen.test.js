@@ -158,7 +158,19 @@ ok("setPlateNeighbor changes exactly one line and refuses an occupied slot", () 
 });
 
 ok("assertCreatable refuses to overwrite an existing plate", () => {
-  assert.throws(() => guard.assertCreatable("plates/0001.yaml"), e => e.scopeViolation === true);
+  // Make our OWN existing plate rather than asserting against whatever happens
+  // to be in plates/. This used to point at plates/0001.yaml, which quietly
+  // stopped testing anything the moment the prototype map was archived and
+  // plates/ went empty — the assertion passed no exception and the suite failed
+  // for a reason that had nothing to do with the guard.
+  const live = path.join(__dirname, "..", "plates", "0001.yaml");
+  const preexisting = fs.existsSync(live);
+  if (!preexisting) fs.writeFileSync(live, 'id: "0001"\n');
+  try {
+    assert.throws(() => guard.assertCreatable("plates/0001.yaml"), e => e.scopeViolation === true);
+  } finally {
+    if (!preexisting) fs.unlinkSync(live);
+  }
   assert.throws(() => guard.assertCreatable("world/clock.yaml"), e => e.scopeViolation === true);
   guard.assertCreatable("plates/9999.yaml");   // does not exist -> fine
 });
