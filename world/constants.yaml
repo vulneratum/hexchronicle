@@ -98,8 +98,43 @@ logistics:
 # neighbouring plates agree along their seam with no special-casing (§VII).
 # Full parameter set and the RLE'd result: world/physical/land-sea-mask.json
 land_sea:
-  target_water_fraction: 0.30           # Phase 0 Q1 — "bulkier landmass"
+  target_water_fraction: 0.40
+  # The extra water over the earlier 30% went to the EAST AND WEST MARGINS and
+  # into the channel, not spread evenly — spreading it would only have shrunk
+  # the continent all round. The edge guarantee is therefore asymmetric.
+  edge_bite_east_west: 0.108            # frame fractions
+  edge_bite_north_south: 0.055
+
+  # TWO MASSES, divided by a north–south channel. §1a's Atlantic west and
+  # continental east made geographic rather than merely climatic.
+  west_mass_sq_mi: 224895
+  east_mass_sq_mi: 646321
+  channel:
+    orientation: north-south
+    joins: northern ocean to the southern sea — one navigable system
+    width_miles_north: 126              # the chokepoint
+    width_miles_south: 226
+
+  # THE DROWNED RIDGE — the broken land bridge, and the archipelago's cause
+  # (§VII-B: every chain gets a geological cause). Two parts, because one
+  # continuous crest tuned to just break the surface comes out as a BAR down the
+  # middle of the channel rather than a chain:
+  #   the swell contributes only bathymetry and never surfaces;
+  #   discrete seamounts standing on it are the islands.
+  archipelago:
+    cause: drowned ridge — remnant of the land bridge whose collapse split the masses
+    placed_at: the channel's narrow northern end, so the stepping stones and the
+      chokepoint are the same place
+    islands: 8
+    over_300_sq_mi: 3                   # 951, 631, 312
+    scatter_sq_mi: [296, 203, 203, 55, 47]
+    largest_extent_miles: [28, 47]
+    shelf_subhexes: 5325                # shallow water around the chain (§VII-B)
+
   min_island_subhexes: 12               # smaller is noise, not a landform (§VII-B)
+  min_island_subhexes_in_channel: 3     # …except on the ridge, where a scatter of
+                                        # small islands is the expected form of a
+                                        # broken land bridge
   min_lake_subhexes: 25                 # smaller is noise, not a closed basin (§VII-E)
   # `water` vs `ocean` is fresh vs salt, decided by CONNECTIVITY to the world
   # ocean, never by size (§VII-G, validation rule 14).

@@ -36,11 +36,32 @@ check("every cell is classified", mask.order.every(c => c.type), "");
 check("water fraction on target",
   Math.abs(s.waterFraction - P.targetWater) < 0.005,
   `${(s.waterFraction * 100).toFixed(2)}% vs ${(P.targetWater * 100).toFixed(0)}%`);
-check("one dominant landmass (Phase 0: bulky)",
-  s.landmasses[0] / s.land > 0.99, `${(s.landmasses[0] / s.land * 100).toFixed(2)}% of land`);
+
+/* THE SPLIT. Two masses, cleanly divided — not one mass, and not a shattered
+ * one. The old "99% in a single landmass" invariant is gone with the channel;
+ * what has to hold now is that exactly two masses carry essentially all the
+ * land and the smaller is big enough to be a continent in its own right. */
+const twoMassShare = (s.landmasses[0] + s.landmasses[1]) / s.land;
+check("the channel divides the land in two",
+  s.landmasses.length >= 2 && twoMassShare > 0.97,
+  `${(twoMassShare * 100).toFixed(2)}% of land in the two masses`);
+check("the western mass is a continent, not an offshore island",
+  s.landmasses[1] / s.land > 0.15,
+  `${(s.landmasses[1] / s.land * 100).toFixed(1)}% of land — ${s.continents.find(c => c.side === "west").sqMi.toLocaleString()} sq mi`);
 check("the southern sea reaches the world ocean (§VII-G, rule 14)",
   s.freshBodies.every(n => n < 2000),
   `largest enclosed body ${s.freshBodies[0] || 0} cells`);
+
+/* THE ARCHIPELAGO — the drowned ridge's islands, at the chokepoint. */
+const a = s.archipelago;
+check("2–3 islands over 300 sq mi on the drowned ridge",
+  a.overThreeHundred >= 2 && a.overThreeHundred <= 3,
+  `${a.overThreeHundred} of ${a.count} — ${a.sizesSqMi.join(", ")} sq mi`);
+check("…plus a scatter of smaller ones",
+  a.count - a.overThreeHundred >= 3,
+  `${a.count - a.overThreeHundred} under 300 sq mi`);
+check("shallow shelf recorded around the chain (§VII-B)",
+  s.shelfCells > 500, `${s.shelfCells} subhexes`);
 
 /* ---- per-plate rollup, for §4-B's compact ocean-plate form later ---- */
 const perPlate = new Map();

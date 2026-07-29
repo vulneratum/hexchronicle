@@ -25,6 +25,7 @@ const SEED_STR = (argv.find(a => a.startsWith("--seed=")) || "").split("=")[1] |
 const COL = {
   ocean:  [0x2f, 0x5d, 0x7a],   // world ocean (salt)
   shelf:  [0x4a, 0x82, 0xa0],   // ocean within a plate of land — the shelf
+  ridge:  [0x63, 0xa6, 0xb8],   // the drowned ridge: shallow water over the chain
   water:  [0x6f, 0xa8, 0xbe],   // enclosed fresh water
   land:   [0x8d, 0x9b, 0x63],
   high:   [0xb3, 0xa8, 0x84],   // land far from any coast, for depth of field only
@@ -91,10 +92,19 @@ for (let py = 0; py < H; py++) {
     } else if (cell.type === "water") {
       c = COL.water;
     } else {
-      const t = Math.min(1, d / 12);               // shelf → deep
+      const t = Math.min(1, d / 12);               // coastal shelf → deep
       c = [Math.round(COL.shelf[0] + (COL.ocean[0] - COL.shelf[0]) * t),
            Math.round(COL.shelf[1] + (COL.ocean[1] - COL.shelf[1]) * t),
            Math.round(COL.shelf[2] + (COL.ocean[2] - COL.shelf[2]) * t)];
+      // Shallow shelf over the drowned ridge (§VII-B) — blended by the
+      // CONTINUOUS field, not by a boolean. Thresholding it drew a hard-edged
+      // box across the strait that read as a UI artefact rather than seabed.
+      const sf = Math.min(1, (cell.shelfF || 0) / 0.55);
+      if (sf > 0) {
+        c = [Math.round(c[0] + (COL.ridge[0] - c[0]) * sf),
+             Math.round(c[1] + (COL.ridge[1] - c[1]) * sf),
+             Math.round(c[2] + (COL.ridge[2] - c[2]) * sf)];
+      }
     }
     rgb[i] = c[0]; rgb[i + 1] = c[1]; rgb[i + 2] = c[2];
   }
@@ -124,14 +134,20 @@ fs.writeFileSync(out, encodePNG(W, H, rgb));
 
 const s = mask.stats;
 const pct = n => (n / s.total * 100).toFixed(2) + "%";
+const a = s.archipelago;
 console.log(`
 land–sea mask
-  subhexes      ${s.total.toLocaleString()}   (1,296 plates; 16,275 seam positions shared, not double-counted)
+  frame         ${s.total.toLocaleString()} subhexes ≈ ${s.frameSqMi.toLocaleString()} sq mi
   land          ${s.land.toLocaleString()}  ${pct(s.land)}   ≈ ${s.landSqMi.toLocaleString()} sq mi
   ocean (salt)  ${s.ocean.toLocaleString()}  ${pct(s.ocean)}
   water (fresh) ${s.fresh.toLocaleString()}  ${pct(s.fresh)}
   water total   ${(s.waterFraction * 100).toFixed(2)}%   (target ${(mask.params.targetWater * 100).toFixed(0)}%)
-  landmasses    ${s.landmasses.slice(0, 6).join(", ")}${s.landmasses.length > 6 ? ` …${s.landmasses.length} total` : ""}
+
+${s.continents.map(c => `  ${c.side.padEnd(5)} mass    ${c.sqMi.toLocaleString()} sq mi`).join("\n")}
+  archipelago   ${a.count} islands on the drowned ridge, ${a.overThreeHundred} over 300 sq mi
+                ${a.sizesSqMi.join(", ")} sq mi
+  other islands ${s.otherIslands.length ? s.otherIslands.join(", ") + " sq mi" : "none"}
+  shelf         ${s.shelfCells.toLocaleString()} shallow subhexes over the ridge
   fresh bodies  ${s.freshBodies.slice(0, 6).join(", ")}${s.freshBodies.length > 6 ? ` …${s.freshBodies.length} total` : ""}
   threshold     ${mask.thresh.toFixed(6)}
 wrote ${out}  (${W}×${H})`);
