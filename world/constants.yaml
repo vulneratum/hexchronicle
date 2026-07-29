@@ -1,0 +1,122 @@
+# world/constants.yaml — ONE set of constants, read by the generator and by the
+# living-world tick, so the world and its future never drift apart (WORLDGEN §6).
+#
+# Nothing in here is history. These are game constants and settled geometry.
+# Anything a later phase computes belongs in world/physical/, world/economy/, …
+
+# ---------------------------------------------------------------- determinism
+# Every generated value derives from this seed plus the hex address (§0).
+# Re-running generation on an ungenerated plate must reproduce it exactly.
+world_seed: "hexchronicle-4712"
+seed_uint32: 530816148          # FNV-1a of world_seed; recorded so a change is loud
+
+# ---------------------------------------------------------------- geometry
+# Frozen by README §2. Worldgen writes values INTO hexes; it never changes which
+# hexes exist or what they are called.
+scales:
+  subhex_miles: 3               # one league — the unit of play
+  plate_miles: 36               # the atlas hex
+  continent_hex_miles: 432
+  subhexes_per_plate: 157
+  plate_span_subhexes: 12       # a plate offset is exactly 12 subhex steps
+
+frame:
+  cols: 36
+  rows: 36
+  plates: 1296                  # ids 0001–1296, row-major from the top-left (§4-A)
+  # OFFSET-AXIAL layout. A raw q,r ∈ [0,35] block is a rhombus sheared 30° —
+  # ~1,890 miles across the top against 1,133 tall, which contradicts §1's
+  # "1,296 miles edge to edge, in both directions". Row r therefore spans
+  # q ∈ [-floor(r/2), 35-floor(r/2)], which shears it back upright.
+  layout: offset-axial
+  # True extent. A hex row advances 0.866 of a hex width, so 36×36 plates is
+  # inherently ~16% wider than tall; §1's "1,296 × 1,296 miles" treats plates as
+  # squares. The plate COUNT is exactly as §1 specifies.
+  width_miles: 1314
+  height_miles: 1133
+  # Unique subhex positions. §1's 203,472 (= 1,296 × 157) double-counts the
+  # 16,275 seam positions that two or three plates share (README §2).
+  subhexes_unique: 187197
+  subhexes_seam_shared: 16275
+
+# ---------------------------------------------------------------- climate band
+# Settled: Atlantic to Mediterranean (§1a). Northern Scotland at the top edge,
+# Andalusia and Sicily at the bottom. Latitude is linear in frame v.
+#
+# NOTE: 20° of latitude over 1,133 miles puts a degree at ~57 miles rather than
+# Earth's ~69. The band is a CLIMATE specification, not an Earth mapping — its
+# purpose is that players already have intuitions for it — so the stated
+# endpoints are kept and the world's degree is simply shorter.
+latitude:
+  north: 56
+  south: 36
+  prevailing_wind: westerly     # west → east across the whole frame (§VII-D)
+
+climate_modes: [atlantic_west, mediterranean_south, continental_east]
+
+# Seasonality is a first-class field (§VII-D2). The two halves of the map close
+# in OPPOSITE seasons: the north and uplands in winter, the south in summer
+# drought. Per-region values are computed in Phase A and recorded there; these
+# are the band-level defaults the tick falls back on.
+seasons:
+  atlantic_west:
+    growing_season_days: 250
+    pass_closure_months: []
+    low_water_months: []
+    yield_modifier: 1.00
+  mediterranean_south:
+    growing_season_days: 275
+    pass_closure_months: []
+    low_water_months: [6, 7, 8, 9]      # summer drought: mills stop, rivers drop
+    yield_modifier: 0.90                # rain-fed; irrigation is the political lever
+  continental_east:
+    growing_season_days: 200
+    pass_closure_months: [12, 1, 2]
+    low_water_months: [1, 2]            # ice, not drought
+    yield_modifier: 0.95
+  alpine:
+    growing_season_days: 120
+    pass_closure_months: [11, 12, 1, 2, 3, 4]
+    low_water_months: []
+    yield_modifier: 0.55
+
+# ---------------------------------------------------------------- logistics
+# §6. Used by the caloric ceiling (§IX) and the wilderness tax (§VIII-A).
+logistics:
+  ox_consumption_per_50_miles: 0.10     # fraction of cargo eaten by the team
+  bulk_trade_radius_miles: 60           # = 20 subhexes; past this, bulk grain needs water
+  bulk_trade_radius_subhexes: 20
+  water_transport_multiplier: 8         # a ton-mile by water against by ox-cart
+  farmer_fraction: [0.80, 0.95]
+  temperate_lowland_yield: 4            # 4:1 return on seed
+  sailing_speed_miles_per_day:
+    summer: 75
+    winter: 45                          # shorter days, worse weather, coast-hugging
+
+# ---------------------------------------------------------------- land–sea mask
+# Phase A step 1. The field is analytic and the subhex lattice samples it, so
+# neighbouring plates agree along their seam with no special-casing (§VII).
+# Full parameter set and the RLE'd result: world/physical/land-sea-mask.json
+land_sea:
+  target_water_fraction: 0.30           # Phase 0 Q1 — "bulkier landmass"
+  min_island_subhexes: 12               # smaller is noise, not a landform (§VII-B)
+  min_lake_subhexes: 25                 # smaller is noise, not a closed basin (§VII-E)
+  # `water` vs `ocean` is fresh vs salt, decided by CONNECTIVITY to the world
+  # ocean, never by size (§VII-G, validation rule 14).
+  salt_rule: connected-to-world-ocean
+
+# ---------------------------------------------------------------- NOT YET SET
+# Both of these are required before Phase G1 can write a single terrain value,
+# and both are deliberately absent rather than guessed:
+#
+#   biome_matrix        (temperature band × moisture band) → terrain id, with
+#                       elevation and drainage as overrides (§VII-G).
+#   terrain_table       one row per each of the 15 palette types: arable
+#                       fraction, yield ratio, fuelwood, movement cost, hazard
+#                       multiplier (§6). A missing row is a silent wrong answer
+#                       rather than an error, so validation rule 13 checks it.
+#
+# They cannot be written yet: both classify the temperature and moisture fields,
+# which are computed AFTER the land–sea mask is approved. Writing them now would
+# be painting biomes first and rationalising after, which §VII-G forbids
+# outright. They land at the end of Phase A, before G1.
