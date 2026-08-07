@@ -8,6 +8,9 @@
   "continent_hex": 1,
   "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
   "default_terrain": "plains",
+  "fill": null,
+  "depth": null,
+  "current": null,
   "terrain": {
     "100": "plains",
     "101": "plains",

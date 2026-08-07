@@ -137,6 +137,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "The heart of Harrow canton: a lake-country of plains and low hills about the town of Merrowgate, hemmed by forest and high ground."
     },
     {
@@ -152,6 +153,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -167,6 +169,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -182,6 +185,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -197,6 +201,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -212,6 +217,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -227,6 +233,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -242,6 +249,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -257,6 +265,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "hills",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -272,6 +281,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -287,6 +297,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -302,6 +313,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -317,6 +329,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -332,6 +345,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -347,6 +361,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "hills",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -362,6 +377,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -377,6 +393,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -392,6 +409,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -407,6 +425,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -422,6 +441,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -437,6 +457,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "plains",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -452,6 +473,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -467,6 +489,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "water",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -482,6 +505,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -497,6 +521,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -512,6 +537,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -527,6 +553,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -542,6 +569,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -557,6 +585,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -572,6 +601,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "hills",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -587,6 +617,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "water",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -602,6 +633,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -617,6 +649,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -632,6 +665,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -647,6 +681,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -662,6 +697,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -677,6 +713,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -692,6 +729,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -707,6 +745,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -722,6 +761,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -737,6 +777,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -752,6 +793,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -767,6 +809,7 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     },
     {
@@ -782,6 +825,1591 @@
       "continent_hex": 1,
       "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
       "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0045",
+      "coord": [
+        6,
+        -4
+      ],
+      "name": "Plate 0045",
+      "title": "Plate 0045",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0046",
+      "coord": [
+        5,
+        -8
+      ],
+      "name": "Plate 0046",
+      "title": "Plate 0046",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0047",
+      "coord": [
+        5,
+        -7
+      ],
+      "name": "Plate 0047",
+      "title": "Plate 0047",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0048",
+      "coord": [
+        5,
+        -6
+      ],
+      "name": "Plate 0048",
+      "title": "Plate 0048",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0049",
+      "coord": [
+        6,
+        -5
+      ],
+      "name": "Plate 0049",
+      "title": "Plate 0049",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0050",
+      "coord": [
+        6,
+        -3
+      ],
+      "name": "Plate 0050",
+      "title": "Plate 0050",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0051",
+      "coord": [
+        5,
+        -2
+      ],
+      "name": "Plate 0051",
+      "title": "Plate 0051",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "hills",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0052",
+      "coord": [
+        4,
+        -1
+      ],
+      "name": "Plate 0052",
+      "title": "Plate 0052",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0053",
+      "coord": [
+        7,
+        -4
+      ],
+      "name": "Plate 0053",
+      "title": "Plate 0053",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0054",
+      "coord": [
+        7,
+        -5
+      ],
+      "name": "Plate 0054",
+      "title": "Plate 0054",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "hills",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0055",
+      "coord": [
+        7,
+        -6
+      ],
+      "name": "Plate 0055",
+      "title": "Plate 0055",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "water",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0056",
+      "coord": [
+        8,
+        -6
+      ],
+      "name": "Plate 0056",
+      "title": "Plate 0056",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "water",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0057",
+      "coord": [
+        8,
+        -5
+      ],
+      "name": "Plate 0057",
+      "title": "Plate 0057",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "hills",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0058",
+      "coord": [
+        8,
+        -4
+      ],
+      "name": "Plate 0058",
+      "title": "Plate 0058",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "hills",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0059",
+      "coord": [
+        7,
+        -3
+      ],
+      "name": "Plate 0059",
+      "title": "Plate 0059",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0060",
+      "coord": [
+        6,
+        -2
+      ],
+      "name": "Plate 0060",
+      "title": "Plate 0060",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "water",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0061",
+      "coord": [
+        5,
+        -1
+      ],
+      "name": "Plate 0061",
+      "title": "Plate 0061",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "water",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0062",
+      "coord": [
+        6,
+        -6
+      ],
+      "name": "Plate 0062",
+      "title": "Plate 0062",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "water",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0063",
+      "coord": [
+        6,
+        -7
+      ],
+      "name": "Plate 0063",
+      "title": "Plate 0063",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "water",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0064",
+      "coord": [
+        7,
+        -7
+      ],
+      "name": "Plate 0064",
+      "title": "Plate 0064",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "water",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0065",
+      "coord": [
+        8,
+        -7
+      ],
+      "name": "Plate 0065",
+      "title": "Plate 0065",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "water",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0066",
+      "coord": [
+        9,
+        -7
+      ],
+      "name": "Plate 0066",
+      "title": "Plate 0066",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "water",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0067",
+      "coord": [
+        9,
+        -6
+      ],
+      "name": "Plate 0067",
+      "title": "Plate 0067",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "water",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0068",
+      "coord": [
+        6,
+        -8
+      ],
+      "name": "Plate 0068",
+      "title": "Plate 0068",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0069",
+      "coord": [
+        7,
+        -8
+      ],
+      "name": "Plate 0069",
+      "title": "Plate 0069",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0070",
+      "coord": [
+        9,
+        -5
+      ],
+      "name": "Plate 0070",
+      "title": "Plate 0070",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0071",
+      "coord": [
+        9,
+        -4
+      ],
+      "name": "Plate 0071",
+      "title": "Plate 0071",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0072",
+      "coord": [
+        8,
+        -3
+      ],
+      "name": "Plate 0072",
+      "title": "Plate 0072",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0073",
+      "coord": [
+        7,
+        -2
+      ],
+      "name": "Plate 0073",
+      "title": "Plate 0073",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0074",
+      "coord": [
+        8,
+        -2
+      ],
+      "name": "Plate 0074",
+      "title": "Plate 0074",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0075",
+      "coord": [
+        7,
+        -1
+      ],
+      "name": "Plate 0075",
+      "title": "Plate 0075",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0076",
+      "coord": [
+        6,
+        0
+      ],
+      "name": "Plate 0076",
+      "title": "Plate 0076",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0077",
+      "coord": [
+        7,
+        0
+      ],
+      "name": "Plate 0077",
+      "title": "Plate 0077",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0078",
+      "coord": [
+        6,
+        1
+      ],
+      "name": "Plate 0078",
+      "title": "Plate 0078",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0079",
+      "coord": [
+        6,
+        2
+      ],
+      "name": "Plate 0079",
+      "title": "Plate 0079",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0080",
+      "coord": [
+        5,
+        2
+      ],
+      "name": "Plate 0080",
+      "title": "Plate 0080",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0081",
+      "coord": [
+        5,
+        3
+      ],
+      "name": "Plate 0081",
+      "title": "Plate 0081",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0082",
+      "coord": [
+        6,
+        3
+      ],
+      "name": "Plate 0082",
+      "title": "Plate 0082",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0083",
+      "coord": [
+        7,
+        1
+      ],
+      "name": "Plate 0083",
+      "title": "Plate 0083",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0084",
+      "coord": [
+        5,
+        1
+      ],
+      "name": "Plate 0084",
+      "title": "Plate 0084",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0085",
+      "coord": [
+        4,
+        2
+      ],
+      "name": "Plate 0085",
+      "title": "Plate 0085",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0086",
+      "coord": [
+        4,
+        1
+      ],
+      "name": "Plate 0086",
+      "title": "Plate 0086",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0087",
+      "coord": [
+        4,
+        0
+      ],
+      "name": "Plate 0087",
+      "title": "Plate 0087",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0088",
+      "coord": [
+        5,
+        0
+      ],
+      "name": "Plate 0088",
+      "title": "Plate 0088",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0089",
+      "coord": [
+        6,
+        -1
+      ],
+      "name": "Plate 0089",
+      "title": "Plate 0089",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0090",
+      "coord": [
+        3,
+        1
+      ],
+      "name": "Plate 0090",
+      "title": "Plate 0090",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0091",
+      "coord": [
+        3,
+        2
+      ],
+      "name": "Plate 0091",
+      "title": "Plate 0091",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0092",
+      "coord": [
+        2,
+        2
+      ],
+      "name": "Plate 0092",
+      "title": "Plate 0092",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0093",
+      "coord": [
+        2,
+        3
+      ],
+      "name": "Plate 0093",
+      "title": "Plate 0093",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0094",
+      "coord": [
+        3,
+        3
+      ],
+      "name": "Plate 0094",
+      "title": "Plate 0094",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0095",
+      "coord": [
+        4,
+        3
+      ],
+      "name": "Plate 0095",
+      "title": "Plate 0095",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0096",
+      "coord": [
+        3,
+        4
+      ],
+      "name": "Plate 0096",
+      "title": "Plate 0096",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0097",
+      "coord": [
+        10,
+        -6
+      ],
+      "name": "Plate 0097",
+      "title": "Plate 0097",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0098",
+      "coord": [
+        10,
+        -5
+      ],
+      "name": "Plate 0098",
+      "title": "Plate 0098",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0099",
+      "coord": [
+        10,
+        -4
+      ],
+      "name": "Plate 0099",
+      "title": "Plate 0099",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0100",
+      "coord": [
+        9,
+        -3
+      ],
+      "name": "Plate 0100",
+      "title": "Plate 0100",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0101",
+      "coord": [
+        10,
+        -3
+      ],
+      "name": "Plate 0101",
+      "title": "Plate 0101",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0102",
+      "coord": [
+        9,
+        -2
+      ],
+      "name": "Plate 0102",
+      "title": "Plate 0102",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0103",
+      "coord": [
+        8,
+        -1
+      ],
+      "name": "Plate 0103",
+      "title": "Plate 0103",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0104",
+      "coord": [
+        8,
+        0
+      ],
+      "name": "Plate 0104",
+      "title": "Plate 0104",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0105",
+      "coord": [
+        8,
+        1
+      ],
+      "name": "Plate 0105",
+      "title": "Plate 0105",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0106",
+      "coord": [
+        7,
+        2
+      ],
+      "name": "Plate 0106",
+      "title": "Plate 0106",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0107",
+      "coord": [
+        11,
+        -7
+      ],
+      "name": "Plate 0107",
+      "title": "Plate 0107",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "ocean",
+      "fill": "ocean",
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0108",
+      "coord": [
+        11,
+        -6
+      ],
+      "name": "Plate 0108",
+      "title": "Plate 0108",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0109",
+      "coord": [
+        11,
+        -5
+      ],
+      "name": "Plate 0109",
+      "title": "Plate 0109",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0110",
+      "coord": [
+        11,
+        -4
+      ],
+      "name": "Plate 0110",
+      "title": "Plate 0110",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0111",
+      "coord": [
+        12,
+        -5
+      ],
+      "name": "Plate 0111",
+      "title": "Plate 0111",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0112",
+      "coord": [
+        12,
+        -4
+      ],
+      "name": "Plate 0112",
+      "title": "Plate 0112",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0113",
+      "coord": [
+        11,
+        -3
+      ],
+      "name": "Plate 0113",
+      "title": "Plate 0113",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0114",
+      "coord": [
+        10,
+        -2
+      ],
+      "name": "Plate 0114",
+      "title": "Plate 0114",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0115",
+      "coord": [
+        9,
+        -1
+      ],
+      "name": "Plate 0115",
+      "title": "Plate 0115",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0116",
+      "coord": [
+        10,
+        -1
+      ],
+      "name": "Plate 0116",
+      "title": "Plate 0116",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0117",
+      "coord": [
+        11,
+        -2
+      ],
+      "name": "Plate 0117",
+      "title": "Plate 0117",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0118",
+      "coord": [
+        12,
+        -3
+      ],
+      "name": "Plate 0118",
+      "title": "Plate 0118",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0119",
+      "coord": [
+        9,
+        0
+      ],
+      "name": "Plate 0119",
+      "title": "Plate 0119",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0120",
+      "coord": [
+        9,
+        1
+      ],
+      "name": "Plate 0120",
+      "title": "Plate 0120",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0121",
+      "coord": [
+        8,
+        2
+      ],
+      "name": "Plate 0121",
+      "title": "Plate 0121",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0122",
+      "coord": [
+        10,
+        0
+      ],
+      "name": "Plate 0122",
+      "title": "Plate 0122",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0123",
+      "coord": [
+        10,
+        1
+      ],
+      "name": "Plate 0123",
+      "title": "Plate 0123",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0124",
+      "coord": [
+        9,
+        2
+      ],
+      "name": "Plate 0124",
+      "title": "Plate 0124",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0125",
+      "coord": [
+        8,
+        3
+      ],
+      "name": "Plate 0125",
+      "title": "Plate 0125",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0126",
+      "coord": [
+        7,
+        3
+      ],
+      "name": "Plate 0126",
+      "title": "Plate 0126",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0127",
+      "coord": [
+        1,
+        3
+      ],
+      "name": "Plate 0127",
+      "title": "Plate 0127",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0128",
+      "coord": [
+        0,
+        3
+      ],
+      "name": "Plate 0128",
+      "title": "Plate 0128",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0129",
+      "coord": [
+        -1,
+        3
+      ],
+      "name": "Plate 0129",
+      "title": "Plate 0129",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0130",
+      "coord": [
+        -2,
+        3
+      ],
+      "name": "Plate 0130",
+      "title": "Plate 0130",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0131",
+      "coord": [
+        -3,
+        3
+      ],
+      "name": "Plate 0131",
+      "title": "Plate 0131",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0132",
+      "coord": [
+        -4,
+        4
+      ],
+      "name": "Plate 0132",
+      "title": "Plate 0132",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0133",
+      "coord": [
+        -3,
+        4
+      ],
+      "name": "Plate 0133",
+      "title": "Plate 0133",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0134",
+      "coord": [
+        -2,
+        4
+      ],
+      "name": "Plate 0134",
+      "title": "Plate 0134",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0135",
+      "coord": [
+        -1,
+        4
+      ],
+      "name": "Plate 0135",
+      "title": "Plate 0135",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0136",
+      "coord": [
+        0,
+        4
+      ],
+      "name": "Plate 0136",
+      "title": "Plate 0136",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0137",
+      "coord": [
+        1,
+        4
+      ],
+      "name": "Plate 0137",
+      "title": "Plate 0137",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0138",
+      "coord": [
+        2,
+        4
+      ],
+      "name": "Plate 0138",
+      "title": "Plate 0138",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0139",
+      "coord": [
+        4,
+        4
+      ],
+      "name": "Plate 0139",
+      "title": "Plate 0139",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0140",
+      "coord": [
+        5,
+        4
+      ],
+      "name": "Plate 0140",
+      "title": "Plate 0140",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0141",
+      "coord": [
+        6,
+        4
+      ],
+      "name": "Plate 0141",
+      "title": "Plate 0141",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0142",
+      "coord": [
+        7,
+        4
+      ],
+      "name": "Plate 0142",
+      "title": "Plate 0142",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "plains",
+      "fill": null,
+      "summary": "Newly surveyed ground; no account of it has been written yet."
+    },
+    {
+      "id": "0143",
+      "coord": [
+        8,
+        4
+      ],
+      "name": "Plate 0143",
+      "title": "Plate 0143",
+      "realm": "Karvosia",
+      "canton": "Harrow",
+      "continent_hex": 1,
+      "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
+      "default_terrain": "forest",
+      "fill": null,
       "summary": "Newly surveyed ground; no account of it has been written yet."
     }
   ]

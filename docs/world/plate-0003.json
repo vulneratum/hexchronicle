@@ -8,6 +8,9 @@
   "continent_hex": 1,
   "scale_label": "1 HEX = 3 MILES (1 LEAGUE)",
   "default_terrain": "forest",
+  "fill": null,
+  "depth": null,
+  "current": null,
   "terrain": {
     "100": "plains",
     "101": "plains",
@@ -44,7 +47,7 @@
     "132": "swamp",
     "133": "swamp",
     "134": "hills",
-    "135": "forest",
+    "135": "ocean",
     "136": "hills",
     "137": "hills",
     "138": "forest",
