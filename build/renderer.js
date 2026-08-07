@@ -26,6 +26,15 @@
   const fetching = new Map();
   let selected = null;                      // { plateId, sub } — always the OWNER
 
+  /*
+   * Substituted by build/build.js with a hash of the world data this exact
+   * shell was built against. Every fetch for world/*.json carries it as
+   * ?v=, so a stale cached copy of index.html can never pair with a plate
+   * or atlas file from a different build, and a fresh build always asks the
+   * browser for a URL it has never cached.
+   */
+  const DATA_VERSION = "__DATA_VERSION__";
+
   const esc = x => String(x == null ? "" : x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const getJSON = url => fetch(url).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
 
@@ -33,7 +42,7 @@
 
   async function boot() {
     let a;
-    try { a = await getJSON("world/atlas.json"); }
+    try { a = await getJSON(`world/atlas.json?v=${DATA_VERSION}`); }
     catch (err) { showToast("The map could not be loaded: " + err.message); return; }
     summary = a;
     registry = a.registry;
@@ -67,7 +76,7 @@
     if (detail.has(id)) return Promise.resolve(detail.get(id));
     const inflight = fetching.get(id);
     if (inflight) return inflight;
-    const p = getJSON(`world/plate-${id}.json`).then(d => {
+    const p = getJSON(`world/plate-${id}.json?v=${DATA_VERSION}`).then(d => {
       // the atlas reads terrain by subhex with a default fallback, like the editor
       detail.set(id, {
         id: d.id, name: d.name, title: d.title, canton: d.canton, realm: d.realm,

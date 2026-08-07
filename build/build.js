@@ -12,10 +12,16 @@
  *   docs/world/plate-NNNN.json    one plate's interior, fetched on demand as it
  *                                 scrolls into view (the editor's /detail)
  *
- * There is no server: Cloudflare Pages serves these as files, and the page
+ * There is no server: GitHub Pages serves these as files, and the page
  * fetches only the plates a visitor actually looks at. That culling matters more
  * here than in the editor — a visitor may have the whole continent in front of
  * them — so the up-front payload is O(plates), never O(plates × 157).
+ *
+ * GitHub Pages does not honour a docs/_headers file (that's a Netlify/
+ * Cloudflare Pages convention), so cache-busting cannot be done with response
+ * headers here. Instead every world/*.json fetch carries a build content hash
+ * as ?v= (see DATA_VERSION below) — the cache-busting is in the URL, not a
+ * header GitHub Pages would ignore.
  *
  * Visibility (README §4): only `public` content is compiled in. `gm-only` hex
  * content is dropped here at build time and never reaches the browser.
@@ -30,6 +36,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const yaml = require("js-yaml");
 const HexGeo = require("../shared/geometry.js");
 
@@ -187,10 +194,39 @@ const atlas = {
     };
   }),
 };
-fs.writeFileSync(path.join(DOCS, "world", "atlas.json"), JSON.stringify(atlas, null, 2));
+const atlasJSON = JSON.stringify(atlas, null, 2);
+fs.writeFileSync(path.join(DOCS, "world", "atlas.json"), atlasJSON);
+const plateJSON = new Map();
 for (const [id, d] of details) {
-  fs.writeFileSync(path.join(DOCS, "world", `plate-${id}.json`), JSON.stringify(d, null, 2));
+  const j = JSON.stringify(d, null, 2);
+  plateJSON.set(id, j);
+  fs.writeFileSync(path.join(DOCS, "world", `plate-${id}.json`), j);
 }
+
+/*
+ * A content hash of every world/*.json byte this build wrote, embedded into
+ * the shell itself (below) as ?v= on each data fetch. That makes cache-
+ * busting a property of index.html, not of the data files: GitHub Pages
+ * cannot serve custom headers (docs/_headers is inert there), and the data
+ * files must keep their stable names — the atlas and each plate file are
+ * fetched by visitors who already have a plate cached under its old name
+ * and must keep being able to, so the version cannot live in the filename.
+ * Once the browser does fetch a new index.html, DATA_VERSION guarantees it
+ * asks for URLs no prior build ever used, so it can never pair a new shell
+ * with a plate JSON left over from an old one.
+ */
+const hash = crypto.createHash("sha256").update(atlasJSON);
+for (const id of [...plateJSON.keys()].sort()) hash.update(plateJSON.get(id));
+const DATA_VERSION = hash.digest("hex").slice(0, 12);
+
+/* Informational: lets anyone (curl, a script, a human) check which data
+ * version is actually live without loading the whole page. Not itself load-
+ * bearing for the shell/data pairing — DATA_VERSION inlined into index.html
+ * below is what guarantees that. */
+fs.writeFileSync(path.join(DOCS, "world", "manifest.json"), JSON.stringify({
+  version: DATA_VERSION,
+  plates: placed,
+}, null, 2));
 
 /* ---------- the page itself ---------- */
 const template = fs.readFileSync(P("build", "template.html"), "utf8");
@@ -204,7 +240,9 @@ const html = template
   .replace("/*__GEOMETRY_JS__*/", () => fs.readFileSync(P("shared", "geometry.js"), "utf8"))
   .replace("/*__PLATEDRAW_JS__*/", () => fs.readFileSync(P("shared", "plate-draw.js"), "utf8"))
   .replace("/*__RENDERER_JS__*/", () => fs.readFileSync(P("build", "renderer.js"), "utf8"))
+  .replace(/__DATA_VERSION__/g, DATA_VERSION)
   .replace(/\r\n/g, "\n");
+if (html.includes("__DATA_VERSION__")) die("DATA_VERSION placeholder was not fully substituted into renderer.js");
 
 fs.writeFileSync(path.join(DOCS, "index.html"), html);
 
@@ -226,32 +264,15 @@ for (const m of html.matchAll(/url\(fonts\/([^)]+)\)/g)) {
   if (!fontFiles.includes(m[1])) die(`the page references fonts/${m[1]}, which is not in assets/fonts/`);
 }
 
-/*
- * Cache policy for Cloudflare Pages. The fonts are content-addressed by name
- * and will never change without a rename, so they are immutable for a year.
- * index.html must always be revalidated or a rebuild would not reach anyone.
- * The world data sits in between: cheap to revalidate, and a stale plate for a
- * few minutes is harmless.
- */
-fs.writeFileSync(path.join(DOCS, "_headers"), [
-  "/fonts/*",
-  "  Cache-Control: public, max-age=31536000, immutable",
-  "",
-  "/world/*",
-  "  Cache-Control: public, max-age=300, must-revalidate",
-  "",
-  "/index.html",
-  "  Cache-Control: public, max-age=0, must-revalidate",
-  "",
-  "/",
-  "  Cache-Control: public, max-age=0, must-revalidate",
-  "",
-].join("\n"));
-
 // CNAME tells GitHub Pages the custom domain; regenerated so it always persists.
 fs.writeFileSync(path.join(DOCS, "CNAME"), CUSTOM_DOMAIN + "\n");
 // .nojekyll: serve files as-is (skip Jekyll processing) — belt-and-suspenders.
 fs.writeFileSync(path.join(DOCS, ".nojekyll"), "");
+// _headers is a Netlify/Cloudflare Pages convention; GitHub Pages never reads
+// it. A previous build wrote one — delete it so it can't mislead anyone into
+// thinking it does anything here.
+const staleHeaders = path.join(DOCS, "_headers");
+if (fs.existsSync(staleHeaders)) fs.unlinkSync(staleHeaders);
 
 /* stale plate files from a previous build, for a plate since removed */
 for (const f of fs.readdirSync(path.join(DOCS, "world"))) {
@@ -298,5 +319,6 @@ console.log(`build:   ${placed.map(id => `${id}${details.get(id).name ? " (" + d
 console.log(`build:   ${borrowedTotal} boundary subhex(es) resolved to their owning plate`);
 console.log(`build:   ${publicCount} public hex records compiled` + (gmDropped ? `, ${gmDropped} gm-only dropped` : ""));
 if (orphans.length) console.log(`build:   WARNING ${orphans.length} plate(s) not linked to the map: ${orphans.join(", ")}`);
+console.log(`build:   data version ${DATA_VERSION} (docs/world/manifest.json)`);
 console.log(`build:   wrote docs/index.html, docs/world/atlas.json and ${details.size} plate file(s)`);
 console.log(`build: done.`);
