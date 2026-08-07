@@ -1,0 +1,179 @@
+# Atlas plate 0060 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0060-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile coastal · seed "0051-e-u42ln4" · 36 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0060"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0060"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0060"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0073"
+  ne: "0059"
+  nw: "0050"
+  w: "0051"
+  sw: "0061"
+  se: "0089"
+
+default_terrain: water
+terrain:                     # subhex number -> terrain type (non-default only)
+  "003": scrub
+  "004": forest
+  "007": scrub
+  "008": forest
+  "009": forest
+  "010": forest
+  "011": forest
+  "014": scrub
+  "015": scrub
+  "016": forest
+  "017": forest
+  "018": forest
+  "019": forest
+  "020": forest
+  "021": forest
+  "024": scrub
+  "025": scrub
+  "026": scrub
+  "027": forest
+  "028": forest
+  "029": forest
+  "030": forest
+  "031": forest
+  "032": forest
+  "033": forest
+  "034": forest
+  "036": scrub
+  "037": scrub
+  "038": scrub
+  "039": forest
+  "040": forest
+  "041": forest
+  "042": forest
+  "043": forest
+  "044": forest
+  "045": forest
+  "046": forest
+  "047": forest
+  "049": scrub
+  "050": scrub
+  "051": forest
+  "052": forest
+  "053": forest
+  "054": forest
+  "055": forest
+  "056": forest
+  "057": forest
+  "058": forest
+  "059": forest
+  "060": forest
+  "061": scrub
+  "062": scrub
+  "063": forest
+  "064": forest
+  "065": forest
+  "066": forest
+  "067": forest
+  "068": forest
+  "069": forest
+  "070": forest
+  "071": forest
+  "072": forest
+  "074": scrub
+  "075": forest
+  "076": forest
+  "077": forest
+  "078": forest
+  "079": forest
+  "080": forest
+  "081": forest
+  "082": forest
+  "083": forest
+  "084": forest
+  "085": forest
+  "086": scrub
+  "087": forest
+  "088": forest
+  "089": forest
+  "090": forest
+  "091": forest
+  "092": forest
+  "093": forest
+  "094": forest
+  "095": forest
+  "096": forest
+  "097": forest
+  "099": scrub
+  "100": forest
+  "101": forest
+  "102": forest
+  "103": forest
+  "104": forest
+  "105": forest
+  "106": forest
+  "107": forest
+  "108": forest
+  "109": forest
+  "110": forest
+  "111": scrub
+  "112": scrub
+  "113": forest
+  "114": forest
+  "115": forest
+  "116": forest
+  "117": forest
+  "118": forest
+  "119": forest
+  "120": forest
+  "121": forest
+  "122": forest
+  "124": forest
+  "125": forest
+  "126": forest
+  "127": forest
+  "128": forest
+  "129": forest
+  "130": forest
+  "131": forest
+  "132": forest
+  "133": forest
+  "134": forest
+  "135": forest
+  "136": forest
+  "137": forest
+  "138": forest
+  "139": forest
+  "140": forest
+  "141": forest
+  "142": forest
+  "143": forest
+  "144": forest
+  "145": forest
+  "146": forest
+  "147": forest
+  "148": forest
+  "149": forest
+  "150": forest
+  "151": forest
+  "152": forest
+  "153": forest
+  "154": forest
+  "155": forest
+  "156": forest
+  "157": forest
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

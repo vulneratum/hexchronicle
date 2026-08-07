@@ -21,17 +21,18 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
+  e: "0092"
   ne: "0021"
   nw: "0017"
   w: "0018"
-  sw: null
-  se: null
+  sw: "0128"
+  se: "0127"
 
 default_terrain: plains
 terrain:                     # subhex number -> terrain type (non-default only)
   "005": forest
   "007": water
+  "008": water
   "011": forest
   "012": forest
   "014": water
@@ -45,6 +46,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "025": water
   "026": water
   "027": water
+  "028": water
   "029": forest
   "030": forest
   "031": forest
@@ -68,7 +70,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "050": water
   "051": water
   "052": water
-  "053": forest
+  "053": water
   "054": forest
   "055": forest
   "056": forest
@@ -79,31 +81,47 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "061": water
   "062": water
   "063": water
+  "064": water
+  "065": water
+  "066": water
   "069": forest
   "070": forest
   "071": forest
   "072": forest
   "074": water
   "075": water
+  "076": water
+  "077": water
+  "078": water
   "081": forest
   "082": forest
   "083": forest
   "084": forest
   "085": forest
   "086": water
+  "087": water
+  "088": water
   "089": water
+  "090": water
   "093": forest
   "094": forest
   "095": forest
   "096": forest
   "097": forest
+  "099": water
+  "100": water
   "101": water
   "102": water
   "108": forest
+  "111": water
+  "112": water
+  "113": water
   "116": hills
   "117": hills
   "118": swamp
   "121": forest
+  "124": water
+  "125": water
   "127": hills
   "128": hills
   "129": hills
@@ -113,6 +131,8 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "133": swamp
   "134": forest
   "135": forest
+  "136": water
+  "137": water
   "139": hills
   "140": hills
   "141": hills

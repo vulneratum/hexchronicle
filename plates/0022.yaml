@@ -21,29 +21,15 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
-  ne: null
+  e: "0087"
+  ne: "0052"
   nw: "0023"
   w: "0020"
   sw: "0021"
-  se: null
+  se: "0090"
 
 default_terrain: forest
 terrain:                     # subhex number -> terrain type (non-default only)
-  "022": swamp
-  "034": swamp
-  "035": swamp
-  "047": swamp
-  "059": swamp
-  "060": swamp
-  "070": swamp
-  "071": swamp
-  "072": swamp
-  "083": swamp
-  "084": swamp
-  "085": swamp
-  "096": swamp
-  "097": swamp
   "110": swamp
   "133": hills
   "134": hills

@@ -121,19 +121,19 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "142": hills
   "143": hills
   "144": hills
-  "145": hills
+  "145": water
   "146": hills
   "147": hills
   "148": hills
   "149": hills
   "150": hills
   "151": hills
-  "152": water
+  "152": hills
   "153": hills
   "154": hills
   "155": plains
-  "156": water
-  "157": water
+  "156": hills
+  "157": hills
 
 # Line features (README §4): paths crossing subhexes, not per-hex fills.
 lines:

@@ -1,0 +1,83 @@
+# Atlas plate 0100 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0100-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile lowland · seed "0074-ne-x9oc8x" · 47 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0100"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0100"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0100"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0101"
+  ne: "0099"
+  nw: "0071"
+  w: "0072"
+  sw: "0074"
+  se: "0102"
+
+default_terrain: ocean
+terrain:                     # subhex number -> terrain type (non-default only)
+  "021": plains
+  "031": plains
+  "032": plains
+  "033": plains
+  "034": plains
+  "043": plains
+  "044": plains
+  "045": plains
+  "046": forest
+  "047": forest
+  "056": plains
+  "057": plains
+  "058": forest
+  "059": forest
+  "060": forest
+  "069": forest
+  "070": forest
+  "071": forest
+  "072": forest
+  "081": forest
+  "082": forest
+  "083": forest
+  "084": forest
+  "085": forest
+  "094": forest
+  "095": forest
+  "096": forest
+  "097": forest
+  "106": forest
+  "107": forest
+  "108": forest
+  "109": forest
+  "110": forest
+  "118": forest
+  "119": forest
+  "120": forest
+  "121": forest
+  "122": forest
+  "131": forest
+  "132": forest
+  "133": forest
+  "134": forest
+  "135": forest
+  "142": forest
+  "143": forest
+  "144": forest
+  "145": forest
+  "152": forest
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

@@ -1,0 +1,139 @@
+# Atlas plate 0097 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0097-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile lowland · seed "0070-ne-m5yh9h" · 25 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0097"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0097"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0097"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0108"
+  ne: "0107"
+  nw: null
+  w: "0067"
+  sw: "0070"
+  se: "0098"
+
+default_terrain: ocean
+terrain:                     # subhex number -> terrain type (non-default only)
+  "001": plains
+  "002": mountains
+  "003": mountains
+  "004": mountains
+  "005": forest
+  "006": mountains
+  "007": mountains
+  "008": mountains
+  "009": mountains
+  "010": mountains
+  "011": mountains
+  "012": hills
+  "014": mountains
+  "015": mountains
+  "016": mountains
+  "017": mountains
+  "018": mountains
+  "019": mountains
+  "020": hills
+  "026": mountains
+  "027": mountains
+  "028": mountains
+  "029": mountains
+  "030": mountains
+  "031": mountains
+  "039": mountains
+  "040": mountains
+  "041": mountains
+  "042": mountains
+  "043": mountains
+  "044": mountains
+  "051": mountains
+  "052": mountains
+  "053": mountains
+  "054": mountains
+  "055": mountains
+  "056": mountains
+  "057": mountains
+  "063": mountains
+  "064": mountains
+  "065": mountains
+  "066": mountains
+  "067": mountains
+  "068": mountains
+  "069": mountains
+  "070": mountains
+  "076": mountains
+  "077": mountains
+  "078": mountains
+  "079": mountains
+  "080": mountains
+  "081": mountains
+  "082": mountains
+  "083": mountains
+  "085": mountains
+  "089": mountains
+  "090": mountains
+  "091": mountains
+  "092": mountains
+  "093": mountains
+  "094": mountains
+  "095": mountains
+  "096": mountains
+  "097": mountains
+  "101": mountains
+  "102": mountains
+  "103": mountains
+  "104": mountains
+  "105": mountains
+  "106": mountains
+  "107": mountains
+  "108": mountains
+  "109": mountains
+  "110": mountains
+  "115": mountains
+  "116": mountains
+  "117": mountains
+  "118": mountains
+  "119": mountains
+  "120": mountains
+  "121": mountains
+  "122": mountains
+  "128": mountains
+  "129": mountains
+  "130": mountains
+  "131": mountains
+  "132": mountains
+  "133": mountains
+  "134": mountains
+  "135": mountains
+  "139": mountains
+  "140": mountains
+  "141": mountains
+  "142": mountains
+  "143": mountains
+  "144": mountains
+  "145": mountains
+  "148": mountains
+  "149": mountains
+  "150": mountains
+  "151": mountains
+  "152": mountains
+  "155": mountains
+  "156": mountains
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

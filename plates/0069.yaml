@@ -1,0 +1,37 @@
+# Atlas plate 0069 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0069-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile coastal · seed "0063-ne-5a2xa5" · 36 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0069"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0069"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0069"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: null
+  ne: null
+  nw: null
+  w: "0068"
+  sw: "0063"
+  se: "0064"
+
+default_terrain: ocean
+fill: ocean
+depth: shelf
+terrain:                     # subhex number -> terrain type (non-default only)
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

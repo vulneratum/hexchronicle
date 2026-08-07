@@ -25,8 +25,8 @@ neighbors:
   ne: "0008"
   nw: "0011"
   w: null
-  sw: null
-  se: null
+  sw: "0131"
+  se: "0130"
 
 default_terrain: plains
 terrain:                     # subhex number -> terrain type (non-default only)

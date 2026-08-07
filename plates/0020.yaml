@@ -152,6 +152,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "133": forest
   "134": forest
   "135": forest
+  "137": forest
   "139": forest
   "140": forest
   "141": forest

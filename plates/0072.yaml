@@ -1,0 +1,35 @@
+# Atlas plate 0072 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0072-NNN.yaml.
+#
+# Created as a full-ocean plate (WORLDGEN §4-B): no interior was rolled,
+# every subhex is the default terrain, and depth/current are recorded
+# below instead of 157 near-identical subhex records.
+
+id: "0072"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0072"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0072"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0100"
+  ne: "0071"
+  nw: "0058"
+  w: "0059"
+  sw: "0073"
+  se: "0074"
+
+default_terrain: ocean
+fill: ocean
+depth: shelf
+terrain:                     # subhex number -> terrain type (non-default only)
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

@@ -30,34 +30,37 @@ neighbors:
 
 default_terrain: plains
 terrain:                     # subhex number -> terrain type (non-default only)
-  "005": water
-  "007": water
-  "008": water
-  "010": water
-  "011": water
+  "004": forest
+  "005": forest
+  "007": forest
+  "008": forest
+  "009": forest
+  "010": forest
+  "011": forest
   "014": forest
-  "015": water
-  "016": water
-  "017": water
-  "018": water
+  "015": forest
+  "016": forest
+  "017": forest
+  "018": forest
   "019": water
+  "020": forest
   "022": forest
-  "024": forest
+  "024": water
   "025": water
   "026": water
-  "027": water
-  "028": water
+  "027": forest
+  "028": forest
   "029": water
   "030": water
   "033": forest
   "034": forest
   "035": forest
-  "036": forest
+  "036": water
   "037": water
   "038": water
   "039": water
-  "040": water
-  "041": water
+  "040": forest
+  "041": forest
   "042": water
   "043": water
   "045": forest
@@ -129,31 +132,22 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "124": water
   "125": water
   "126": water
-  "127": water
-  "129": water
   "130": water
   "131": water
   "132": water
+  "133": water
   "135": forest
   "136": water
   "137": water
   "138": water
-  "139": water
-  "140": water
-  "141": water
   "142": water
   "143": water
   "144": water
   "145": water
   "146": water
-  "147": water
-  "148": water
-  "149": water
   "150": water
   "151": water
   "152": water
-  "153": water
-  "154": water
   "155": water
   "156": water
   "157": water

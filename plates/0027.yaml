@@ -37,7 +37,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "007": swamp
   "008": plains
   "012": plains
-  "013": water
+  "013": ocean
   "014": swamp
   "015": swamp
   "016": plains
@@ -54,7 +54,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "032": plains
   "033": plains
   "034": plains
-  "035": water
+  "035": ocean
   "036": plains
   "037": plains
   "038": plains
@@ -79,7 +79,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "057": plains
   "058": plains
   "059": plains
-  "060": water
+  "060": ocean
   "062": plains
   "063": plains
   "064": plains
@@ -90,7 +90,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "069": plains
   "070": plains
   "071": plains
-  "072": water
+  "072": ocean
   "075": plains
   "076": plains
   "077": plains
@@ -100,36 +100,36 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "081": plains
   "082": plains
   "083": plains
-  "084": water
-  "085": water
+  "084": ocean
+  "085": ocean
   "091": swamp
   "092": swamp
   "093": plains
   "094": plains
   "095": plains
-  "096": water
-  "097": water
+  "096": ocean
+  "097": ocean
   "106": plains
   "107": plains
-  "108": water
-  "109": water
-  "110": water
+  "108": ocean
+  "109": ocean
+  "110": ocean
   "118": plains
   "119": plains
-  "120": water
-  "121": water
-  "122": water
+  "120": ocean
+  "121": ocean
+  "122": ocean
   "131": plains
-  "132": water
-  "133": water
-  "134": water
-  "135": water
+  "132": ocean
+  "133": ocean
+  "134": ocean
+  "135": ocean
   "142": plains
   "143": plains
-  "144": water
-  "145": water
+  "144": ocean
+  "145": ocean
   "151": plains
-  "152": water
+  "152": ocean
   "156": plains
 
 # Line features (README §4): paths crossing subhexes, not per-hex fills.

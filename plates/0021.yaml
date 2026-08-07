@@ -21,12 +21,12 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
+  e: "0090"
   ne: "0022"
   nw: "0020"
   w: "0017"
   sw: "0019"
-  se: null
+  se: "0092"
 
 default_terrain: plains
 terrain:                     # subhex number -> terrain type (non-default only)

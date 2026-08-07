@@ -1,0 +1,175 @@
+# Atlas plate 0054 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0054-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile coastal · seed "0045-ne-hq5dii" · 36 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0054"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0054"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0054"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0057"
+  ne: "0056"
+  nw: "0055"
+  w: "0049"
+  sw: "0045"
+  se: "0053"
+
+default_terrain: hills
+terrain:                     # subhex number -> terrain type (non-default only)
+  "001": scrub
+  "002": ocean
+  "003": scrub
+  "004": scrub
+  "005": scrub
+  "006": ocean
+  "007": ocean
+  "008": ocean
+  "009": scrub
+  "010": scrub
+  "011": scrub
+  "012": scrub
+  "013": ocean
+  "014": ocean
+  "015": ocean
+  "016": ocean
+  "017": ocean
+  "018": ocean
+  "019": scrub
+  "020": scrub
+  "021": scrub
+  "022": scrub
+  "024": ocean
+  "025": ocean
+  "026": ocean
+  "027": ocean
+  "028": ocean
+  "029": ocean
+  "030": ocean
+  "031": scrub
+  "032": scrub
+  "033": scrub
+  "034": scrub
+  "035": scrub
+  "036": ocean
+  "037": ocean
+  "038": ocean
+  "039": ocean
+  "040": ocean
+  "041": ocean
+  "042": ocean
+  "043": ocean
+  "044": ocean
+  "045": scrub
+  "046": scrub
+  "047": scrub
+  "049": ocean
+  "050": ocean
+  "051": ocean
+  "052": ocean
+  "053": ocean
+  "054": ocean
+  "055": ocean
+  "056": ocean
+  "057": ocean
+  "058": scrub
+  "059": scrub
+  "060": scrub
+  "061": ocean
+  "062": ocean
+  "063": ocean
+  "064": ocean
+  "065": ocean
+  "066": ocean
+  "067": ocean
+  "068": ocean
+  "069": ocean
+  "070": ocean
+  "071": scrub
+  "072": scrub
+  "074": ocean
+  "075": ocean
+  "076": ocean
+  "077": ocean
+  "078": ocean
+  "079": ocean
+  "080": ocean
+  "081": ocean
+  "082": ocean
+  "083": ocean
+  "084": scrub
+  "085": scrub
+  "086": ocean
+  "087": ocean
+  "088": ocean
+  "089": ocean
+  "090": ocean
+  "091": ocean
+  "092": ocean
+  "093": ocean
+  "094": ocean
+  "095": ocean
+  "096": scrub
+  "097": scrub
+  "099": ocean
+  "100": ocean
+  "101": ocean
+  "102": ocean
+  "103": ocean
+  "104": ocean
+  "105": ocean
+  "106": ocean
+  "107": ocean
+  "108": plains
+  "109": scrub
+  "110": scrub
+  "111": ocean
+  "112": ocean
+  "113": ocean
+  "114": ocean
+  "115": ocean
+  "116": ocean
+  "117": ocean
+  "118": ocean
+  "119": ocean
+  "120": ocean
+  "121": plains
+  "122": scrub
+  "124": ocean
+  "125": ocean
+  "126": ocean
+  "127": ocean
+  "128": ocean
+  "129": ocean
+  "130": ocean
+  "131": ocean
+  "132": plains
+  "133": scrub
+  "134": scrub
+  "137": ocean
+  "138": ocean
+  "139": ocean
+  "140": ocean
+  "142": plains
+  "143": plains
+  "144": plains
+  "147": swamp
+  "148": swamp
+  "154": swamp
+  "155": swamp
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

@@ -28,56 +28,57 @@ neighbors:
 
 default_terrain: forest
 terrain:                     # subhex number -> terrain type (non-default only)
+  "001": ocean
   "002": hills
   "003": hills
-  "004": water
-  "005": water
+  "004": ocean
+  "005": ocean
   "006": swamp
   "007": hills
   "008": hills
-  "009": water
-  "010": water
-  "011": water
-  "012": water
+  "009": ocean
+  "010": ocean
+  "011": ocean
+  "012": ocean
   "013": hills
   "015": hills
   "016": hills
   "017": hills
-  "018": water
-  "019": water
-  "020": water
-  "021": water
-  "022": water
+  "018": ocean
+  "019": ocean
+  "020": ocean
+  "021": ocean
+  "022": ocean
   "024": hills
   "025": hills
   "026": hills
   "027": hills
   "028": hills
-  "029": water
-  "030": water
-  "031": water
-  "032": water
-  "033": water
-  "034": water
+  "029": ocean
+  "030": ocean
+  "031": ocean
+  "032": ocean
+  "033": ocean
+  "034": ocean
   "037": hills
   "038": hills
   "039": hills
   "040": hills
   "041": hills
-  "042": water
-  "043": water
-  "044": water
-  "045": water
-  "046": water
+  "042": ocean
+  "043": ocean
+  "044": ocean
+  "045": ocean
+  "046": ocean
   "049": hills
   "050": hills
   "051": hills
   "052": hills
   "053": hills
   "054": hills
-  "055": water
-  "056": water
-  "057": water
+  "055": ocean
+  "056": ocean
+  "057": ocean
   "058": plains
   "059": plains
   "062": hills
@@ -86,8 +87,8 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "065": hills
   "066": hills
   "067": hills
-  "068": water
-  "069": water
+  "068": ocean
+  "069": ocean
   "070": plains
   "071": plains
   "072": plains
@@ -98,8 +99,8 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "078": hills
   "079": hills
   "080": hills
-  "081": water
-  "082": water
+  "081": ocean
+  "082": ocean
   "083": plains
   "084": plains
   "087": hills
@@ -109,7 +110,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "091": hills
   "092": hills
   "093": hills
-  "094": water
+  "094": ocean
   "095": plains
   "096": plains
   "097": plains
@@ -121,7 +122,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "104": hills
   "105": hills
   "106": hills
-  "107": water
+  "107": hills
   "108": plains
   "109": plains
   "112": hills
@@ -132,7 +133,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "117": hills
   "118": hills
   "119": hills
-  "120": water
+  "120": hills
   "121": plains
   "122": plains
   "124": hills
@@ -143,7 +144,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "129": hills
   "130": hills
   "131": hills
-  "132": water
+  "132": hills
   "133": plains
   "134": plains
   "135": plains
@@ -155,7 +156,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "141": hills
   "142": hills
   "143": hills
-  "144": water
+  "144": hills
   "145": plains
   "146": hills
   "147": hills
@@ -163,11 +164,8 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "149": hills
   "150": hills
   "151": hills
-  "152": water
   "153": hills
   "154": hills
-  "155": hills
-  "157": hills
 
 # Line features (README §4): paths crossing subhexes, not per-hex fills.
 lines:
@@ -179,3 +177,5 @@ lines:
     path: ["067", "080", "093"]
   - type: road
     path: ["081", "093", "106", "118", "117"]
+  - type: river
+    path: ["152", "143", "132", "119", "107", "094"]

@@ -32,40 +32,40 @@ default_terrain: forest
 terrain:                     # subhex number -> terrain type (non-default only)
   "005": plains
   "011": plains
-  "012": water
+  "012": ocean
   "020": plains
-  "021": water
-  "022": water
+  "021": ocean
+  "022": ocean
   "031": plains
   "032": plains
-  "033": water
-  "034": water
-  "035": water
+  "033": ocean
+  "034": ocean
+  "035": ocean
   "044": plains
-  "045": water
-  "046": water
-  "047": water
+  "045": ocean
+  "046": ocean
+  "047": ocean
   "057": plains
-  "058": water
-  "059": water
-  "060": water
+  "058": ocean
+  "059": ocean
+  "060": ocean
   "070": plains
-  "071": water
-  "072": water
+  "071": ocean
+  "072": ocean
   "082": plains
   "083": plains
-  "084": water
-  "085": water
+  "084": ocean
+  "085": ocean
   "095": plains
-  "096": water
-  "097": water
+  "096": ocean
+  "097": ocean
   "108": plains
-  "109": water
-  "110": water
+  "109": ocean
+  "110": ocean
   "121": plains
-  "122": water
+  "122": ocean
   "133": plains
-  "134": water
+  "134": ocean
   "144": water
 
 # Line features (README §4): paths crossing subhexes, not per-hex fills.

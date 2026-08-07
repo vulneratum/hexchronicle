@@ -25,30 +25,31 @@ neighbors:
   ne: "0007"
   nw: "0008"
   w: "0012"
-  sw: null
-  se: null
+  sw: "0130"
+  se: "0129"
 
 default_terrain: plains
 terrain:                     # subhex number -> terrain type (non-default only)
-  "003": water
-  "004": water
+  "003": hills
+  "004": hills
+  "007": hills
   "008": hills
-  "009": water
-  "010": water
-  "011": water
+  "009": hills
+  "010": hills
+  "011": hills
   "016": hills
   "017": hills
   "018": hills
   "019": hills
-  "020": water
-  "021": water
+  "020": hills
+  "021": hills
   "027": hills
   "028": hills
   "030": hills
   "031": hills
   "032": hills
-  "033": water
-  "034": water
+  "033": hills
+  "034": hills
   "038": forest
   "039": forest
   "043": hills

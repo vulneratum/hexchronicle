@@ -21,7 +21,7 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
+  e: "0052"
   ne: "0044"
   nw: "0005"
   w: "0004"
@@ -30,27 +30,94 @@ neighbors:
 
 default_terrain: water
 terrain:                     # subhex number -> terrain type (non-default only)
-  "022": forest
+  "003": ocean
+  "004": ocean
+  "005": ocean
+  "007": ocean
+  "008": ocean
+  "009": ocean
+  "010": ocean
+  "011": ocean
+  "012": ocean
+  "014": ocean
+  "015": ocean
+  "016": ocean
+  "017": ocean
+  "018": ocean
+  "019": ocean
+  "020": ocean
+  "021": ocean
+  "022": ocean
+  "024": ocean
+  "025": ocean
+  "026": ocean
+  "027": ocean
+  "028": ocean
+  "029": ocean
+  "030": ocean
+  "031": ocean
+  "032": ocean
+  "033": ocean
   "034": forest
-  "035": forest
+  "035": scrub
+  "036": ocean
+  "037": ocean
+  "038": ocean
+  "039": ocean
+  "040": ocean
+  "041": ocean
+  "042": ocean
+  "043": ocean
+  "044": ocean
+  "045": ocean
   "046": forest
   "047": forest
   "049": plains
   "050": forest
+  "051": ocean
+  "052": ocean
+  "053": ocean
+  "054": ocean
+  "055": ocean
+  "056": ocean
+  "057": ocean
+  "058": ocean
   "059": forest
   "060": forest
   "061": forest
   "062": forest
-  "071": forest
+  "063": ocean
+  "064": ocean
+  "065": ocean
+  "066": ocean
+  "067": ocean
+  "068": ocean
+  "069": ocean
+  "070": ocean
+  "071": ocean
   "072": forest
   "074": forest
   "075": forest
-  "083": forest
+  "076": ocean
+  "077": ocean
+  "078": ocean
+  "079": ocean
+  "080": ocean
+  "081": ocean
+  "082": ocean
+  "083": ocean
   "084": forest
   "085": forest
   "086": forest
   "087": forest
   "088": forest
+  "089": ocean
+  "090": ocean
+  "091": ocean
+  "092": ocean
+  "093": ocean
+  "094": ocean
+  "095": ocean
   "096": forest
   "097": forest
   "099": forest
@@ -58,6 +125,9 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "101": forest
   "102": forest
   "103": forest
+  "104": ocean
+  "105": ocean
+  "106": ocean
   "107": forest
   "108": forest
   "109": forest
