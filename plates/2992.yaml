@@ -95,4 +95,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "145": hills
   "146": plains
 
-lines: []
+lines:
+  - type: stream
+    path: ["023", "036"]

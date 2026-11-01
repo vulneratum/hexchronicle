@@ -12,12 +12,12 @@ summary: "Open sea."
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
+  e: "5135"
   ne: "3124"
   nw: "3123"
   w: "3250"
-  sw: null
-  se: null
+  sw: "5123"
+  se: "5124"
 
 default_terrain: ocean
 terrain:                     # subhex number -> terrain type (non-default only)

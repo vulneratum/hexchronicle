@@ -21,23 +21,18 @@ neighbors:
 
 default_terrain: ocean
 terrain:                     # subhex number -> terrain type (non-default only)
-  "001": plains
   "004": plains
-  "005": forest
   "010": forest
   "011": forest
-  "012": forest
   "019": forest
   "020": forest
   "021": forest
-  "022": forest
   "029": plains
   "030": forest
   "031": forest
   "032": forest
   "033": forest
   "034": forest
-  "035": plains
   "042": plains
   "043": forest
   "044": forest
@@ -86,9 +81,5 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "128": plains
   "129": plains
   "130": plains
-  "131": plains
-  "151": plains
-  "152": plains
-  "156": plains
 
 lines: []

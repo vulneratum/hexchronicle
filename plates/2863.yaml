@@ -21,12 +21,9 @@ neighbors:
 
 default_terrain: ocean
 terrain:                     # subhex number -> terrain type (non-default only)
-  "013": plains
-  "023": plains
   "024": plains
   "036": plains
   "037": hills
-  "048": plains
   "049": hills
   "050": hills
   "051": hills
@@ -35,7 +32,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "063": hills
   "064": hills
   "065": hills
-  "073": hills
   "074": plains
   "075": plains
   "076": plains
@@ -47,7 +43,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "089": plains
   "090": hills
   "091": hills
-  "098": hills
   "099": hills
   "100": hills
   "101": plains
@@ -61,7 +56,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "115": hills
   "116": hills
   "117": hills
-  "123": hills
   "124": hills
   "125": hills
   "126": plains
@@ -75,5 +69,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "140": hills
   "146": hills
   "147": hills
+  "154": hills
 
 lines: []

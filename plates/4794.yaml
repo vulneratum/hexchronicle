@@ -21,7 +21,8 @@ neighbors:
 
 default_terrain: plains
 terrain:                     # subhex number -> terrain type (non-default only)
-  "012": ocean
+  "011": ocean
+  "019": ocean
   "020": ocean
   "021": ocean
   "030": ocean

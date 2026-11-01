@@ -15,9 +15,9 @@ neighbors:
   e: "3373"
   ne: "3249"
   nw: "3248"
-  w: null
-  sw: null
-  se: null
+  w: "5111"
+  sw: "5113"
+  se: "5115"
 
 default_terrain: ocean
 terrain:                     # subhex number -> terrain type (non-default only)

@@ -21,21 +21,17 @@ neighbors:
 
 default_terrain: plains
 terrain:                     # subhex number -> terrain type (non-default only)
-  "001": forest
   "003": forest
   "004": forest
-  "005": forest
   "007": forest
   "008": forest
   "009": forest
   "010": forest
-  "013": ocean
   "014": ocean
   "016": forest
   "017": forest
   "018": forest
   "019": forest
-  "023": ocean
   "024": ocean
   "025": ocean
   "027": forest
@@ -49,7 +45,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "041": forest
   "042": forest
   "043": forest
-  "048": ocean
   "049": ocean
   "050": ocean
   "051": ocean
@@ -63,7 +58,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "066": forest
   "067": forest
   "068": forest
-  "073": ocean
   "074": ocean
   "075": ocean
   "076": ocean
@@ -76,7 +70,6 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "089": ocean
   "090": ocean
   "092": forest
-  "098": ocean
   "099": ocean
   "100": ocean
   "101": ocean
@@ -91,6 +84,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "125": ocean
   "126": ocean
   "127": ocean
+  "136": ocean
   "137": ocean
   "138": ocean
   "146": ocean
