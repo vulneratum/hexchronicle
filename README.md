@@ -218,6 +218,9 @@ and `theme/` — never chronicle, world state, or sessions).
   connected network of that category (a river with its tributaries and
   streams). Plates the line runs into are loaded first, because a plate's lines
   are replaced whole on save. "Restore last erase" undoes it until you Save.
+- **Landmark** feature (theme/terrain.yaml, drawn in shared/plate-draw.js): a
+  tall black spire for lighthouses, wizards' towers, pylons and tower dungeons,
+  labelled with its name like a town.
 - **Survey data** (elevation, rainfall, mean temperature) appears read-only in
   the Metadata panel. It lives in `world/physical/survey/`, outside the guard's
   write scope.

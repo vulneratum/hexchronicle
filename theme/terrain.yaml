@@ -52,6 +52,7 @@ features:
   ruin:    { label: "Ruins" }
   lair:    { label: "Monster lair" }
   burned:  { label: "Burned settlement" }
+  landmark: { label: "Landmark" }   # lighthouses, wizards' towers, pylons, tower dungeons
 
 # Line-feature types (README §3, §4) — path data crossing subhexes, not fills.
 # `category` groups grades for the editor (water | road); style drives rendering.
