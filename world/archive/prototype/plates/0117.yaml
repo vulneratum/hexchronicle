@@ -1,0 +1,105 @@
+# Atlas plate 0117 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0117-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile lowland · seed "0116-ne-9nklkb" · 36 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0117"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0117"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0117"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: null
+  ne: "0118"
+  nw: "0113"
+  w: "0114"
+  sw: "0116"
+  se: null
+
+default_terrain: plains
+terrain:                     # subhex number -> terrain type (non-default only)
+  "003": forest
+  "004": hills
+  "005": hills
+  "010": hills
+  "011": hills
+  "012": hills
+  "036": hills
+  "049": hills
+  "050": forest
+  "051": forest
+  "060": forest
+  "061": forest
+  "063": forest
+  "064": forest
+  "065": water
+  "066": water
+  "067": water
+  "068": water
+  "069": forest
+  "070": forest
+  "071": forest
+  "072": forest
+  "076": water
+  "077": water
+  "078": water
+  "079": water
+  "080": water
+  "082": forest
+  "083": forest
+  "084": forest
+  "085": forest
+  "089": water
+  "090": water
+  "091": water
+  "092": water
+  "096": hills
+  "097": forest
+  "102": water
+  "103": water
+  "104": water
+  "108": hills
+  "109": hills
+  "110": forest
+  "114": water
+  "115": water
+  "116": water
+  "117": water
+  "120": hills
+  "121": hills
+  "122": hills
+  "125": hills
+  "126": hills
+  "127": water
+  "128": water
+  "129": water
+  "133": hills
+  "134": hills
+  "135": hills
+  "137": hills
+  "138": hills
+  "139": hills
+  "140": water
+  "145": hills
+  "147": hills
+  "148": forest
+  "149": forest
+  "150": forest
+  "154": forest
+  "155": forest
+  "156": forest
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

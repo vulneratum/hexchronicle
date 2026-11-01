@@ -1,0 +1,79 @@
+# Atlas plate 0105 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0105-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile lowland · seed "0104-se-wkv059" · 25 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0105"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0105"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0105"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0120"
+  ne: "0119"
+  nw: "0104"
+  w: "0083"
+  sw: "0106"
+  se: "0121"
+
+default_terrain: plains
+terrain:                     # subhex number -> terrain type (non-default only)
+  "012": swamp
+  "014": ocean
+  "018": swamp
+  "019": swamp
+  "020": swamp
+  "021": swamp
+  "024": ocean
+  "025": ocean
+  "029": swamp
+  "036": ocean
+  "037": ocean
+  "038": ocean
+  "049": ocean
+  "050": ocean
+  "051": ocean
+  "061": ocean
+  "062": ocean
+  "063": ocean
+  "074": ocean
+  "075": ocean
+  "076": ocean
+  "086": ocean
+  "087": ocean
+  "088": ocean
+  "099": ocean
+  "100": ocean
+  "102": water
+  "111": ocean
+  "112": ocean
+  "113": ocean
+  "124": ocean
+  "125": ocean
+  "126": ocean
+  "136": ocean
+  "137": ocean
+  "138": ocean
+  "139": ocean
+  "146": ocean
+  "147": ocean
+  "148": ocean
+  "153": ocean
+  "154": ocean
+  "155": hills
+  "157": ocean
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

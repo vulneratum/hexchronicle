@@ -1,0 +1,6 @@
+{
+  "about": "World Forge recipe for the live map. tools/forge-export.js rebuilds the world from this exactly.",
+  "west": { "seed": "amber-fjord-7", "land": 38, "plates": 18, "mtn": 1, "coast": 1.2, "erosion": 30, "sea": 1, "lakes": 1, "wet": 1 },
+  "east": { "seed": "iron-weald-12", "areaSqMi": 3933000, "plates": 40, "mtn": 1, "coast": 1.2, "erosion": 30, "sea": 1, "lakes": 1, "wet": 1 },
+  "lines": { "minBasinSqMi": 1500, "riverRatio": 5 }
+}

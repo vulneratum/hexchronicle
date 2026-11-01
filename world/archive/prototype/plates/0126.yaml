@@ -1,0 +1,56 @@
+# Atlas plate 0126 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0126-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile lowland · seed "0106-se-8m07xm" · 47 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0126"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0126"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0126"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0125"
+  ne: "0121"
+  nw: "0106"
+  w: "0082"
+  sw: "0141"
+  se: "0142"
+
+default_terrain: plains
+terrain:                     # subhex number -> terrain type (non-default only)
+  "003": ocean
+  "004": ocean
+  "007": ocean
+  "008": ocean
+  "009": ocean
+  "010": ocean
+  "011": ocean
+  "015": ocean
+  "016": ocean
+  "017": ocean
+  "018": ocean
+  "019": ocean
+  "020": ocean
+  "021": ocean
+  "027": ocean
+  "028": ocean
+  "029": ocean
+  "033": ocean
+  "034": ocean
+  "134": forest
+  "156": forest
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:
