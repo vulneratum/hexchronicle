@@ -3,12 +3,10 @@
 
 id: "2863"
 continent_hex: 22            # the 432-mile hex this plate sits within
-name: null
-canton: null
-realm: null
-title: null
+title: "Kingsreach Lighthouse"
 scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
-summary: "Surveyed western continent ground; no account of it has been written yet."
+summary: >
+  Surveyed western continent ground; no account of it has been written yet.
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
@@ -66,9 +64,7 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "137": hills
   "138": hills
   "139": hills
-  "140": hills
   "146": hills
-  "147": hills
   "154": hills
 
 lines: []
