@@ -21,6 +21,7 @@ const jsyaml = require("js-yaml");
 const guard = require("./guard.js");
 const yamlIo = require("./yaml-io.js");
 const plateGen = require("./plate-gen.js");
+const oceanFill = require("./ocean-fill.js");
 const HexGeo = require("../shared/geometry.js");
 
 const ROOT = guard.REPO_ROOT;
@@ -428,6 +429,7 @@ function buildAtlas(originId) {
       continent_hex: doc.continent_hex != null ? doc.continent_hex : null,
       coord: coord.get(id),
       default_terrain: doc.default_terrain,
+      fill: doc.fill || null,
     });
   }
 
@@ -475,6 +477,11 @@ function plateDetail(id) {
     continent_hex: doc.continent_hex != null ? doc.continent_hex : null,
     scale_label: doc.scale_label || null,
     default_terrain: doc.default_terrain,
+    // Compact-ocean block (WORLDGEN §4-B), editable via PUT .../fill — never
+    // written by the terrain or meta endpoints.
+    fill: doc.fill || null,
+    depth: doc.depth || null,
+    current: doc.current || null,
     // RESOLVED, and complete: a borrowed seam position carries the owner's
     // terrain, so this plate can never disagree with its neighbour about a hex
     terrain: resolvedTerrain(id, own, terrainReader()),
@@ -484,12 +491,45 @@ function plateDetail(id) {
   };
 }
 
+/* ---------- neighbour terrain, read-only, shared by create + convert ---------- */
+/*
+ * The border sample used two ways: as fixed cells so a generated plate's edge
+ * blends into whatever is already there, and as the input to the ocean-
+ * enclosure check (editor/ocean-fill.js) — does ANY neighbour show water along
+ * the shared edge? Always computed, cheap and read-only, so the enclosure
+ * check works whether or not the caller asked for terrain blending.
+ */
+function neighborBorderSeeds(hexes, adjacency) {
+  const terrainByDir = {};
+  for (const [d, nid] of Object.entries(adjacency)) {
+    const np = readYaml(`plates/${nid}.yaml`);
+    const full = {};
+    for (const h of hexes) full[h.sub] = np.default_terrain;
+    for (const [sub, t] of Object.entries(np.terrain || {})) full[sub] = t;
+    terrainByDir[d] = full;
+  }
+  return plateGen.computeEdgeSeeds(hexes, terrainByDir);
+}
+
+/* An EXISTING plate's adjacency, from its own declared neighbours — filtered
+ * to links that actually resolve, same caution buildAtlas applies to dangling
+ * links from hand-edited YAML. */
+function adjacencyOf(plateId) {
+  const doc = readYaml(`plates/${plateId}.yaml`);
+  const adjacency = {};
+  for (const [d, nid] of Object.entries(doc.neighbors || {})) {
+    if (nid && fs.existsSync(R(`plates/${nid}.yaml`))) adjacency[d] = nid;
+  }
+  return adjacency;
+}
+
 /* ---------- write op: create a plate (Phase 3), guarded ---------- */
 /*
  * Creates ONE new file. The only thing it writes to an existing plate is a
  * single line in that plate's `neighbors:` block — never a subhex, never a
  * line feature, never prose. Neighbouring terrain is read as a boundary
- * condition for generation and is never written back.
+ * condition for generation (or for the ocean-enclosure check) and is never
+ * written back.
  */
 function planPlate(body) {
   const fromId = String(body.from || "");
@@ -514,29 +554,34 @@ function planPlate(body) {
 
   const theme = readYaml("theme/terrain.yaml");
   const hexes = HexGeo.buildPlateHexes();
+  const borderSeeds = neighborBorderSeeds(hexes, adjacency);
+  const id = nextPlateId();
 
-  // read neighbouring terrain — READ ONLY, purely as a boundary condition
-  let edgeSeeds = [];
-  if (body.blend !== false) {
-    const terrainByDir = {};
-    for (const [d, nid] of Object.entries(adjacency)) {
-      const np = readYaml(`plates/${nid}.yaml`);
-      const full = {};
-      for (const h of hexes) full[h.sub] = np.default_terrain;
-      for (const [sub, t] of Object.entries(np.terrain || {})) full[sub] = t;
-      terrainByDir[d] = full;
-    }
-    edgeSeeds = plateGen.computeEdgeSeeds(hexes, terrainByDir);
+  // CREATE AS FULL OCEAN — bypasses plate-gen.js entirely: uniform default
+  // terrain, no interior to roll, no border to blend (WORLDGEN §4-B).
+  if (body.fill === "ocean") {
+    if (!theme.types || !theme.types.ocean) throw new HttpError(400, `theme/terrain.yaml has no "ocean" type`);
+    let depth, current;
+    try {
+      depth = oceanFill.normalizeDepth(body.depth);
+      current = oceanFill.normalizeCurrent(body.current);
+    } catch (e) { throw new HttpError(400, e.message); }
+    return {
+      id, oceanFill: true, depth, current,
+      rolled: { defaultTerrain: "ocean", terrain: {}, counts: { ocean: hexes.length } },
+      edgeSeeds: [], adjacency, fromId, pos, coord, body, theme,
+      warning: oceanFill.enclosureWarning(theme, adjacency, borderSeeds),
+    };
   }
 
-  const id = nextPlateId();
   const seed = body.seed ? String(body.seed) : `${theme.world_seed || "hexchronicle"}:${id}`;
   const profile = body.profile || "lowland";
   if (!plateGen.PROFILES[profile]) throw new HttpError(400, `unknown profile "${profile}"`);
+  const edgeSeeds = body.blend !== false ? borderSeeds : [];
 
   const rolled = plateGen.generatePlate({ hexes, types: theme.types, profile, seed, edgeSeeds });
 
-  return { id, profile, seed, rolled, edgeSeeds, adjacency, fromId, pos, coord, body, theme };
+  return { id, profile, seed, rolled, edgeSeeds, adjacency, fromId, pos, coord, body, theme, warning: null };
 }
 
 /*
@@ -545,15 +590,24 @@ function planPlate(body) {
  */
 function previewPlate(body) {
   const plan = planPlate(body);
+  if (plan.oceanFill) {
+    return {
+      ok: true, preview: true, id: plan.id, fill: "ocean", depth: plan.depth, current: plan.current,
+      default_terrain: "ocean", terrain: {}, counts: plan.rolled.counts,
+      edge_seeds: 0, neighbors: plan.adjacency, warning: plan.warning,
+    };
+  }
   return {
     ok: true, preview: true, id: plan.id, profile: plan.profile, seed: plan.seed,
     default_terrain: plan.rolled.defaultTerrain, terrain: plan.rolled.terrain,
     counts: plan.rolled.counts, edge_seeds: plan.edgeSeeds.length, neighbors: plan.adjacency,
+    warning: plan.warning,
   };
 }
 
 function createPlate(body) {
-  const { id, profile, seed, rolled, edgeSeeds, adjacency, fromId, pos, coord } = planPlate(body);
+  const plan = planPlate(body);
+  const { id, adjacency, fromId, pos, coord } = plan;
 
   /*
    * A new plate has the highest id, so every seam position it shares with an
@@ -561,11 +615,13 @@ function createPlate(body) {
    * positions is right — they are a boundary condition for the blend — but
    * WRITING them would create stale entries on the day the plate is born. Drop
    * them: the plate shows its neighbour's hex there, which is the whole point.
+   * A full-ocean plate never rolls any terrain in the first place, so this is
+   * a no-op for it — `rolled.terrain` is already empty.
    */
   const lattice = Object.fromEntries([...coord, [id, pos]]);
   const own = HexGeo.plateOwnership(lattice);
   const terrain = {};
-  for (const [sub, t] of Object.entries(rolled.terrain)) {
+  for (const [sub, t] of Object.entries(plan.rolled.terrain)) {
     if (!own.isBorrowed(id, sub)) terrain[sub] = t;
   }
 
@@ -577,9 +633,14 @@ function createPlate(body) {
     canton: body.canton !== undefined ? body.canton : readYaml(`plates/${fromId}.yaml`).canton,
     realm: body.realm !== undefined ? body.realm : readYaml(`plates/${fromId}.yaml`).realm,
     summary: body.summary,
-    profile, seed, edgeSeeds: edgeSeeds.length,
+    profile: plan.oceanFill ? undefined : plan.profile,
+    seed: plan.oceanFill ? undefined : plan.seed,
+    edgeSeeds: plan.oceanFill ? 0 : plan.edgeSeeds.length,
     neighbors: adjacency,
-    default_terrain: rolled.defaultTerrain,
+    default_terrain: plan.rolled.defaultTerrain,
+    fill: plan.oceanFill ? "ocean" : null,
+    depth: plan.oceanFill ? plan.depth : null,
+    current: plan.oceanFill ? plan.current : null,
     terrain,
     eol: detectEol(),
   });
@@ -593,15 +654,69 @@ function createPlate(body) {
   }
 
   return {
-    ok: true, id, profile, seed,
-    default_terrain: rolled.defaultTerrain,
+    ok: true, id,
+    fill: plan.oceanFill ? "ocean" : undefined,
+    depth: plan.oceanFill ? plan.depth : undefined,
+    current: plan.oceanFill ? plan.current : undefined,
+    profile: plan.oceanFill ? undefined : plan.profile,
+    seed: plan.oceanFill ? undefined : plan.seed,
+    default_terrain: plan.rolled.defaultTerrain,
     overrides: Object.keys(terrain).length,
-    borrowed_skipped: Object.keys(rolled.terrain).length - Object.keys(terrain).length,
-    counts: rolled.counts,
-    edge_seeds: edgeSeeds.length,
+    borrowed_skipped: Object.keys(plan.rolled.terrain).length - Object.keys(terrain).length,
+    counts: plan.rolled.counts,
+    edge_seeds: plan.oceanFill ? 0 : plan.edgeSeeds.length,
     neighbors: adjacency,
     back_linked: linked,
+    warning: plan.warning,
   };
+}
+
+/* ---------- write op: compact-ocean block (convert / explode), guarded ---------- */
+/*
+ * `PUT /api/plate/:id/fill` owns exactly one thing: the `fill`/`depth`/
+ * `current` block (WORLDGEN §4-B). It never touches terrain — CONVERTING an
+ * existing plate to ocean or EXPLODING a compact one back to normal both
+ * change the terrain grid too, but that goes through the existing terrain
+ * endpoint the same way a paint stroke does, using the client's already-loaded
+ * plate state. This endpoint only ever writes the marker and its metadata.
+ */
+function savePlateFill(plateId, body) {
+  if (!fs.existsSync(R(`plates/${plateId}.yaml`))) throw new HttpError(404, `no such plate ${plateId}`);
+  guard.assertPlateFillAllowed(Object.keys(body));
+
+  let fill = null, depth = null, current = null, warning = null;
+  if (body.fill === "ocean") {
+    const theme = themeRegistry();
+    if (!theme.terrain.ocean) throw new HttpError(400, `theme/terrain.yaml has no "ocean" type`);
+    try {
+      depth = oceanFill.normalizeDepth(body.depth);
+      current = oceanFill.normalizeCurrent(body.current);
+    } catch (e) { throw new HttpError(400, e.message); }
+    fill = "ocean";
+    const hexes = HexGeo.buildPlateHexes();
+    const adjacency = adjacencyOf(plateId);
+    warning = oceanFill.enclosureWarning({ types: theme.terrain }, adjacency, neighborBorderSeeds(hexes, adjacency));
+  } else if (body.fill != null) {
+    throw new HttpError(400, `unknown fill "${body.fill}" (only "ocean" is supported — omit or send null to clear it)`);
+  }
+
+  const abs = guard.assertInScope(`plates/${plateId}.yaml`);   // structural boundary
+  yamlIo.writePlateFill(abs, { fill, depth, current });
+  return { ok: true, fill, depth, current, warning };
+}
+
+/*
+ * Read-only: the ocean-enclosure warning for an EXISTING plate, without
+ * writing anything. The editor calls this before showing the "convert to
+ * ocean" confirm dialog, same pattern as /api/plate/preview for creation.
+ */
+function checkOceanEnclosure(plateId) {
+  if (!fs.existsSync(R(`plates/${plateId}.yaml`))) throw new HttpError(404, `no such plate ${plateId}`);
+  const theme = themeRegistry();
+  const hexes = HexGeo.buildPlateHexes();
+  const adjacency = adjacencyOf(plateId);
+  const seeds = neighborBorderSeeds(hexes, adjacency);
+  return { warning: oceanFill.enclosureWarning({ types: theme.terrain }, adjacency, seeds) };
 }
 
 /* ---------- tiny http plumbing ---------- */
@@ -658,6 +773,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && (dm = /^\/api\/plate\/(\d{4})\/detail$/.exec(p))) {
       return send(res, 200, plateDetail(dm[1]));
     }
+    // API: ocean-enclosure warning for an EXISTING plate — read-only, checked
+    // before the editor shows a "convert to ocean" confirm dialog
+    if (req.method === "GET" && (dm = /^\/api\/plate\/(\d{4})\/ocean-check$/.exec(p))) {
+      return send(res, 200, checkOceanEnclosure(dm[1]));
+    }
 
     // API: mutating — require the token
     if (p.startsWith("/api/") && req.method !== "GET") {
@@ -678,6 +798,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "PUT" && (m = /^\/api\/plate\/(\d{4})\/meta$/.exec(p))) {
       const body = JSON.parse((await readBody(req)) || "{}");
       return send(res, 200, savePlateMeta(m[1], body));
+    }
+    // API: PUT /api/plate/:id/fill — the compact-ocean block, never the terrain grid
+    if (req.method === "PUT" && (m = /^\/api\/plate\/(\d{4})\/fill$/.exec(p))) {
+      const body = JSON.parse((await readBody(req)) || "{}");
+      return send(res, 200, savePlateFill(m[1], body));
     }
     // API: PUT /api/hex/:plateId/:sub — one hex file's MAP fields (never story)
     if (req.method === "PUT" && (m = /^\/api\/hex\/(\d{4})\/(\d{3})$/.exec(p))) {
