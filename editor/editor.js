@@ -137,10 +137,12 @@
       continent_hex: d.continent_hex, scale_label: d.scale_label || null,
       defaultTerrain: d.default_terrain,
       terrain,
+      // compact-ocean block (WORLDGEN §4-B) — null unless this plate is one
+      fill: d.fill || null, depth: d.depth || null, current: d.current || null,
       lines: (d.lines || []).map(l => ({ type: l.type, path: l.path.slice() })),
       hexes: d.hexes || {},
       survey: d.survey || null,           // read-only: world/physical/survey/
-      dirtyTerrain: false, dirtyLines: false, dirtyMeta: false,
+      dirtyTerrain: false, dirtyLines: false, dirtyMeta: false, dirtyFill: false,
       dirtyHexes: new Set(),
     };
   }
@@ -663,6 +665,7 @@
     if (!st) return;
     $("plateWho").textContent = `36-mile hex ${st.id}`;
     for (const [elId, key] of PLATE_FIELDS) $(elId).value = st[key] == null ? "" : st[key];
+    renderOceanPanel(st);
   }
   function wirePlatePanel() {
     for (const [elId, key] of PLATE_FIELDS) {
@@ -678,6 +681,131 @@
         // them repaints nothing on the canvas.
       });
     }
+    wireOceanPanel();
+  }
+
+  /* ============================================================= *
+   * Compact ocean plates (WORLDGEN §4-B) — convert / explode, both ways
+   *
+   * CONVERT (a normal plate -> full ocean) is the destructive direction: any
+   * painted terrain this plate owns is discarded, replaced by pure ocean. It
+   * goes through the same setTerrainAt() path a paint stroke does, so seam
+   * sharers repaint too, and through the normal dirty/Save flow.
+   *
+   * EXPLODE (a compact ocean plate -> a normal one) removes the fill/depth/
+   * current marker AND resets any sparse overrides (a hand-painted islet or
+   * wreck) back to the default, so it always hands back a guaranteed-blank,
+   * fully paintable canvas — never a plate that is secretly still "the ocean
+   * plate" with leftover paint fighting whatever you draw next. If you don't
+   * want to lose an islet you already painted, don't explode: painting
+   * directly onto a fill:ocean plate is supported without exploding first.
+   * ============================================================= */
+  const CURRENT_DIRS = ["e", "ne", "nw", "w", "sw", "se"];
+  function buildDirOptions(sel) {
+    sel.textContent = "";
+    for (const d of CURRENT_DIRS) {
+      const o = document.createElement("option");
+      o.value = d; o.textContent = DIR_NAME[d];
+      sel.appendChild(o);
+    }
+  }
+
+  /* count of this plate's OWNED, non-default subhexes — what a convert or an
+   * explode is about to discard */
+  function ownedOverrideCount(st) {
+    let n = 0;
+    for (const h of geo) {
+      if (atlas.own.isBorrowed(st.id, h.sub)) continue;
+      if (st.terrain[h.sub] !== st.defaultTerrain) n++;
+    }
+    return n;
+  }
+
+  function renderOceanPanel(st) {
+    const isOcean = st.fill === "ocean";
+    $("oceanTag").textContent = isOcean ? "ocean" : "off";
+    $("oceanOff").hidden = isOcean;
+    $("oceanOn").hidden = !isOcean;
+    if (!isOcean) return;
+    $("oceanDepth").value = st.depth || "shelf";
+    const hasCurrent = !!st.current;
+    $("oceanCurrentOn").checked = hasCurrent;
+    $("oceanCurrentFields").hidden = !hasCurrent;
+    if (hasCurrent) {
+      $("oceanCurrentDir").value = st.current.direction;
+      $("oceanCurrentTemp").value = st.current.temperature;
+    }
+  }
+
+  function oceanMetaEdit(mutate) {
+    const st = selected && plateState.get(selected.plateId);
+    if (!st) return;
+    mutate(st);
+    markDirty(st.id, "dirtyFill");
+  }
+
+  function wireOceanPanel() {
+    buildDirOptions($("oceanCurrentDir"));
+    $("convertOcean").addEventListener("click", convertToOcean);
+    $("explodeOcean").addEventListener("click", explodeOcean);
+    $("oceanDepth").addEventListener("change", () => oceanMetaEdit(st => { st.depth = $("oceanDepth").value; }));
+    $("oceanCurrentOn").addEventListener("change", () => {
+      const on = $("oceanCurrentOn").checked;
+      $("oceanCurrentFields").hidden = !on;
+      oceanMetaEdit(st => {
+        st.current = on ? { direction: $("oceanCurrentDir").value, temperature: $("oceanCurrentTemp").value } : null;
+      });
+    });
+    $("oceanCurrentDir").addEventListener("change", () => oceanMetaEdit(st => { if (st.current) st.current.direction = $("oceanCurrentDir").value; }));
+    $("oceanCurrentTemp").addEventListener("change", () => oceanMetaEdit(st => { if (st.current) st.current.temperature = $("oceanCurrentTemp").value; }));
+  }
+
+  async function convertToOcean() {
+    const st = selected && plateState.get(selected.plateId);
+    if (!st) return;
+    const overrides = ownedOverrideCount(st);
+    let warning = null;
+    try { warning = (await getJSON(`/api/plate/${st.id}/ocean-check`)).warning; } catch { /* best-effort */ }
+
+    const parts = [overrides
+      ? `Converting plate ${st.id} to full ocean discards ${overrides} painted subhex override(s) — the whole interior becomes ocean.`
+      : `Plate ${st.id} becomes a compact full-ocean plate.`];
+    if (warning) parts.push(warning);
+    if (!confirm(parts.join("\n\n") + "\n\nContinue?")) return;
+
+    for (const h of geo) {
+      if (atlas.own.isBorrowed(st.id, h.sub)) continue;
+      setTerrainAt(st.id, h.sub, "ocean");
+    }
+    st.defaultTerrain = "ocean";
+    st.fill = "ocean";
+    st.depth = st.depth || "shelf";
+    markDirty(st.id, "dirtyTerrain");
+    markDirty(st.id, "dirtyFill");
+    flushTerrainRebuilds();
+    renderPlatePanel();
+    setStatus(`plate ${st.id} set to full ocean — Save to write it`, "ok");
+  }
+
+  function explodeOcean() {
+    const st = selected && plateState.get(selected.plateId);
+    if (!st) return;
+    const overrides = ownedOverrideCount(st);
+    const msg = overrides
+      ? `Exploding plate ${st.id} clears ${overrides} painted subhex(es) (any islet or wreck) and makes it a normal, fully paintable plate.`
+      : `Plate ${st.id} becomes a normal, fully paintable plate.`;
+    if (!confirm(msg + "\n\nContinue?")) return;
+
+    for (const h of geo) {
+      if (atlas.own.isBorrowed(st.id, h.sub)) continue;
+      setTerrainAt(st.id, h.sub, st.defaultTerrain);
+    }
+    st.fill = null; st.depth = null; st.current = null;
+    markDirty(st.id, "dirtyTerrain");
+    markDirty(st.id, "dirtyFill");
+    flushTerrainRebuilds();
+    renderPlatePanel();
+    setStatus(`plate ${st.id} exploded to a normal plate — Save to write it`, "ok");
   }
 
   /* ============================================================= *
@@ -745,6 +873,8 @@
   /* ---------- add-new-plate flow ---------- */
   let addDir = null, addFrom = null, previewData = null;
 
+  const isAddOcean = () => $("addProfile").value === "ocean";
+
   async function openAdd(from, dir) {
     addFrom = from; addDir = dir;
     if (!addFrom || !addDir) return;
@@ -755,52 +885,88 @@
         o.value = key; o.textContent = spec.label || key;
         sel.appendChild(o);
       }
+      const oceanOpt = document.createElement("option");
+      oceanOpt.value = "ocean"; oceanOpt.textContent = "Ocean";
+      sel.appendChild(oceanOpt);
+      buildDirOptions($("addCurrentDir"));
     }
     $("addWhere").textContent = `${DIR_NAME[addDir]} of plate ${addFrom}`;
     $("addName").value = "";
     $("addSeed").value = "";
+    $("addCurrentOn").checked = false;
+    $("addCurrentFields").hidden = true;
     const fromP = atlas.plates.find(p => p.id === addFrom);
     $("addContinent").value = (fromP && fromP.continent_hex != null) ? fromP.continent_hex : 1;
+    sel.selectedIndex = 0;
+    applyAddFillMode();
     $("addModal").hidden = false;
     $("addName").focus();
     rollPreview();
   }
   function closeAdd() { $("addModal").hidden = true; addDir = null; addFrom = null; previewData = null; }
 
+  function applyAddFillMode() {
+    const ocean = isAddOcean();
+    $("addLandFields").hidden = ocean;
+    $("addOceanFields").hidden = !ocean;
+    $("addReroll").hidden = ocean;        // nothing to re-roll — it's deterministic
+  }
+
   function addBody() {
     const cont = parseInt($("addContinent").value, 10);
-    return {
+    const base = {
       from: addFrom, dir: addDir,
       name: $("addName").value.trim() || undefined,
       continent_hex: Number.isFinite(cont) && cont > 0 ? cont : undefined,
+    };
+    if (isAddOcean()) {
+      return Object.assign(base, {
+        fill: "ocean",
+        depth: $("addDepth").value,
+        current: $("addCurrentOn").checked
+          ? { direction: $("addCurrentDir").value, temperature: $("addCurrentTemp").value } : undefined,
+      });
+    }
+    return Object.assign(base, {
       profile: $("addProfile").value,
       seed: $("addSeed").value.trim() || undefined,
       blend: $("addBlend").checked,
-    };
+    });
   }
   async function rollPreview() {
     const btns = ["addReroll", "addCreate"];
     btns.forEach(b => $(b).disabled = true);
     $("addStats").textContent = "rolling…";
+    $("addWarning").hidden = true;
     try {
       const body = addBody();
-      if (!body.seed) { body.seed = `${addFrom}-${addDir}-${Math.random().toString(36).slice(2, 8)}`; $("addSeed").value = body.seed; }
+      if (!isAddOcean() && !body.seed) {
+        body.seed = `${addFrom}-${addDir}-${Math.random().toString(36).slice(2, 8)}`; $("addSeed").value = body.seed;
+      }
       previewData = await post("/api/plate/preview", body);
       drawPreview(previewData);
-      const total = Object.values(previewData.counts).reduce((a, b) => a + b, 0);
-      const mix = Object.entries(previewData.counts).sort((a, b) => b[1] - a[1])
-        .map(([k, v]) => `${(registry.terrain[k] || {}).label || k} ${Math.round(v / total * 100)}%`).join(" · ");
-      $("addStats").textContent = previewData.edge_seeds
-        ? `${mix} — ${previewData.edge_seeds} border hexes matched to neighbours` : mix;
+      if (previewData.fill === "ocean") {
+        $("addStats").textContent = `100% ocean · ${previewData.depth}`
+          + (previewData.current ? ` · ${previewData.current.temperature} current toward ${DIR_NAME[previewData.current.direction]}` : "");
+      } else {
+        const total = Object.values(previewData.counts).reduce((a, b) => a + b, 0);
+        const mix = Object.entries(previewData.counts).sort((a, b) => b[1] - a[1])
+          .map(([k, v]) => `${(registry.terrain[k] || {}).label || k} ${Math.round(v / total * 100)}%`).join(" · ");
+        $("addStats").textContent = previewData.edge_seeds
+          ? `${mix} — ${previewData.edge_seeds} border hexes matched to neighbours` : mix;
+      }
+      if (previewData.warning) { $("addWarning").textContent = previewData.warning; $("addWarning").hidden = false; }
     } catch (e) {
       $("addStats").textContent = "preview failed: " + e.message;
       previewData = null;
     }
     btns.forEach(b => $(b).disabled = false);
+    if (isAddOcean()) $("addReroll").hidden = true;
     $("addCreate").disabled = !previewData;
   }
   /* the rolled candidate, drawn through the same mesh so the preview shows the
-   * coastlines you will actually get */
+   * coastlines you will actually get — an ocean candidate has no overrides at
+   * all, so this falls straight through to solid default_terrain colour */
   function drawPreview(data) {
     const svgEl = $("addPreview");
     svgEl.textContent = "";
@@ -817,8 +983,11 @@
       closeAdd();
       await refetchAtlas();
       scheduleViewport();
-      setStatus(`created plate ${res.id} · ${res.overrides} terrain overrides`
-        + (res.back_linked && res.back_linked.length ? ` · linked to ${res.back_linked.join(", ")}` : ""), "ok");
+      setStatus(res.fill === "ocean"
+        ? `created plate ${res.id} · full ocean (${res.depth})`
+          + (res.back_linked && res.back_linked.length ? ` · linked to ${res.back_linked.join(", ")}` : "")
+        : `created plate ${res.id} · ${res.overrides} terrain overrides`
+          + (res.back_linked && res.back_linked.length ? ` · linked to ${res.back_linked.join(", ")}` : ""), "ok");
     } catch (e) {
       setStatus("create failed: " + e.message, "err");
       $("addCreate").disabled = false;
@@ -970,6 +1139,14 @@
         } catch (err) { fail("description", err); }
       }
 
+      if (st.dirtyFill) {
+        try {
+          await put(`/api/plate/${id}/fill`, { fill: st.fill, depth: st.depth, current: st.current });
+          st.dirtyFill = false;
+          written.push(`plates/${id}.yaml (ocean fill)`);
+        } catch (err) { fail("ocean fill", err); }
+      }
+
       for (const sub of [...st.dirtyHexes]) {
         const rec = st.hexes[sub] || {};
         try {
@@ -1028,10 +1205,17 @@
     $("cancelLine").addEventListener("click", cancelLine);
     $("deleteLine").addEventListener("click", deleteLine);
     $("addReroll").addEventListener("click", () => { $("addSeed").value = ""; rollPreview(); });
-    $("addProfile").addEventListener("change", rollPreview);
+    $("addProfile").addEventListener("change", () => { applyAddFillMode(); rollPreview(); });
     $("addBlend").addEventListener("change", rollPreview);
     let seedTimer = null;
     $("addSeed").addEventListener("input", () => { clearTimeout(seedTimer); seedTimer = setTimeout(rollPreview, 300); });
+    $("addDepth").addEventListener("change", rollPreview);
+    $("addCurrentOn").addEventListener("change", () => {
+      $("addCurrentFields").hidden = !$("addCurrentOn").checked;
+      rollPreview();
+    });
+    $("addCurrentDir").addEventListener("change", rollPreview);
+    $("addCurrentTemp").addEventListener("change", rollPreview);
     $("addCancel").addEventListener("click", closeAdd);
     $("addCreate").addEventListener("click", createPlate);
     $("addModal").addEventListener("click", e => { if (e.target === $("addModal")) closeAdd(); });

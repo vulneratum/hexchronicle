@@ -11,7 +11,8 @@
     "test:gen": "node editor/plate-gen.test.js",
     "test:draw": "node editor/plate-draw.test.js",
     "test:seam": "node editor/seam.test.js",
-    "test": "node editor/guard.test.js && node editor/plate-gen.test.js && node editor/plate-draw.test.js && node editor/seam.test.js"
+    "test:fill": "node editor/ocean-fill.test.js",
+    "test": "node editor/guard.test.js && node editor/plate-gen.test.js && node editor/plate-draw.test.js && node editor/seam.test.js && node editor/ocean-fill.test.js"
   },
   "dependencies": {
     "js-yaml": "^4.1.0",

@@ -238,6 +238,112 @@ console.log("blend rules:");
   ok(!/Z/.test(byType.get("plains").join("") ) === false, "land fills are closed subpaths");
 }
 
+console.log("compact ocean plates (WORLDGEN §4-B) — no per-subhex records:");
+
+/*
+ * `ocean` is water only because the theme registry flags it so (see "water is
+ * a registry FLAG" below) — these tests need that flag active, same as any
+ * test exercising ocean's actual water behaviour. Restored to the default at
+ * the end of the block.
+ */
+PlateDraw.setWaterTypes(jsyaml.load(fs.readFileSync(path.join(ROOT, "theme", "terrain.yaml"), "utf8")).types);
+
+/*
+ * A compact ocean plate stores `default_terrain: ocean` and an EMPTY (or
+ * near-empty) `terrain:` override map, never 157 explicit entries. The render
+ * core must not care: `terrainOf(sub)` already falls back to the default for
+ * any sub with no entry, so an empty map and an exhaustively-written all-ocean
+ * map must produce byte-identical output. If they ever diverge, something in
+ * the render path stopped trusting the fallback and started assuming a full
+ * 157-key map.
+ */
+{
+  const compact = {};                                   // no entries at all
+  const explicit = {};
+  for (const h of geo) explicit[h.sub] = "ocean";        // the naive "157 records" form
+
+  const a = PlateDraw.meshSubpaths(mesh, s => compact[s] || "ocean");
+  const b = PlateDraw.meshSubpaths(mesh, s => explicit[s]);
+  ok(a.grid === b.grid, "grid stroke identical whether the map is empty or exhaustively written");
+  ok(JSON.stringify([...a.byType]) === JSON.stringify([...b.byType]),
+    "land-underlay subpaths identical (empty subhex list renders exactly like a full one)");
+
+  const ringsA = PlateDraw.waterBoundary(mesh, s => compact[s] || "ocean");
+  const ringsB = PlateDraw.waterBoundary(mesh, s => explicit[s]);
+  ok(JSON.stringify(ringsA) === JSON.stringify(ringsB), "shoreline (water boundary rings) identical");
+  ok(a.byType.get("ocean").length === geo.length * 7,
+    "a compact ocean plate is solid ocean — core + 6 sectors per hex, same as any all-water plate");
+}
+
+/*
+ * A compact ocean plate MAY still carry a sparse override — an islet or a
+ * wreck (WORLDGEN §4-B: "fill: ocean plus depth, current, and any islands or
+ * wrecks"). That is just an ordinary override on top of an ocean default, so
+ * it has to blend at its own shore exactly like the lake in plate 0001 does
+ * (test 7 above) — same mechanism, no special case for "the plate happens to
+ * be mostly ocean".
+ */
+{
+  const terrain = {};                                   // compact ocean plate…
+  for (const h of geo) terrain[h.sub] = "ocean";
+  const islet = byKey.get("0,0").sub;
+  terrain[islet] = "plains";                             // …with one hand-painted islet
+
+  const { byType } = PlateDraw.meshSubpaths(mesh, s => terrain[s]);
+  const isletCell = mesh.cells.find(c => c.sub === islet);
+  // the islet's own full hexagon is a "plains" subpath; neighbouring ocean
+  // cells with no OTHER land nearby also fall back to "plains" for their own
+  // core/sectors (same fallback rule test 7 exercises for the lake's shore),
+  // so the bucket holds more than just the islet — that is correct, not a bug.
+  ok((byType.get("plains") || []).includes(isletCell.full), "the islet contributes its own land hexagon");
+  const rings = PlateDraw.waterBoundary(mesh, s => terrain[s]);
+  ok(rings.length === 2, "the ocean has a hole where the islet sits (outer ring + island ring)");
+  // islet is at the plate centre (0,0), so the two rings are easy to tell apart
+  // by reach: the outer ocean boundary runs out to the rim, the island ring stays small
+  const reach = r => Math.max(...r.map(p => Math.hypot(p[0], p[1])));
+  const byReach = [...rings].sort((r1, r2) => reach(r1) - reach(r2));
+  ok(reach(byReach[0]) < HexGeo.SIZE * 1.5, "the small ring hugs the islet, not the plate rim");
+  ok(reach(byReach[1]) >= HexGeo.RL, "the other ring is the ocean's outer shore, reaching the plate rim");
+}
+
+/*
+ * Seam ownership (README §2, shared/geometry.js) is purely positional — the
+ * lower plate id owns a shared subhex, independent of terrain. A compact
+ * ocean plate therefore needs NO special seam handling: `renderTerrainInto`'s
+ * `owns` filter already keeps a borrowed position out of a plate's own land
+ * underlay and grid stroke, whether that plate is compact or fully painted —
+ * this is the same mechanism the seam-across-plates test above exercises for
+ * roads, applied here to terrain painting.
+ */
+{
+  const LATTICE = { "0001": [0, 0], "0002": [1, 0] };
+  const own = HexGeo.plateOwnership(LATTICE);
+
+  // 0001 is land, 0002 is a compact ocean plate that OWNS none of the seam
+  // (0001 < 0002) — its own painting must skip every borrowed position.
+  const oceanTerrain = () => "ocean";                     // compact: no overrides at all
+  const { byType: b2, grid: g2 } = PlateDraw.meshSubpaths(mesh, oceanTerrain, sub => !own.isBorrowed("0002", sub));
+  // one shared edge (0001's only neighbour is 0002) is 5 positions, not the
+  // 30-per-plate total a fully-surrounded plate would borrow (seam.test.js)
+  const borrowedBy2 = own.borrowedSubs("0002");
+  ok(borrowedBy2.length === 5, `0002 borrows exactly the 5 shared positions on its one edge with 0001 (got ${borrowedBy2.length})`);
+  ok(g2.split("Z").length - 1 === geo.length - borrowedBy2.length,
+    "0002's grid stroke omits every position it merely borrows");
+  ok(b2.get("ocean").length === (geo.length - borrowedBy2.length) * 7,
+    "0002's own land-underlay paints only the positions it owns");
+
+  // now flip which plate is compact: 0001 is the compact ocean plate and DOES
+  // own the seam (0001 < 0002 still) — it must paint every one of those 30
+  // positions itself, exactly as a land plate would, fallback or not.
+  const { byType: b1, grid: g1 } = PlateDraw.meshSubpaths(mesh, oceanTerrain, sub => !own.isBorrowed("0001", sub));
+  ok(own.borrowedSubs("0001").length === 0, "the lower id never borrows — it always owns its seams");
+  ok(g1.split("Z").length - 1 === geo.length, "a compact ocean plate that owns every seam paints the full 157-hex grid");
+  ok(b1.get("ocean").length === geo.length * 7,
+    "…and its own land-underlay covers all 157 positions, compact form or not");
+}
+
+PlateDraw.setWaterTypes(null);   // restore the default (`water` only) for everything below
+
 console.log("water region boundary:");
 
 /* A ring is closed when the walk returns to where it started. */

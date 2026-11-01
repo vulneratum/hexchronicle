@@ -141,6 +141,19 @@ dl.ro dd{color:#c9d3ca;margin:0;overflow-wrap:anywhere}
 #metaStory .empty{color:#8a9a92;font-style:italic}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 
+/* ---- ocean-fill controls (plate panel + add-plate modal) ---- */
+#metaPanel button{
+  appearance:none;border:1px solid #55655c;border-radius:.45rem;cursor:pointer;
+  background:transparent;color:#c9d3ca;font:inherit;font-size:.76rem;font-weight:500;padding:.34rem .6rem;
+}
+#metaPanel button:hover{border-color:#8fa298}
+#metaPanel button.danger{border-color:#7c463f;color:#e0a19a}
+#metaPanel button.danger:hover{background:rgba(158,61,52,.2)}
+#metaPanel button.wide{margin-top:.3rem}
+.warn{
+  margin-top:.5rem;padding:.4rem .55rem;border:1px solid #7c463f;border-radius:.4rem;
+  background:rgba(158,61,52,.15);color:#e0a19a;font-size:.72rem;line-height:1.35;
+}
 /* ---- neighbour chips: navigate to a plate, or create one ---- */
 .nchip{transition:opacity .15s}
 .nchip:hover{opacity:.72}

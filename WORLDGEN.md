@@ -36,26 +36,70 @@ Read `README.md` first. Nothing here overrides it.
 - **Grid: 36 plates wide × 36 plates tall = 1,296 plates.**
 - 36 × 36 plates in an **offset-axial** layout: row r spans q in [-floor(r/2), 35-floor(r/2)].
   A raw q,r block would be a 30° sheared rhombus, so rows are offset instead.
-- **~1,296 miles wide × ~1,122 tall.** Not square, and that is fine — 1.16:1 is closer to
-  Europe's proportions than a square, and squaring it would need 42 rows and break the
-  clean 3 × 3 continent-hex tiling.
+- **Measured 1,314 miles wide × 1,133 tall.** The nominal 36 × 36 figure doesn't count the
+  half-plate zigzag on the east and west edges. Not square, and that is fine — 1.16:1 is
+  closer to Europe's proportions than a square.
 - **187,197 unique subhexes.** Not 1,296 × 157 = 203,472; that figure double-counts the
   16,275 seam positions shared by two or three plates.
 - Frame area ≈ **1.59 million square miles**; at ~60% land that is **~950,000 square
   miles of continent** — Europe from Ireland to Ukraine, minus Russia and the far north.
 - Plate ids run `0001`–`1296`.
 
-**The frame is exactly 3 × 3 continent hexes.** 12 plates = one 432-mile continent hex
-(README §2), so a 36-plate frame closes the top tier of the addressing scheme cleanly
-instead of leaving a ragged remainder. If this needs to change later, change it in
-multiples of 12: 24×24 (576 plates, ~420k sq mi land, Western Europe) or 48×48
-(2,304 plates, ~1.7M sq mi, all Europe short of Russia).
+**The 432-mile continent hex is a label, not a container — corrected.** An earlier draft
+of this file claimed the frame was "exactly 3 × 3 continent hexes." That was wrong. A
+432-mile hex nests **157 plates** in the same 12-across scheme a plate uses for subhexes
+(README §2), so 1,296 plates is about 8.25 continent hexes and a rectangular frame cannot
+tile into whole ones at any size.
+
+Resolve it this way: **plate ids 0001–1296 are absolute and load-bearing; the 432-mile
+tier is a naming and grouping layer applied over them, not a geometric parent.** Regions
+get continent-hex labels for human reference; nothing in the data depends on those labels
+containing an exact plate count. This costs nothing — no address changes, no geometry
+changes — and it is the only reading under which a rectangular frame and a hex-nested
+top tier can both survive. **Reconcile README §2 to match before G1 runs.**
 
 **The world is bounded and includes its oceans.** The 36×36 grid is not the continent;
 it is the *world frame*. Land occupies the interior, ocean fills the margins, and the
 map has true coastline on every side. Nothing exists outside the frame.
 
 ---
+
+## 1b. Source map — the mask is traced, not generated
+
+The land–sea mask is no longer an analytic field. It is **traced from a source map**:
+*The Western Lands* (BF1), © 2011 Nekron99 and Chris Gonnerman, released as Open Game
+Content under OGL 1.0a.
+
+**Licence obligations, and they are not optional.** Because hexchronicle.com publishes
+derived Open Game Content, the site and repo must carry the full OGL 1.0a text and a
+Section 15 copyright notice listing the original alongside ours. Do this in the same
+commit that first writes traced data, not later.
+
+**Measured from the source PDF** (300 dpi raster, hex pitch 61 px at 24 miles/hex):
+
+- Map panel: **757 × 932 miles**, land fraction 47.2% → **~333,000 sq mi of land**.
+- **1 source hex = exactly 8 subhexes across**, since 24 ÷ 3 = 8. The resample is a clean
+  integer ratio with no interpolation error. Source hexes do *not* align to 36-mile
+  plates and don't need to.
+- **Land runs off all four edges** — top 43%, bottom 61%, left 15%, right 28%. The source
+  is a window into a larger world, not a finished continent.
+
+**Consequences for the frame.** The traced area is 21 × 26 plates. Since land leaves every
+edge and §VII-A requires ocean on all four sides, the frame must be larger than the map
+and the difference is a **generated apron**: land continued plausibly outward from the
+traced coastline, then closed with coast. Traced ground is authoritative; the apron is
+generated and must be marked as such per subhex so the two are never confused.
+
+**Terrain is traced too, and that inverts the causality.** The source carries biome
+colour, drawn rivers, mountains, and snow. Take all of it: traced terrain and drainage are
+**ground truth**, and the climate fields of §VII-D are fitted to *explain* them rather than
+to produce them. Where a field cannot explain what the map shows, **report the conflict —
+do not silently overwrite either side**. Elevation is still generated, but it must be
+fitted so that every traced river runs downhill.
+
+**Settlements and names in the source are works of hands.** Ravenstone, Morgansfort, the
+Empire of Urd and the rest are recorded to `world/source/` as a reference layer and are
+**not written to plates in G1** (§IX-G1, rule 20). They return in G2.
 
 ## 1a. Climate band — settled: Atlantic to Mediterranean
 
