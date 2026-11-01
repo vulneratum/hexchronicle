@@ -20,7 +20,7 @@ neighbors:
   se: "2356"
 
 default_terrain: forest
-terrain: {}
+terrain:                     # subhex number -> terrain type (non-default only)
 
 lines:
   - type: river

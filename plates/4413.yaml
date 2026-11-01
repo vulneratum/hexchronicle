@@ -20,6 +20,6 @@ neighbors:
   se: "4525"
 
 default_terrain: savanna
-terrain: {}
+terrain:                     # subhex number -> terrain type (non-default only)
 
 lines: []

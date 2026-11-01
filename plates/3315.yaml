@@ -20,7 +20,7 @@ neighbors:
   se: "3436"
 
 default_terrain: scrub
-terrain: {}
+terrain:                     # subhex number -> terrain type (non-default only)
 
 lines:
   - type: river
