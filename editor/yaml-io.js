@@ -92,6 +92,46 @@ function writePlateLines(absPath, linesArr) {
   fs.writeFileSync(absPath, lines.join(nl));
 }
 
+/* ---- surgical ocean-fill writer ---- */
+/*
+ * The compact-ocean-plate block (WORLDGEN §4-B): `fill`, `depth`, `current`,
+ * sitting between `default_terrain:` and `terrain:`. Same surgical strategy as
+ * the terrain grid — only that region changes; the header comments, the
+ * descriptive block, the terrain grid and the lines block come out
+ * byte-for-byte identical.
+ *
+ * `{ fill: null }` (or omitting fill) REMOVES the block entirely — this is the
+ * "explode" direction, and also what an ordinary plate that never had one
+ * looks like: no lines at all, not even a blank one, so a plate untouched by
+ * this writer is never touched by it.
+ */
+function fillBlockLines(spec) {
+  if (spec.fill == null) return [];
+  const lines = [`fill: ${spec.fill}`];
+  if (spec.depth != null) lines.push(`depth: ${spec.depth}`);
+  if (spec.current) {
+    lines.push(`current:`);
+    lines.push(`  direction: ${spec.current.direction}`);
+    lines.push(`  temperature: ${spec.current.temperature}`);
+  }
+  return lines;
+}
+
+function writePlateFill(absPath, spec) {
+  const raw = fs.readFileSync(absPath, "utf8");
+  const nl = raw.includes("\r\n") ? "\r\n" : "\n";
+  const lines = raw.split(/\r?\n/);
+
+  const dti = lines.findIndex(l => /^default_terrain:\s*(\S.*)?$/.test(l));
+  if (dti === -1) throw new Error("plate file has no `default_terrain:` line");
+  const ti = lines.findIndex(l => /^terrain:\s*(#.*)?$/.test(l));
+  if (ti === -1) throw new Error("plate file has no `terrain:` block");
+  if (ti <= dti) throw new Error("`terrain:` block must come after `default_terrain:`");
+
+  lines.splice(dti + 1, ti - (dti + 1), ...fillBlockLines(spec));
+  fs.writeFileSync(absPath, lines.join(nl));
+}
+
 /* ---- new-plate writer (Phase 3) ---- */
 /*
  * The surgical writers above edit blocks that already exist; a brand-new plate
@@ -111,11 +151,17 @@ function writeNewPlate(absPath, spec) {
   L.push(`# overrides keyed by subhex number. Rich per-hex content (features,`);
   L.push(`# names, chronicle) lives in hexes/${spec.id}-NNN.yaml.`);
   L.push(`#`);
-  L.push(`# Interior rolled by the editor's plate generator:`);
-  L.push(`#   profile ${spec.profile} · seed ${q(spec.seed)}${spec.edgeSeeds ? ` · ${spec.edgeSeeds} border hexes matched to neighbours` : ""}`);
-  L.push(`# Re-rolling reproduces this exactly given the same seed, profile, AND`);
-  L.push(`# border conditions — the matched-border count above changes as adjoining`);
-  L.push(`# plates are added or edited, so a later re-roll may differ near the seams.`);
+  if (spec.fill === "ocean") {
+    L.push(`# Created as a full-ocean plate (WORLDGEN §4-B): no interior was rolled,`);
+    L.push(`# every subhex is the default terrain, and depth/current are recorded`);
+    L.push(`# below instead of 157 near-identical subhex records.`);
+  } else {
+    L.push(`# Interior rolled by the editor's plate generator:`);
+    L.push(`#   profile ${spec.profile} · seed ${q(spec.seed)}${spec.edgeSeeds ? ` · ${spec.edgeSeeds} border hexes matched to neighbours` : ""}`);
+    L.push(`# Re-rolling reproduces this exactly given the same seed, profile, AND`);
+    L.push(`# border conditions — the matched-border count above changes as adjoining`);
+    L.push(`# plates are added or edited, so a later re-roll may differ near the seams.`);
+  }
   L.push(``);
   L.push(`id: ${q(spec.id)}`);
   L.push(`continent_hex: ${spec.continent_hex}            # the 432-mile hex this plate sits within`);
@@ -137,6 +183,7 @@ function writeNewPlate(absPath, spec) {
   }
   L.push(``);
   L.push(`default_terrain: ${spec.default_terrain}`);
+  for (const line of fillBlockLines(spec)) L.push(line);
   L.push(`terrain:                     # subhex number -> terrain type (non-default only)`);
   for (const sub of Object.keys(spec.terrain).sort()) L.push(`  ${q(sub)}: ${spec.terrain[sub]}`);
   L.push(``);
@@ -347,5 +394,5 @@ function setPlateNeighbor(absPath, dir, plateId) {
 module.exports = {
   loadDoc, saveDoc, quotedKey,
   writePlateTerrain, writePlateLines, writeNewPlate, setPlateNeighbor,
-  updateHexFields, writeNewHex, updatePlateMeta,
+  updateHexFields, writeNewHex, updatePlateMeta, writePlateFill,
 };

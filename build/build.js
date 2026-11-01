@@ -189,6 +189,9 @@ function plateDetail(id) {
     continent_hex: doc.continent_hex != null ? doc.continent_hex : null,
     scale_label: doc.scale_label || null,
     default_terrain: doc.default_terrain,
+    fill: doc.fill || null,
+    depth: doc.depth || null,
+    current: doc.current || null,
     terrain, lines, hexes,
     survey: surveyFor(id),
     borrowed: Object.fromEntries(own.borrowedSubs(id).map(sub => [sub, own.addressOf(id, sub)])),
@@ -225,7 +228,7 @@ const atlas = {
       id, coord: coord[id],
       name: d.name, title: d.title, realm: d.realm, canton: d.canton,
       continent_hex: d.continent_hex, scale_label: d.scale_label,
-      default_terrain: d.default_terrain, summary: d.summary,
+      default_terrain: d.default_terrain, fill: d.fill, summary: d.summary,
     };
   }),
 };

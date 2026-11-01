@@ -90,9 +90,23 @@ function assertPlateMetaAllowed(keys) {
   }
 }
 
+/*
+ * The compact-ocean-plate block (WORLDGEN §4-B): `fill`, `depth`, `current`.
+ * Its own endpoint and its own allowlist, same reasoning as PLATE_META_KEYS —
+ * `default_terrain` and `terrain` stay with the terrain endpoint even for a
+ * compact plate, so a fill write can never smuggle a terrain change.
+ */
+const PLATE_FILL_KEYS = ["fill", "depth", "current"];
+
+function assertPlateFillAllowed(keys) {
+  for (const k of keys) {
+    if (!PLATE_FILL_KEYS.includes(k)) throw new ScopeError(`unknown plate field "${k}" not in the fill allowlist`);
+  }
+}
+
 module.exports = {
   REPO_ROOT, ALLOWED_ROOTS, HEX_ALLOWED_KEYS, HEX_FORBIDDEN_KEYS,
-  PLATE_META_KEYS, PLATE_FORBIDDEN_KEYS,
+  PLATE_META_KEYS, PLATE_FORBIDDEN_KEYS, PLATE_FILL_KEYS,
   ScopeError, assertInScope, assertCreatable, isAllowedCommitPath,
-  assertHexFieldsAllowed, assertPlateMetaAllowed,
+  assertHexFieldsAllowed, assertPlateMetaAllowed, assertPlateFillAllowed,
 };

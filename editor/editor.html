@@ -86,6 +86,28 @@
     <label>Scale label<input id="plateScale" type="text" autocomplete="off"></label>
     <label>Summary<textarea id="plateSummary" rows="4" placeholder="a sentence or two"></textarea></label>
     <p class="hint">These are the plate's own description. Its terrain grid, lines and neighbours have their own paths and are never touched from here.</p>
+
+    <h5>Ocean fill <span class="ro-tag" id="oceanTag"></span></h5>
+    <div id="oceanOff">
+      <p class="hint">A normal, hand-paintable plate.</p>
+      <button id="convertOcean" class="wide">Convert to full ocean…</button>
+    </div>
+    <div id="oceanOn" hidden>
+      <label>Depth<select id="oceanDepth">
+        <option value="shelf">Shelf (coastal, shallow)</option>
+        <option value="deep">Deep</option>
+      </select></label>
+      <label class="check"><input id="oceanCurrentOn" type="checkbox"> Notable current</label>
+      <div id="oceanCurrentFields" hidden>
+        <label>Direction<select id="oceanCurrentDir"></select></label>
+        <label>Temperature<select id="oceanCurrentTemp">
+          <option value="warm">Warm</option>
+          <option value="cold">Cold</option>
+        </select></label>
+      </div>
+      <p class="hint">Stored compactly (WORLDGEN §4-B): no per-subhex terrain, just this plate's default plus depth and current.</p>
+      <button id="explodeOcean" class="wide danger">Explode — make fully paintable…</button>
+    </div>
   </div>
 </aside>
 
@@ -94,16 +116,35 @@
     <h3 id="addTitle">New 36-mile hex</h3>
     <p class="sub" id="addWhere"></p>
 
-    <div class="preview"><svg id="addPreview" viewBox="-340 -340 680 680" aria-label="Generated terrain preview"></svg></div>
-    <p class="sub" id="addStats">&nbsp;</p>
-
-    <label>Name<input id="addName" type="text" placeholder="Unnamed plate" autocomplete="off"></label>
-    <label>432-mile hex #<input id="addContinent" type="number" min="1" step="1" autocomplete="off"></label>
     <label>Character
       <select id="addProfile"></select>
     </label>
-    <label>Seed<input id="addSeed" type="text" autocomplete="off" spellcheck="false"></label>
-    <label class="check"><input id="addBlend" type="checkbox" checked> Match terrain to neighbouring plates at the border</label>
+
+    <div class="preview"><svg id="addPreview" viewBox="-340 -340 680 680" aria-label="Generated terrain preview"></svg></div>
+    <p class="sub" id="addStats">&nbsp;</p>
+    <p class="warn" id="addWarning" hidden></p>
+
+    <label>Name<input id="addName" type="text" placeholder="Unnamed plate" autocomplete="off"></label>
+    <label>432-mile hex #<input id="addContinent" type="number" min="1" step="1" autocomplete="off"></label>
+
+    <div id="addLandFields">
+      <label>Seed<input id="addSeed" type="text" autocomplete="off" spellcheck="false"></label>
+      <label class="check"><input id="addBlend" type="checkbox" checked> Match terrain to neighbouring plates at the border</label>
+    </div>
+    <div id="addOceanFields" hidden>
+      <label>Depth<select id="addDepth">
+        <option value="shelf">Shelf (coastal, shallow)</option>
+        <option value="deep">Deep</option>
+      </select></label>
+      <label class="check"><input id="addCurrentOn" type="checkbox"> Notable current</label>
+      <div id="addCurrentFields" hidden>
+        <label>Direction<select id="addCurrentDir"></select></label>
+        <label>Temperature<select id="addCurrentTemp">
+          <option value="warm">Warm</option>
+          <option value="cold">Cold</option>
+        </select></label>
+      </div>
+    </div>
 
     <div class="sheetbtns">
       <button id="addReroll">Re-roll</button>
