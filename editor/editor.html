@@ -18,6 +18,7 @@
   <div class="tools">
     <button class="tool active" data-tool="paint" title="Paint terrain (B)">Paint</button>
     <button class="tool" data-tool="lines" title="Line tools (L)">Lines</button>
+    <button class="tool" data-tool="erase" title="Erase rivers, streams or roads (E)">Erase</button>
     <button class="tool" data-tool="meta" title="Per-hex metadata (M)">Metadata</button>
     <span class="sep"></span>
     <button id="undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
@@ -51,6 +52,23 @@
     <p class="hint">Click hexes to append · <b>Backspace</b> removes last · Enter finishes · Esc cancels.</p>
   </div>
   <p class="hint" id="lineIdleHint">Pick a type then <b>+ New line</b>, or click a line below (or on the map) to extend, reroute, retype, or delete it. Draw straight across a 36-mile boundary — the line is split into one piece per plate when it is saved, and still draws as one.</p>
+</aside>
+
+<aside id="erasePanel" hidden>
+  <h4>Erase lines</h4>
+  <h5>What to erase</h5>
+  <div class="opts">
+    <label><input type="radio" name="eraseCat" value="water" checked> Rivers and streams</label>
+    <label><input type="radio" name="eraseCat" value="road"> Roads and paths</label>
+  </div>
+  <h5>How much</h5>
+  <div class="opts">
+    <label><input type="radio" name="eraseScope" value="line" checked> This line, to the next junction</label>
+    <label><input type="radio" name="eraseScope" value="system"> Everything joined to it</label>
+  </div>
+  <div id="eraseLast"></div>
+  <button id="eraseRestore" class="wide" disabled>Restore last erase</button>
+  <p class="hint">Click any hex the line runs through. It is followed across 36-mile boundaries automatically. <b>Everything joined to it</b> takes a river together with all its tributaries and streams. Nothing is written until you <b>Save</b>.</p>
 </aside>
 
 <aside id="metaPanel" hidden>

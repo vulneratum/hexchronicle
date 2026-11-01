@@ -212,6 +212,12 @@ and `theme/` — never chronicle, world state, or sessions).
   terrain colour (`GET /api/overview`) and edits are refused until you zoom in.
   The server caches plate summaries, the lattice and seam ownership, keyed on
   plate-file mtimes, so a map of thousands of plates stays responsive.
+- **Erase tool** (toolbar, key E): one click removes a line however many
+  plate pieces it is stored as. "This line" follows same-type pieces joined end
+  to end and stops at junctions; "Everything joined to it" takes the whole
+  connected network of that category (a river with its tributaries and
+  streams). Plates the line runs into are loaded first, because a plate's lines
+  are replaced whole on save. "Restore last erase" undoes it until you Save.
 - **Survey data** (elevation, rainfall, mean temperature) appears read-only in
   the Metadata panel. It lives in `world/physical/survey/`, outside the guard's
   write scope.

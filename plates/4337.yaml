@@ -20,6 +20,6 @@ neighbors:
   se: "4451"
 
 default_terrain: ocean
-terrain: {}
+terrain:                     # subhex number -> terrain type (non-default only)
 
 lines: []

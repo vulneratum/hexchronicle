@@ -468,6 +468,106 @@
     setStatus("line deleted — Save to write it");
   }
 
+  /* ============================================================= *
+   * ERASE — remove a whole line in one click
+   *
+   * A line on disk is stored as PIECES, one per plate (see splitPath), and a
+   * generated river is many pieces joined end to end. Erase follows those joins:
+   *   "line"   — the clicked piece, extended through every hex where exactly one
+   *              other piece of the SAME TYPE continues it, stopping at junctions
+   *   "system" — every piece of the same category (water or road) connected to
+   *              it through any shared hex: a river with all its tributaries
+   * Plates the line runs into are loaded as needed, since lines are REPLACED per
+   * plate on save and must never be written from a partial copy.
+   * ============================================================= */
+  let lastErase = null;                 // [{ id, line }] for "Restore last erase"
+  const lineCat = type => (atlas.lineStyle(type) || {}).category || "road";
+  /* every plate that shows this world position — the only plates whose pieces can touch it */
+  function holdersOf(addr) {
+    const a = HexGeo.parseAddr(addr), o = atlas.own.ownerOf(a.plate, a.sub);
+    return atlas.own.sharersOf(o.plateId, o.sub).map(c => c.plateId);
+  }
+  function pieceIndex(cat) {
+    const at = new Map();               // owner address -> [{ id, i, key }]
+    for (const [id, st] of plateState) st.lines.forEach((l, i) => {
+      if (lineCat(l.type) !== cat) return;
+      const key = id + "#" + i;
+      for (const addr of qualify(l.path, id)) {
+        const list = at.get(addr) || [];
+        if (!list.some(x => x.key === key)) list.push({ id, i, key });
+        at.set(addr, list);
+      }
+    });
+    return at;
+  }
+  async function eraseAt(hit) {
+    const cat = (document.querySelector("input[name=eraseCat]:checked") || {}).value || "water";
+    const scope = (document.querySelector("input[name=eraseScope]:checked") || {}).value || "line";
+    const start = addrOf(hit);
+    if (editing) cancelLine();
+    try { await Promise.all(holdersOf(start).map(ensureState)); }
+    catch (err) { setStatus("could not load that area: " + err.message, "err"); return; }
+    let idx = pieceIndex(cat);
+    const first = (idx.get(start) || [])[0];
+    if (!first) { setStatus(cat === "water" ? "no river or stream runs through that hex" : "no road or path runs through that hex"); return; }
+    const typeOf = k => { const [id, i] = k.split("#"); return plateState.get(id).lines[+i].type; };
+    const pathOf = k => { const [id, i] = k.split("#"); return qualify(plateState.get(id).lines[+i].path, id); };
+    const type = typeOf(first.key);
+    setStatus("finding the whole line…");
+    const chosen = new Set([first.key]), queue = [first.key], loaded = new Set();
+    while (queue.length) {
+      const k = queue.shift(), path = pathOf(k);
+      // a continuation can only be on another plate where this piece reaches a shared (rim) hex
+      const probe = scope === "system" ? path : [path[0], path[path.length - 1]];
+      const need = new Set();
+      for (const addr of probe) for (const pid of holdersOf(addr)) if (!plateState.has(pid) && !loaded.has(pid)) need.add(pid);
+      if (need.size) {
+        need.forEach(pid => loaded.add(pid));
+        try { await Promise.all([...need].map(ensureState)); } catch (err) { /* an unloadable plate simply ends the search there */ }
+        idx = pieceIndex(cat);
+      }
+      for (const addr of probe) {
+        const others = (idx.get(addr) || []).filter(x => !chosen.has(x.key));
+        if (scope === "system") { for (const o of others) { chosen.add(o.key); queue.push(o.key); } continue; }
+        // "line": continue only through a plain joint — one same-type piece, nothing else meeting here
+        if (others.length !== 1 || typeOf(others[0].key) !== type) continue;
+        const op = pathOf(others[0].key);
+        if (op[0] !== addr && op[op.length - 1] !== addr) continue;     // it passes through: a junction
+        chosen.add(others[0].key); queue.push(others[0].key);
+      }
+    }
+    // remove, highest index first on each plate so earlier indices stay valid
+    const byPlate = new Map();
+    for (const k of chosen) { const [id, i] = k.split("#"); (byPlate.get(id) || byPlate.set(id, []).get(id)).push(+i); }
+    const removed = [];
+    for (const [id, list] of byPlate) {
+      const st = plateState.get(id);
+      for (const i of list.sort((a, b) => b - a)) removed.push({ id, line: st.lines.splice(i, 1)[0] });
+      markDirty(id, "dirtyLines");
+    }
+    lastErase = removed;
+    $("eraseRestore").disabled = false;
+    const hexes = new Set(removed.flatMap(r => qualify(r.line.path, r.id))).size;
+    const what = scope === "system" ? `${lineLabel(type)} and everything joined to it` : lineLabel(type);
+    $("eraseLast").textContent = `Erased: ${what} · ${hexes} hexes on ${byPlate.size} plate${byPlate.size === 1 ? "" : "s"}`;
+    renderLines();
+    setStatus(`erased ${what} (${hexes} hexes) — Save to write it`);
+  }
+  function restoreErase() {
+    if (!lastErase) return;
+    for (const r of lastErase) {
+      const st = plateState.get(r.id);
+      if (!st) continue;
+      st.lines.push(r.line);
+      markDirty(r.id, "dirtyLines");
+    }
+    lastErase = null;
+    $("eraseRestore").disabled = true;
+    $("eraseLast").textContent = "Restored.";
+    renderLines();
+    setStatus("restored — Save to write it");
+  }
+
   function showEditUI() { $("lineEdit").hidden = false; $("lineIdleHint").hidden = true; $("deleteLine").hidden = !(editing && editing.from); }
   function hideEditUI() { $("lineEdit").hidden = true; $("lineIdleHint").hidden = false; }
   function updateEditInfo() {
@@ -999,7 +1099,7 @@
    * ============================================================= */
   const pointers = new Map();
   let panning = false, painting = false, moved = false, lastPinch = 0;
-  const wantPan = e => spaceHeld || e.button === 1 || tool === "lines" || tool === "meta";
+  const wantPan = e => spaceHeld || e.button === 1 || tool === "lines" || tool === "meta" || tool === "erase";
 
   svg.addEventListener("pointerdown", e => {
     e.preventDefault();                 // suppresses `click` on SVG children
@@ -1049,6 +1149,10 @@
     // ONE click: select the hex, and act on it with whatever tool is in hand
     selectHex(hit);
     if (tool === "lines" && !ovShown()) lineTap(hit);
+    else if (tool === "erase") {
+      if (ovShown()) setStatus("zoom in to erase — the zoomed-out view is a picture of the whole map");
+      else eraseAt(hit);
+    }
   }
   svg.addEventListener("pointerup", endPointer);
   svg.addEventListener("pointercancel", endPointer);
@@ -1188,11 +1292,13 @@
     if (tool === "lines" && t !== "lines" && editing) cancelLine();
     tool = t;
     for (const b of document.querySelectorAll(".tool")) b.classList.toggle("active", b.dataset.tool === t);
-    svg.classList.toggle("tool-pan", t === "lines" || t === "meta");
+    svg.classList.toggle("tool-pan", t === "lines" || t === "meta" || t === "erase");
     $("palette").hidden = (t !== "paint");
     $("linePanel").hidden = (t !== "lines");
     $("metaPanel").hidden = (t !== "meta");
+    $("erasePanel").hidden = (t !== "erase");
     if (t === "meta") renderPanels();
+    if (t === "erase") setStatus("erase — click any hex a line runs through");
   }
   function wireTools() {
     for (const b of document.querySelectorAll(".tool")) b.addEventListener("click", () => setTool(b.dataset.tool));
@@ -1204,6 +1310,7 @@
     $("finishLine").addEventListener("click", finishLine);
     $("cancelLine").addEventListener("click", cancelLine);
     $("deleteLine").addEventListener("click", deleteLine);
+    $("eraseRestore").addEventListener("click", restoreErase);
     $("addReroll").addEventListener("click", () => { $("addSeed").value = ""; rollPreview(); });
     $("addProfile").addEventListener("change", () => { applyAddFillMode(); rollPreview(); });
     $("addBlend").addEventListener("change", rollPreview);
@@ -1236,8 +1343,9 @@
       else if (e.key === "b" || e.key === "B") setTool("paint");
       else if (e.key === "l" || e.key === "L") setTool("lines");
       else if (e.key === "m" || e.key === "M") setTool("meta");
+      else if (e.key === "e" || e.key === "E") setTool("erase");
     });
-    window.addEventListener("keyup", e => { if (e.code === "Space") { spaceHeld = false; if (tool !== "lines") svg.classList.remove("tool-pan"); } });
+    window.addEventListener("keyup", e => { if (e.code === "Space") { spaceHeld = false; if (tool !== "lines" && tool !== "erase" && tool !== "meta") svg.classList.remove("tool-pan"); } });
     window.addEventListener("beforeunload", e => { if (dirtyPlates.size) { e.preventDefault(); e.returnValue = ""; } });
   }
 

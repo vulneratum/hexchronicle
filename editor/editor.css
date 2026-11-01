@@ -57,13 +57,13 @@ body{font-family:'Alegreya Sans',system-ui,sans-serif;color:var(--parchment)}
 .hint b{color:#c9d3ca}
 
 /* line tools panel (shares #palette positioning) */
-#linePanel{
+#linePanel,#erasePanel{
   position:fixed;top:3.4rem;left:.6rem;z-index:15;width:13.5rem;
   background:var(--panel);border:1px solid #3a4842;border-radius:.6rem;padding:.6rem .7rem;
   box-shadow:0 6px 18px rgba(0,0,0,.4);max-height:calc(100vh - 4.2rem);overflow-y:auto;
 }
-#linePanel h4{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#9fb0a6;margin-bottom:.5rem}
-#linePanel h5{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:#7f9089;margin:.7rem 0 .35rem}
+#linePanel h4,#erasePanel h4{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#9fb0a6;margin-bottom:.5rem}
+#linePanel h5,#erasePanel h5{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:#7f9089;margin:.7rem 0 .35rem}
 #lineTypes{display:flex;flex-wrap:wrap;gap:.25rem;margin-bottom:.5rem}
 .ltype{
   display:flex;align-items:center;gap:.35rem;cursor:pointer;
@@ -86,14 +86,14 @@ button.wide{width:100%;justify-content:center;margin-bottom:.2rem}
 #lineEdit{margin-top:.6rem;border-top:1px solid #3a4842;padding-top:.55rem}
 #editInfo{font-size:.74rem;color:#e7d9ad;margin-bottom:.45rem}
 .editbtns{display:flex;gap:.35rem;flex-wrap:wrap}
-#linePanel button{
+#linePanel button,#erasePanel button{
   appearance:none;border:1px solid #55655c;border-radius:.45rem;cursor:pointer;
   background:transparent;color:#c9d3ca;font:inherit;font-size:.76rem;font-weight:500;padding:.34rem .6rem;
 }
-#linePanel button:hover{border-color:#8fa298}
-#linePanel button.primary{background:var(--brass);border-color:var(--brass);color:#241d10;font-weight:700}
-#linePanel button.danger{border-color:#7c463f;color:#e0a19a}
-#linePanel button.danger:hover{background:rgba(158,61,52,.2)}
+#linePanel button:hover,#erasePanel button:hover{border-color:#8fa298}
+#linePanel button.primary,#erasePanel button.primary{background:var(--brass);border-color:var(--brass);color:#241d10;font-weight:700}
+#linePanel button.danger,#erasePanel button.danger{border-color:#7c463f;color:#e0a19a}
+#linePanel button.danger:hover,#erasePanel button.danger:hover{background:rgba(158,61,52,.2)}
 /* metadata panel (shares #palette / #linePanel positioning) */
 #metaPanel{
   position:fixed;top:3.4rem;left:.6rem;z-index:15;width:13.5rem;
@@ -200,3 +200,9 @@ dl.ro dd{color:#c9d3ca;margin:0;overflow-wrap:anywhere}
 
 /* the zoomed-out picture of every subhex (shared/overview.js), under the map */
 #overview{position:fixed;inset:0;width:100vw;height:100vh;display:block;pointer-events:none;z-index:0}
+
+/* erase tool panel (shares #linePanel styling) */
+#erasePanel .opts{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.55rem;font-size:.76rem;color:#dfe6df}
+#erasePanel .opts label{display:flex;align-items:center;gap:.4rem;cursor:pointer}
+#erasePanel .opts input{accent-color:var(--brass)}
+#eraseLast{font-size:.72rem;color:#e7d9ad;margin:.35rem 0;min-height:1em}

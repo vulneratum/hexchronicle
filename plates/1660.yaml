@@ -20,7 +20,7 @@ neighbors:
   se: "1812"
 
 default_terrain: plains
-terrain: {}
+terrain:                     # subhex number -> terrain type (non-default only)
 
 lines:
   - type: stream

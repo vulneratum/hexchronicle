@@ -20,6 +20,6 @@ neighbors:
   se: "3345"
 
 default_terrain: scrub
-terrain: {}
+terrain:                     # subhex number -> terrain type (non-default only)
 
 lines: []

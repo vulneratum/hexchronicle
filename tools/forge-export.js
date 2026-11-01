@@ -106,7 +106,7 @@ for (let pi = 0; pi < plates.length; pi++) {
   y += `\ndefault_terrain: ${dflt}\n`;
   const over = [];
   for (let k = 0; k < NS; k++) { const t = BIO[T[pi * NS + k]]; if (t !== dflt) over.push(`  "${geo[k].sub}": ${t}`); }
-  y += over.length ? `terrain:                     # subhex number -> terrain type (non-default only)\n${over.join("\n")}\n` : `terrain: {}\n`;
+  y += over.length ? `terrain:                     # subhex number -> terrain type (non-default only)\n${over.join("\n")}\n` : `terrain:                     # subhex number -> terrain type (non-default only)\n`;
   const ls = linesBy[pi];
   lineCount += ls.length;
   if (ls.length) { y += `\nlines:\n`; for (const l of ls) y += `  - type: ${l.type}\n    path: [${l.path.map(x => `"${x}"`).join(", ")}]\n`; }
