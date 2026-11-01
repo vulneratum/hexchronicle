@@ -1,0 +1,139 @@
+# Atlas plate 0140 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0140-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile lowland · seed "0081-se-prx5jh" · 36 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0140"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0140"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0140"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0141"
+  ne: "0082"
+  nw: "0081"
+  w: "0139"
+  sw: null
+  se: null
+
+default_terrain: plains
+terrain:                     # subhex number -> terrain type (non-default only)
+  "003": savanna
+  "004": savanna
+  "007": savanna
+  "008": savanna
+  "009": savanna
+  "010": savanna
+  "011": savanna
+  "014": savanna
+  "015": savanna
+  "016": savanna
+  "017": savanna
+  "018": savanna
+  "019": savanna
+  "020": savanna
+  "021": savanna
+  "024": savanna
+  "025": savanna
+  "026": savanna
+  "027": savanna
+  "028": savanna
+  "029": savanna
+  "030": savanna
+  "031": savanna
+  "032": savanna
+  "033": savanna
+  "034": savanna
+  "036": savanna
+  "037": savanna
+  "038": savanna
+  "039": savanna
+  "040": savanna
+  "041": savanna
+  "042": savanna
+  "043": savanna
+  "044": savanna
+  "045": savanna
+  "046": savanna
+  "047": savanna
+  "049": savanna
+  "050": savanna
+  "051": savanna
+  "052": savanna
+  "053": savanna
+  "054": savanna
+  "055": savanna
+  "056": savanna
+  "057": savanna
+  "058": savanna
+  "059": savanna
+  "060": savanna
+  "061": ocean
+  "062": ocean
+  "063": ocean
+  "064": forest
+  "065": savanna
+  "067": savanna
+  "068": savanna
+  "070": savanna
+  "071": savanna
+  "074": hills
+  "075": hills
+  "076": forest
+  "077": forest
+  "086": hills
+  "087": swamp
+  "088": hills
+  "089": forest
+  "090": forest
+  "094": water
+  "095": swamp
+  "099": swamp
+  "100": swamp
+  "101": swamp
+  "102": forest
+  "103": forest
+  "105": forest
+  "106": forest
+  "107": water
+  "108": swamp
+  "109": swamp
+  "112": swamp
+  "113": swamp
+  "117": forest
+  "118": forest
+  "119": forest
+  "120": water
+  "121": swamp
+  "122": swamp
+  "125": swamp
+  "126": swamp
+  "130": forest
+  "131": forest
+  "132": water
+  "133": swamp
+  "134": swamp
+  "135": swamp
+  "137": swamp
+  "138": swamp
+  "142": forest
+  "143": forest
+  "144": swamp
+  "145": swamp
+  "146": swamp
+  "152": forest
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

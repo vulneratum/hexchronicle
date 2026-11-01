@@ -1,0 +1,126 @@
+# Atlas plate 0089 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0089-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile lowland · seed "0088-ne-sgqop3" · 66 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0089"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0089"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0089"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0075"
+  ne: "0073"
+  nw: "0060"
+  w: "0061"
+  sw: "0088"
+  se: "0076"
+
+default_terrain: forest
+terrain:                     # subhex number -> terrain type (non-default only)
+  "004": ocean
+  "010": ocean
+  "011": ocean
+  "017": plains
+  "018": ocean
+  "019": hills
+  "020": ocean
+  "021": ocean
+  "028": plains
+  "029": plains
+  "030": hills
+  "031": hills
+  "032": ocean
+  "033": ocean
+  "034": ocean
+  "040": plains
+  "041": plains
+  "042": plains
+  "043": hills
+  "044": hills
+  "045": ocean
+  "046": ocean
+  "047": ocean
+  "051": swamp
+  "052": swamp
+  "053": plains
+  "054": plains
+  "055": plains
+  "056": hills
+  "057": hills
+  "058": hills
+  "059": ocean
+  "064": swamp
+  "066": plains
+  "067": plains
+  "068": plains
+  "069": plains
+  "070": plains
+  "071": hills
+  "072": ocean
+  "079": plains
+  "080": plains
+  "081": plains
+  "082": plains
+  "083": plains
+  "084": ocean
+  "091": plains
+  "092": plains
+  "093": plains
+  "094": plains
+  "095": plains
+  "096": plains
+  "097": ocean
+  "104": plains
+  "105": plains
+  "106": plains
+  "107": plains
+  "108": plains
+  "109": ocean
+  "113": plains
+  "116": plains
+  "117": plains
+  "118": plains
+  "119": plains
+  "120": plains
+  "121": ocean
+  "122": ocean
+  "125": plains
+  "126": plains
+  "128": plains
+  "129": plains
+  "130": plains
+  "131": plains
+  "132": plains
+  "133": ocean
+  "134": ocean
+  "137": plains
+  "138": plains
+  "139": ocean
+  "140": ocean
+  "141": ocean
+  "142": ocean
+  "143": ocean
+  "144": ocean
+  "147": plains
+  "148": ocean
+  "149": ocean
+  "150": ocean
+  "151": ocean
+  "154": ocean
+  "155": ocean
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

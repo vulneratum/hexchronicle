@@ -22,6 +22,10 @@
   const $ = id => document.getElementById(id);
 
   let atlas = null, registry = null, summary = null;
+  /* zoomed out past Overview.OV_MAX, the map is one picture of every subhex
+   * (shared/overview.js) and no plate is built; zoom in and the atlas takes over */
+  let overview = null;
+  const ovShown = () => s < Overview.OV_MAX;
   const detail = new Map();                 // id -> plate interior (null while loading)
   const fetching = new Map();
   let selected = null;                      // { plateId, sub } — always the OWNER
@@ -46,6 +50,9 @@
     catch (err) { showToast("The map could not be loaded: " + err.message); return; }
     summary = a;
     registry = a.registry;
+
+    overview = Overview.createOverview($("overview"), { registry });
+    getJSON(`world/overview.json?v=${DATA_VERSION}`).then(d => { overview.setData(d); scheduleViewport(); }).catch(() => {});
 
     atlas = PlateDraw.createAtlas(svg, {
       registry,
@@ -82,7 +89,7 @@
         id: d.id, name: d.name, title: d.title, canton: d.canton, realm: d.realm,
         summary: d.summary, continent_hex: d.continent_hex, scale_label: d.scale_label,
         defaultTerrain: d.default_terrain,
-        terrain: d.terrain, lines: d.lines, hexes: d.hexes,
+        terrain: d.terrain, lines: d.lines, hexes: d.hexes, survey: d.survey || null,
       });
       fetching.delete(id);
       scheduleViewport();
@@ -97,6 +104,7 @@
   let s = 1, tx = 0, ty = 0, interacted = false;
   function viewSize() { const r = svg.getBoundingClientRect(); return { w: r.width || innerWidth, h: r.height || innerHeight }; }
   function viewportRect() {
+    if (ovShown()) return { xmin: 1e12, xmax: -1e12, ymin: 1e12, ymax: -1e12 };   // overview zoom: build no plates
     const v = viewSize();
     return { xmin: (0 - tx) / s, xmax: (v.w - tx) / s, ymin: (0 - ty) / s, ymax: (v.h - ty) / s };
   }
@@ -105,7 +113,7 @@
   function scheduleViewport() {
     if (vpScheduled) return;
     vpScheduled = true;
-    requestAnimationFrame(() => { vpScheduled = false; atlas.update(); drawSelection(); });
+    requestAnimationFrame(() => { vpScheduled = false; if (overview) overview.draw(tx, ty, s, ovShown()); atlas.update(); drawSelection(); });
   }
   /* every plate's world position, from the summary alone — needed before the
    * atlas has been populated, because the framing decides what gets fetched */
@@ -120,7 +128,7 @@
   function frameAll() {
     const v = viewSize(), b = summaryBounds(), pad = 40;
     const availW = Math.max(200, v.w - pad * 2), availH = Math.max(200, v.h - 170);
-    s = Math.min(3, Math.max(0.03, Math.min(availW / (b.maxX - b.minX), availH / (b.maxY - b.minY))));
+    s = Math.min(3, Math.max(0.004, Math.min(availW / (b.maxX - b.minX), availH / (b.maxY - b.minY))));
     tx = v.w / 2 - ((b.minX + b.maxX) / 2) * s;
     ty = v.h / 2 + 8 - ((b.minY + b.maxY) / 2) * s;
   }
@@ -138,7 +146,7 @@
   function fitAll() { frameAll(); applyTransform(); }
   function zoomAt(cx, cy, k) {
     interacted = true;
-    const ns = Math.min(3.2, Math.max(0.03, s * k)), real = ns / s;
+    const ns = Math.min(3.2, Math.max(0.004, s * k)), real = ns / s;
     tx = cx - (cx - tx) * real; ty = cy - (cy - ty) * real; s = ns;
     applyTransform();
   }
@@ -199,7 +207,7 @@
     if (!p) return;
     PlateDraw.el("polygon", {
       points: HexGeo.hexCorners(p.x, p.y, SIZE), fill: "none",
-      stroke: "#f3ead0", "stroke-width": 3, "stroke-linejoin": "round",
+      stroke: "#f3ead0", "stroke-width": Math.max(3, 2.5 / s), "stroke-linejoin": "round",
     }, atlas.layers.ui);
   }
 
@@ -241,6 +249,14 @@
     }
     const lf = linesThrough(addr);
     if (lf.length) rows.push(`<dt>Line features</dt><dd>${esc(lf.join(", "))}</dd>`);
+    const sk = HexGeo.buildPlateHexes().findIndex(h => h.sub === hit.sub);
+    const sv = st.survey && st.survey[sk];
+    if (sv) {
+      const water = !!(T[st.terrain[hit.sub]] || {}).water;
+      if (water && sv[0] < 0) rows.push(`<dt>Depth</dt><dd>${esc((-sv[0]).toLocaleString())} ft</dd>`);
+      else if (!water) rows.push(`<dt>Elevation</dt><dd>${esc(sv[0].toLocaleString())} ft</dd>`,
+        `<dt>Rainfall</dt><dd>${esc(sv[1])} in a year</dd>`, `<dt>Mean temp.</dt><dd>${esc(sv[2])} °F</dd>`);
+    }
     const shared = atlas.own.sharersOf(hit.plateId, hit.sub).filter(x => x.plateId !== hit.plateId);
     if (shared.length) rows.push(`<dt>On the boundary of</dt><dd>${esc(shared.map(x => x.plateId).join(", "))}</dd>`);
 

@@ -54,6 +54,18 @@
 
   /* empty lattice positions — editor-only, see "EMPTY POSITIONS" below */
   let gSlots = null, slotIndex = [], hotSlot = null;
+  /* zoomed out past Overview.OV_MAX the map is one picture of every subhex and
+   * no plate is built (or fetched); zoom in to edit. Fetched on first need and
+   * again after a save, since a save can change terrain. */
+  let overview = null, ovState = "none";        // none | loading | ready
+  const ovShown = () => s < Overview.OV_MAX;
+  function ensureOverview() {
+    if (ovState !== "none") return;
+    ovState = "loading";
+    setStatus("drawing the whole map…");
+    getJSON("/api/overview").then(d => { overview.setData(d); ovState = "ready"; setStatus("ready — zoom in to edit"); scheduleViewport(); })
+      .catch(() => { ovState = "none"; });
+  }
   const slotEls = new Map();
 
   async function boot() {
@@ -64,6 +76,7 @@
     catch (err) { setStatus("load failed: " + err.message, "err"); return; }
 
     registry = a.registry;
+    overview = Overview.createOverview($("overview"), { registry });
     atlas = PlateDraw.createAtlas(svg, {
       geo, registry,
       gridStroke: HEX_STROKE,
@@ -101,7 +114,7 @@
     if (a.conflicts && a.conflicts.length) problems.push(`${a.conflicts.length} inconsistent neighbour link(s)`);
     if (problems.length) setStatus(problems.join(" · "), "err");
   }
-  const refetchAtlas = () => getJSON("/api/atlas").then(loadAtlas)
+  const refetchAtlas = () => getJSON("/api/atlas").then(a => { if (ovState === "ready") ovState = "none"; loadAtlas(a); scheduleViewport(); })
     .catch(() => setStatus("atlas failed to load", "err"));
 
   /* ============================================================= *
@@ -126,6 +139,7 @@
       terrain,
       lines: (d.lines || []).map(l => ({ type: l.type, path: l.path.slice() })),
       hexes: d.hexes || {},
+      survey: d.survey || null,           // read-only: world/physical/survey/
       dirtyTerrain: false, dirtyLines: false, dirtyMeta: false,
       dirtyHexes: new Set(),
     };
@@ -200,6 +214,7 @@
   }
   function viewSize() { const r = svg.getBoundingClientRect(); return { w: r.width || innerWidth, h: r.height || innerHeight }; }
   function viewportRect() {
+    if (ovShown()) return { xmin: 1e12, xmax: -1e12, ymin: 1e12, ymax: -1e12 };   // overview: build nothing
     const v = viewSize();
     return { xmin: (PAD_LEFT - tx) / s, xmax: (v.w - tx) / s, ymin: (0 - ty) / s, ymax: (v.h - ty) / s };
   }
@@ -207,19 +222,24 @@
   function scheduleViewport() {
     if (vpScheduled) return;
     vpScheduled = true;
-    requestAnimationFrame(() => { vpScheduled = false; atlas.update(); updateSlots(); drawSelection(); drawActive(); });
+    requestAnimationFrame(() => {
+      vpScheduled = false;
+      if (ovShown()) ensureOverview();
+      if (overview) overview.draw(tx, ty, s, ovShown());
+      atlas.update(); updateSlots(); drawSelection(); drawActive();
+    });
   }
   function fitAll() {
     const v = viewSize(), b = atlas.bounds();
     const availW = Math.max(200, v.w - PAD_LEFT - 40), availH = Math.max(200, v.h - 110);
-    s = Math.min(3, Math.max(0.05, Math.min(availW / (b.maxX - b.minX), availH / (b.maxY - b.minY))));
+    s = Math.min(3, Math.max(0.004, Math.min(availW / (b.maxX - b.minX), availH / (b.maxY - b.minY))));
     tx = PAD_LEFT + availW / 2 - ((b.minX + b.maxX) / 2) * s;
     ty = 70 + availH / 2 - ((b.minY + b.maxY) / 2) * s;
     applyTransform();
   }
   window.addEventListener("resize", () => fitAll());
   function zoomAt(cx, cy, k) {
-    const ns = Math.min(3.2, Math.max(0.05, s * k)), real = ns / s;
+    const ns = Math.min(3.2, Math.max(0.004, s * k)), real = ns / s;
     tx = cx - (cx - tx) * real; ty = cy - (cy - ty) * real; s = ns;
     applyTransform();
   }
@@ -258,6 +278,7 @@
    * Terrain painting — on whichever hex was hit
    * ============================================================= */
   function paintAt(cx, cy) {
+    if (ovShown()) { setStatus("zoom in to edit — the zoomed-out view is a picture of the whole map"); return; }
     const hit = hexAt(cx, cy);
     if (!hit) return;
     if (plateState.has(hit.plateId)) { applyPaint(hit, brush); return; }
@@ -555,6 +576,7 @@
       ["Also shown on", shared.length ? shared.join(", ") : "—"],
       ["Scale", "3 miles (1 league)"],
       ["Lines", lines.length ? lines.join(", ") : "none"],
+      ...surveyRows(st, sub),
       ["File", rec.file ? file : file + " (not created yet)"],
     ];
     $("metaDerived").innerHTML = ro.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
@@ -572,6 +594,14 @@
       story.push(`<div class="cx"><b>${esc(c.date)}${c.visibility === "gm-only" ? " · gm-only" : ""}</b>${esc(c.text)}</div>`);
     }
     $("metaStory").innerHTML = story.length ? story.join("") : `<span class="empty">Nothing recorded yet.</span>`;
+  }
+  /* elevation / rainfall / temperature — generated data, shown but never edited here */
+  function surveyRows(st, sub) {
+    const k = geo.findIndex(h => h.sub === sub), sv = st.survey && st.survey[k];
+    if (!sv) return [];
+    const water = !!(registry.terrain[st.terrain[sub]] || {}).water;
+    if (water) return sv[0] < 0 ? [["Depth", (-sv[0]).toLocaleString() + " ft (survey)"]] : [];
+    return [["Elevation", sv[0].toLocaleString() + " ft (survey)"], ["Rainfall", sv[1] + " in a year (survey)"], ["Mean temp.", sv[2] + " °F (survey)"]];
   }
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -849,7 +879,7 @@
     if (!hit) return;
     // ONE click: select the hex, and act on it with whatever tool is in hand
     selectHex(hit);
-    if (tool === "lines") lineTap(hit);
+    if (tool === "lines" && !ovShown()) lineTap(hit);
   }
   svg.addEventListener("pointerup", endPointer);
   svg.addEventListener("pointercancel", endPointer);

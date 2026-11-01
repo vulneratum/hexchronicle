@@ -39,6 +39,7 @@ const path = require("path");
 const crypto = require("crypto");
 const yaml = require("js-yaml");
 const HexGeo = require("../shared/geometry.js");
+const Overview = require("../shared/overview.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const P = (...p) => path.join(ROOT, ...p);
@@ -87,6 +88,26 @@ while (queue.length) {
 const placed = plateIds.filter(id => coord[id]);
 const orphans = plateIds.filter(id => !coord[id]);
 const own = HexGeo.plateOwnership(coord);
+
+/* ---------- survey data (derived, read-only): world/physical/survey/NNNN.json ---------- *
+ * Elevation (ft), rainfall (in/yr) and mean temperature (°F) per subhex, written
+ * by tools/forge-export.js. Optional per plate; a plate without a file simply has
+ * no survey rows on its cards. Read through the OWNER like everything else. */
+const SURVEY_DIR = P("world", "physical", "survey");
+const surveyCache = new Map();
+function surveyOf(id) {
+  if (surveyCache.has(id)) return surveyCache.get(id);
+  const f = path.join(SURVEY_DIR, id + ".json");
+  let m = null;
+  if (fs.existsSync(f)) {
+    const d = JSON.parse(fs.readFileSync(f, "utf8"));
+    m = new Map();
+    (d.subs || []).forEach((sub, i) => m.set(sub, [d.elevation[i], d.rainfall[i], d.temperature[i]]));
+  }
+  surveyCache.set(id, m);
+  return m;
+}
+let surveyed = 0;
 
 /* ---------- per-hex content files, honouring visibility ---------- */
 const hexDir = P("hexes");
@@ -169,8 +190,22 @@ function plateDetail(id) {
     scale_label: doc.scale_label || null,
     default_terrain: doc.default_terrain,
     terrain, lines, hexes,
+    survey: surveyFor(id),
     borrowed: Object.fromEntries(own.borrowedSubs(id).map(sub => [sub, own.addressOf(id, sub)])),
   };
+}
+
+/* [elevation ft, rainfall in/yr, mean temp °F] per subhex in geometry order, or null */
+function surveyFor(id) {
+  if (!surveyOf(id)) return null;
+  const out = [];
+  for (const h of geo) {
+    const o = own.ownerOf(id, h.sub);
+    const sv = surveyOf(o.plateId) || surveyOf(id);
+    out.push((sv && sv.get(o.sub)) || null);
+  }
+  surveyed++;
+  return out;
 }
 
 /* ---------- emit ---------- */
@@ -194,11 +229,11 @@ const atlas = {
     };
   }),
 };
-const atlasJSON = JSON.stringify(atlas, null, 2);
+const atlasJSON = JSON.stringify(atlas);
 fs.writeFileSync(path.join(DOCS, "world", "atlas.json"), atlasJSON);
 const plateJSON = new Map();
 for (const [id, d] of details) {
-  const j = JSON.stringify(d, null, 2);
+  const j = JSON.stringify(d);
   plateJSON.set(id, j);
   fs.writeFileSync(path.join(DOCS, "world", `plate-${id}.json`), j);
 }
@@ -215,7 +250,26 @@ for (const [id, d] of details) {
  * asks for URLs no prior build ever used, so it can never pair a new shell
  * with a plate JSON left over from an old one.
  */
-const hash = crypto.createHash("sha256").update(atlasJSON);
+/*
+ * The whole map as one picture's worth of data (shared/overview.js): every
+ * subhex's terrain as one character, plus river segments. The site shows it at
+ * zooms where building every plate as SVG would stall the browser.
+ */
+const terrainKeys = Object.keys(registry.terrain);
+const riverPairs = [];
+{
+  const pIdx = new Map(placed.map((id, i) => [id, i]));
+  const sIdx = new Map(geo.map((h, k) => [h.sub, k]));
+  for (const [id, d] of details) for (const ln of d.lines) {
+    if (ln.type !== "river") continue;
+    const pts = ln.path.map(e => { const a = HexGeo.parseAddr(e); return [pIdx.get(a.plate || id), sIdx.get(a.sub)]; });
+    for (let i = 1; i < pts.length; i++) if (pts[i - 1][0] != null && pts[i][0] != null) riverPairs.push(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
+  }
+}
+const overviewJSON = JSON.stringify(Overview.overviewData(placed, id => coord[id], (id, sub) => details.get(id).terrain[sub], terrainKeys, riverPairs));
+fs.writeFileSync(path.join(DOCS, "world", "overview.json"), overviewJSON);
+
+const hash = crypto.createHash("sha256").update(atlasJSON).update(overviewJSON);
 for (const id of [...plateJSON.keys()].sort()) hash.update(plateJSON.get(id));
 const DATA_VERSION = hash.digest("hex").slice(0, 12);
 
@@ -239,6 +293,7 @@ const template = fs.readFileSync(P("build", "template.html"), "utf8");
 const html = template
   .replace("/*__GEOMETRY_JS__*/", () => fs.readFileSync(P("shared", "geometry.js"), "utf8"))
   .replace("/*__PLATEDRAW_JS__*/", () => fs.readFileSync(P("shared", "plate-draw.js"), "utf8"))
+  .replace("/*__OVERVIEW_JS__*/", () => fs.readFileSync(P("shared", "overview.js"), "utf8"))
   .replace("/*__RENDERER_JS__*/", () => fs.readFileSync(P("build", "renderer.js"), "utf8"))
   .replace(/__DATA_VERSION__/g, DATA_VERSION)
   .replace(/\r\n/g, "\n");
@@ -315,7 +370,8 @@ if (leaks.length) die(`editor-only code reached the published site:\n  ${leaks.j
 
 /* ---------- report ---------- */
 console.log(`build: ${placed.length} plate(s) · ${N} subhexes each`);
-console.log(`build:   ${placed.map(id => `${id}${details.get(id).name ? " (" + details.get(id).name + ")" : ""}`).join(", ")}`);
+if (placed.length <= 60) console.log(`build:   ${placed.map(id => `${id}${details.get(id).name ? " (" + details.get(id).name + ")" : ""}`).join(", ")}`);
+console.log(`build:   survey data on ${surveyed} plate(s); overview ${(overviewJSON.length / 1e6).toFixed(1)} MB`);
 console.log(`build:   ${borrowedTotal} boundary subhex(es) resolved to their owning plate`);
 console.log(`build:   ${publicCount} public hex records compiled` + (gmDropped ? `, ${gmDropped} gm-only dropped` : ""));
 if (orphans.length) console.log(`build:   WARNING ${orphans.length} plate(s) not linked to the map: ${orphans.join(", ")}`);

@@ -22,6 +22,7 @@ const guard = require("./guard.js");
 const yamlIo = require("./yaml-io.js");
 const plateGen = require("./plate-gen.js");
 const HexGeo = require("../shared/geometry.js");
+const Overview = require("../shared/overview.js");
 
 const ROOT = guard.REPO_ROOT;
 const PORT = Number(process.env.EDITOR_PORT) || 4137;
@@ -42,8 +43,31 @@ function readYaml(rel) { return jsyaml.load(fs.readFileSync(R(rel), "utf8")); }
  *
  * Derived from the neighbour graph on demand, never stored.
  */
+/*
+ * Caches for a big map. Every plate file is re-read only when its mtime/size
+ * changes, and the lattice + ownership index are rebuilt only when ANY plate
+ * file changes (the signature below). Ownership compares positions with each
+ * other, so one index built from the atlas origin serves every plate on it.
+ */
+const summaryCache = new Map();                 // id -> { key, summary }
+function platesSignature() {
+  let n = 0, m = 0, sz = 0;
+  for (const id of plateIds()) { const st = fs.statSync(R(`plates/${id}.yaml`)); n++; if (st.mtimeMs > m) m = st.mtimeMs; sz += st.size; }
+  return n + ":" + m + ":" + sz;
+}
+let latticeCache = null;                        // { sig, origin, result, own }
+function cachedLattice(originId) {
+  const sig = platesSignature();
+  if (latticeCache && latticeCache.sig === sig && latticeCache.origin === originId) return latticeCache;
+  const result = buildLattice(originId);
+  latticeCache = { sig, origin: originId, result, own: HexGeo.plateOwnership(result.coord) };
+  return latticeCache;
+}
+
 function ownershipFor(plateId) {
   try {
+    const lc = cachedLattice(atlasOriginId());
+    if (lc.result.coord.has(plateId)) return lc.own;
     return HexGeo.plateOwnership(buildLattice(plateId).coord);
   } catch (e) {
     return HexGeo.plateOwnership({ [plateId]: [0, 0] });     // unplaced: owns itself
@@ -348,8 +372,14 @@ function plateIds() {
 
 function listPlates() {
   return plateIds().map(id => {
+    const st = fs.statSync(R(`plates/${id}.yaml`)), key = st.mtimeMs + ":" + st.size;
+    const hit = summaryCache.get(id);
+    if (hit && hit.key === key) return hit.summary;
     const p = readYaml(`plates/${id}.yaml`);
-    return { id: p.id || id, name: p.name || null, realm: p.realm || null, neighbors: p.neighbors || {} };
+    const summary = { id: p.id || id, name: p.name || null, realm: p.realm || null, neighbors: p.neighbors || {},
+      continent_hex: p.continent_hex != null ? p.continent_hex : null, default_terrain: p.default_terrain };
+    summaryCache.set(id, { key, summary });
+    return summary;
   });
 }
 
@@ -412,12 +442,12 @@ function detectEol() {
 function atlasOriginId() { return plateIds()[0] || "0001"; }
 
 function buildAtlas(originId) {
-  const { plates, coord, atCoord, conflicts } = buildLattice(originId);
+  const { plates, coord, atCoord, conflicts } = cachedLattice(originId).result;
 
   const out = [];
   for (const [id] of plates) {
     if (!coord.has(id)) continue;                 // not reachable from the origin
-    const doc = readYaml(`plates/${id}.yaml`);
+    const doc = plates.get(id);                   // cached summary (listPlates)
     // Summary only — the heavy per-hex terrain/lines/features are fetched per
     // plate on demand via /api/plate/:id/detail, so the atlas payload stays
     // O(plates) rather than O(plates × 157) as the map grows.
@@ -481,7 +511,55 @@ function plateDetail(id) {
     lines: doc.lines || [],
     hexes: readHexRecords(id, own),
     borrowed: borrowedMap(id, own),
+    survey: readSurvey(id, own),
   };
+}
+
+/*
+ * Survey data (world/physical/survey/NNNN.json, written by tools/forge-export.js):
+ * [elevation ft, rainfall in/yr, mean temp °F] per subhex in geometry order,
+ * read through the owner. READ-ONLY — world/ is outside the guard's write scope.
+ */
+function readSurvey(id, own) {
+  const cache = new Map();
+  const load = pid => {
+    if (cache.has(pid)) return cache.get(pid);
+    const f = R(`world/physical/survey/${pid}.json`);
+    let m = null;
+    if (fs.existsSync(f)) {
+      const d = JSON.parse(fs.readFileSync(f, "utf8"));
+      m = new Map((d.subs || []).map((sub, i) => [sub, [d.elevation[i], d.rainfall[i], d.temperature[i]]]));
+    }
+    cache.set(pid, m);
+    return m;
+  };
+  if (!load(id)) return null;
+  return HexGeo.buildPlateHexes().map(h => {
+    const o = own.ownerOf(id, h.sub);
+    const m = load(o.plateId) || load(id);
+    return (m && m.get(o.sub)) || null;
+  });
+}
+
+/*
+ * The whole map as one picture's worth of data (shared/overview.js) — what the
+ * editor shows when zoomed out too far to build every plate. Read-only.
+ */
+function buildOverview() {
+  const { coord } = cachedLattice(atlasOriginId()).result;
+  const ids = plateIds().filter(id => coord.has(id));
+  const docs = new Map(ids.map(id => [id, readYaml(`plates/${id}.yaml`)]));
+  const keys = Object.keys(themeRegistry().terrain);
+  const pIdx = new Map(ids.map((id, i) => [id, i]));
+  const sIdx = new Map(HexGeo.buildPlateHexes().map((h, k) => [h.sub, k]));
+  const rivers = [];
+  for (const id of ids) for (const ln of (docs.get(id).lines || [])) {
+    if (ln.type !== "river") continue;
+    const pts = (ln.path || []).map(e => { const a = HexGeo.parseAddr(e); return a ? [pIdx.get(a.plate || id), sIdx.get(a.sub)] : [null, null]; });
+    for (let i = 1; i < pts.length; i++) if (pts[i - 1][0] != null && pts[i][0] != null) rivers.push(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
+  }
+  return Overview.overviewData(ids, id => coord.get(id),
+    (id, sub) => { const d = docs.get(id); return (d.terrain || {})[sub] || d.default_terrain; }, keys, rivers);
 }
 
 /* ---------- write op: create a plate (Phase 3), guarded ---------- */
@@ -618,6 +696,7 @@ const STATIC = {
   "/editor.css": ["editor/editor.css", "text/css"],
   "/shared/geometry.js": ["shared/geometry.js", "text/javascript"],
   "/shared/plate-draw.js": ["shared/plate-draw.js", "text/javascript"],
+  "/shared/overview.js": ["shared/overview.js", "text/javascript"],
 };
 
 function readBody(req) {
@@ -651,6 +730,11 @@ const server = http.createServer(async (req, res) => {
     // API: the whole map, on one fixed frame
     if (req.method === "GET" && p === "/api/atlas") {
       return send(res, 200, buildAtlas(atlasOriginId()));
+    }
+
+    // API: the whole map as one picture (shown when zoomed far out)
+    if (req.method === "GET" && p === "/api/overview") {
+      return send(res, 200, buildOverview());
     }
 
     // API: one plate's full interior (detail LOD, fetched on demand)

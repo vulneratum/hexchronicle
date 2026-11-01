@@ -184,3 +184,6 @@ dl.ro dd{color:#c9d3ca;margin:0;overflow-wrap:anywhere}
 #addModal button:disabled{opacity:.45;cursor:default}
 #addModal button.primary{background:var(--brass);border-color:var(--brass);color:#241d10;font-weight:700}
 #addModal .hint{margin-top:.6rem}
+
+/* the zoomed-out picture of every subhex (shared/overview.js), under the map */
+#overview{position:fixed;inset:0;width:100vw;height:100vh;display:block;pointer-events:none;z-index:0}

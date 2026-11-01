@@ -1,0 +1,164 @@
+# Atlas plate 0099 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0099-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile lowland · seed "0071-e-qh0gmc" · 25 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0099"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0099"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0099"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0110"
+  ne: "0109"
+  nw: "0098"
+  w: "0071"
+  sw: "0100"
+  se: "0101"
+
+default_terrain: plains
+terrain:                     # subhex number -> terrain type (non-default only)
+  "004": forest
+  "005": forest
+  "007": ocean
+  "008": ocean
+  "010": forest
+  "011": forest
+  "012": forest
+  "014": ocean
+  "015": ocean
+  "016": ocean
+  "018": forest
+  "019": forest
+  "020": forest
+  "021": forest
+  "022": forest
+  "024": ocean
+  "025": ocean
+  "026": ocean
+  "027": ocean
+  "028": forest
+  "030": forest
+  "032": forest
+  "033": forest
+  "034": forest
+  "035": forest
+  "036": ocean
+  "037": ocean
+  "038": ocean
+  "039": ocean
+  "040": ocean
+  "041": forest
+  "043": forest
+  "044": forest
+  "045": forest
+  "046": forest
+  "047": forest
+  "049": ocean
+  "050": ocean
+  "051": ocean
+  "052": ocean
+  "053": forest
+  "055": savanna
+  "056": forest
+  "057": forest
+  "058": forest
+  "059": forest
+  "060": forest
+  "061": ocean
+  "062": ocean
+  "063": ocean
+  "064": ocean
+  "065": ocean
+  "066": forest
+  "067": water
+  "068": savanna
+  "069": forest
+  "070": forest
+  "071": forest
+  "072": forest
+  "074": ocean
+  "075": ocean
+  "076": ocean
+  "077": ocean
+  "078": ocean
+  "079": forest
+  "080": savanna
+  "081": savanna
+  "082": savanna
+  "083": savanna
+  "084": forest
+  "085": forest
+  "086": ocean
+  "087": ocean
+  "088": ocean
+  "089": ocean
+  "090": ocean
+  "091": forest
+  "092": forest
+  "093": savanna
+  "094": savanna
+  "095": savanna
+  "096": forest
+  "097": forest
+  "099": ocean
+  "100": ocean
+  "101": ocean
+  "102": ocean
+  "104": forest
+  "105": forest
+  "106": savanna
+  "107": forest
+  "108": forest
+  "109": forest
+  "110": forest
+  "111": ocean
+  "112": ocean
+  "113": ocean
+  "114": ocean
+  "115": ocean
+  "117": forest
+  "118": savanna
+  "119": forest
+  "120": forest
+  "121": forest
+  "122": forest
+  "124": ocean
+  "125": ocean
+  "126": ocean
+  "127": ocean
+  "131": hills
+  "132": forest
+  "133": forest
+  "134": forest
+  "135": forest
+  "136": ocean
+  "137": ocean
+  "138": ocean
+  "139": ocean
+  "142": hills
+  "143": forest
+  "144": forest
+  "145": forest
+  "146": ocean
+  "147": ocean
+  "151": forest
+  "152": forest
+  "155": forest
+  "156": forest
+  "157": forest
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

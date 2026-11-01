@@ -1,0 +1,39 @@
+# Atlas plate 0026 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/0026-NNN.yaml.
+#
+# Interior rolled by the editor's plate generator:
+#   profile woodland · seed "0025-ne-b03ei3" · 25 border hexes matched to neighbours
+# Re-rolling reproduces this exactly given the same seed, profile, AND
+# border conditions — the matched-border count above changes as adjoining
+# plates are added or edited, so a later re-roll may differ near the seams.
+
+id: "0026"
+continent_hex: 1            # the 432-mile hex this plate sits within
+name: "Plate 0026"
+canton: Harrow
+realm: Karvosia
+title: "Plate 0026"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "0030"
+  ne: "0027"
+  nw: "0028"
+  w: "0040"
+  sw: "0025"
+  se: "0024"
+
+default_terrain: forest
+terrain:                     # subhex number -> terrain type (non-default only)
+  "098": swamp
+  "099": swamp
+  "111": swamp
+  "124": swamp
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

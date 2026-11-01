@@ -207,6 +207,15 @@ and `theme/` — never chronicle, world state, or sessions).
   coordinates to a plate or an empty slot in world space. Add new map
   interactions there, never via per-element listeners.
 
+- **Overview at far zoom.** Below `Overview.OV_MAX` (shared/overview.js) the
+  editor builds no plates at all: it shows one picture of every subhex in its
+  terrain colour (`GET /api/overview`) and edits are refused until you zoom in.
+  The server caches plate summaries, the lattice and seam ownership, keyed on
+  plate-file mtimes, so a map of thousands of plates stays responsive.
+- **Survey data** (elevation, rainfall, mean temperature) appears read-only in
+  the Metadata panel. It lives in `world/physical/survey/`, outside the guard's
+  write scope.
+
 ## 9. The site (hexchronicle.com)
 
 - Static site on GitHub Pages or Cloudflare Pages, custom domain, HTTPS,
@@ -221,8 +230,29 @@ and `theme/` — never chronicle, world state, or sessions).
     "chronicle a session here" link (pre-filled with the hex address).
 - Auto-cross-link consistent names (NPCs, places, items) across pages.
 - Every page carries a "suggest an edit" link to its source file on GitHub.
+- **As built:** the full-map view is `docs/world/overview.json` drawn as one
+  picture (shared/overview.js, same module as the editor); zooming in hands over
+  to the shared atlas, which fetches only the plates on screen. Hex cards show
+  survey data when `world/physical/survey/NNNN.json` exists for the plate.
 - Images optional garnish: web-compressed, SVG heraldry, icon changes driven
   by state (burned village = burned icon).
+
+## 9a. The generated world (World Forge)
+
+The live map is generated, natural world only (terrain, lakes, rivers,
+streams); settlements and roads come later, by hand.
+
+- `world/forge-recipe.json` — seeds and settings. The world is rebuilt from
+  this exactly: two continents, the western (`amber-fjord-7`, ~560,000 sq mi)
+  and a Europe-sized eastern one (3,933,000 sq mi) within 36°N–56°N, across a
+  30–80 mile strait.
+- `node tools/forge-export.js` writes `plates/NNNN.yaml` and
+  `world/physical/survey/NNNN.json` from the recipe (refuses if `plates/`
+  already holds plates). Generator code: `tools/worldgen/forge/`.
+- Plate ids run row by row from the map's top-left. The hand-built prototype
+  and its hex content are archived in `world/archive/prototype/`.
+- `tools/validate-world.js` and `world/physical/{elevation,land-sea-mask}*`
+  belong to the earlier Phase A frame and do not describe this world.
 
 ## 10. Build order
 
