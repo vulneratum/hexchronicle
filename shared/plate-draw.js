@@ -56,6 +56,11 @@
     } else if (feature === "dungeon") {
       el("path", { d: "M -6 6 L -6 -2 A 6 6 0 0 1 6 -2 L 6 6 Z", fill: "#38322b" }, g);
       el("path", { d: "M -2.2 6 L -2.2 0 A 2.2 2.2 0 0 1 2.2 0 L 2.2 6 Z", fill: "#171412" }, g);
+    } else if (feature === "landmark") {
+      // a tall, narrow black spire on a short base — lighthouses, wizards' towers,
+      // pylons, tower dungeons. About the height of the city mark; the thin pale
+      // edge keeps it readable on dark terrain (forest, taiga, mountains).
+      el("path", { d: "M 0 -9 L 3.2 7.5 L -3.2 7.5 Z", fill: "#1c1a17", stroke: "#f0ead2", "stroke-width": 0.9, "stroke-linejoin": "round" }, g);
     } else if (feature === "lair") {
       el("rect", { x: -5.4, y: -5.4, width: 10.8, height: 10.8, fill: "#f0ead2", stroke: "#9e3d34", "stroke-width": 2, transform: "rotate(45)" }, g);
       const t = el("text", { "text-anchor": "middle", y: 3.4, "font-size": 9, "font-weight": 700, fill: "#9e3d34", "font-family": "'Alegreya Sans',sans-serif" }, g);
@@ -1110,11 +1115,11 @@
         if (!c || !c.feature) continue;
         const a = anchors.of(h.sub) || h;
         drawIcon(rec.gIcons, c.feature.type, a.x, a.y, 1);
-        if (c.feature.type === "city" || c.feature.type === "town") {
+        if (c.feature.type === "city" || c.feature.type === "town" || c.feature.type === "landmark") {
           const t = el("text", {
             x: a.x, y: a.y + 22, "text-anchor": "middle",
             "font-family": "'IM Fell English SC',serif",
-            "font-size": c.feature.type === "city" ? 15 : 12, fill: "#2b2b23",
+            "font-size": c.feature.type === "city" ? 15 : c.feature.type === "landmark" ? 11 : 12, fill: "#2b2b23",
           }, rec.gIcons);
           t.textContent = c.feature.name || "";
         }
