@@ -307,6 +307,8 @@ function saveHex(plateId, sub, body) {
   if (empty) return { ok: true, address, file: rel, created: false, skipped: true };
 
   const abs = guard.assertCreatable(rel);                      // refuses to clobber
+  // hexes/ can be absent: git keeps no empty folders, and a fresh map has no hex files yet
+  fs.mkdirSync(path.dirname(abs), { recursive: true });
   yamlIo.writeNewHex(abs, { address, fields, eol: detectEol() });
   return { ok: true, address, file: rel, created: true };
 }
