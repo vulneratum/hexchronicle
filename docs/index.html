@@ -1872,7 +1872,7 @@
    * or atlas file from a different build, and a fresh build always asks the
    * browser for a URL it has never cached.
    */
-  const DATA_VERSION = "9be73d2a06e6";
+  const DATA_VERSION = "6707588a8ab1";
 
   const esc = x => String(x == null ? "" : x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const getJSON = url => fetch(url).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
