@@ -3,7 +3,6 @@
 
 id: "2863"
 continent_hex: 22            # the 432-mile hex this plate sits within
-title: "Kingsreach Lighthouse"
 scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
 summary: >
   Surveyed western continent ground; no account of it has been written yet.
@@ -63,8 +62,13 @@ terrain:                     # subhex number -> terrain type (non-default only)
   "136": hills
   "137": hills
   "138": hills
-  "139": hills
   "146": hills
   "154": hills
 
-lines: []
+lines:
+  - type: path
+    path: ["139", "128", "140"]
+  - type: path
+    path: ["139", "138", "147"]
+  - type: paved
+    path: ["126", "127", "139"]

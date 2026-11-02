@@ -1,0 +1,7 @@
+# Subhex 2863-140 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+
+address: "2863-140"
+visibility: public          # public | gm-only (README §4)
+feature:
+  type: dungeon
