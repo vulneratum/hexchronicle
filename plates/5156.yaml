@@ -1,0 +1,33 @@
+# Atlas plate 5156 (README §3, §4). One atlas hex = one page.
+# Terrain lives here as a compact grid: a default plus per-subhex
+# overrides keyed by subhex number. Rich per-hex content (features,
+# names, chronicle) lives in hexes/5156-NNN.yaml.
+#
+# Created as a full-ocean plate (WORLDGEN §4-B): no interior was rolled,
+# every subhex is the default terrain, and depth/current are recorded
+# below instead of 157 near-identical subhex records.
+
+id: "5156"
+continent_hex: 36            # the 432-mile hex this plate sits within
+name: "Plate 5156"
+title: "Plate 5156"
+scale_label: "1 HEX = 3 MILES (1 LEAGUE)"
+summary: >
+  Newly surveyed ground; no account of it has been written yet.
+
+# Six adjoining plates (README §3). null = not yet created.
+neighbors:
+  e: "5160"
+  ne: "5152"
+  nw: "5151"
+  w: "5133"
+  sw: null
+  se: "5213"
+
+default_terrain: ocean
+fill: ocean
+depth: deep
+terrain:                     # subhex number -> terrain type (non-default only)
+
+# Line features (README §4): paths crossing subhexes, not per-hex fills.
+lines:

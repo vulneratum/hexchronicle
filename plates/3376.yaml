@@ -16,7 +16,7 @@ neighbors:
   ne: "3256"
   nw: "3255"
   w: "3375"
-  sw: null
+  sw: "5202"
   se: "3500"
 
 default_terrain: ocean

@@ -17,8 +17,8 @@ summary: >
 
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
-  e: null
-  ne: null
+  e: "5151"
+  ne: "5144"
   nw: "5134"
   w: "5129"
   sw: "5132"

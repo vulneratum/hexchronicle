@@ -14,8 +14,8 @@ summary: "Open sea."
 neighbors:
   e: "3996"
   ne: "3876"
-  nw: null
-  w: null
+  nw: "5194"
+  w: "5193"
   sw: "4111"
   se: "4112"
 

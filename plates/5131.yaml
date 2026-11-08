@@ -22,7 +22,7 @@ neighbors:
   nw: "3252"
   w: null
   sw: null
-  se: null
+  se: "5205"
 
 default_terrain: ocean
 fill: ocean

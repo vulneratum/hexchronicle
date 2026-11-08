@@ -13,9 +13,9 @@ summary: "Open sea."
 # Six adjoining plates (README §3). null = not yet created.
 neighbors:
   e: "3877"
-  ne: null
-  nw: null
-  w: null
+  ne: "5199"
+  nw: "5201"
+  w: "5194"
   sw: "3995"
   se: "3996"
 
