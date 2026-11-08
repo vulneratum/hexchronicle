@@ -6,8 +6,8 @@
  * it is immediately paintable, linkable and editable with whatever tool is
  * active. Nothing re-origins, nothing dims, no plate is "current".
  *
- * The map itself — layers, viewport culling, merged-path terrain, shorelines,
- * the atlas-wide line network, feature anchors, and the hit test — lives in
+ * The map itself — layers, viewport culling, merged-path terrain, the
+ * atlas-wide line network, feature icons, and the hit test — lives in
  * shared/plate-draw.js (PlateDraw.createAtlas), so the editor and the published
  * site are the same renderer with different interaction bolted on. This file is
  * the interaction: tools, panels, undo, and save.
@@ -316,7 +316,7 @@
    * One subhex recolour, applied to EVERY plate that shows that position.
    *
    * A seam hex is drawn by two plates (three at a corner) and each keeps its own
-   * copy for meshing and shoreline smoothing, so a paint that reached only one
+   * copy of the terrain, so a paint that reached only one
    * of them would put a visible discontinuity right on the boundary. Only the
    * OWNER is marked dirty, so only the owner's file is ever written.
    */
@@ -715,8 +715,7 @@
     mutate(rec, st);
     st.dirtyHexes.add(selected.sub);
     markDirty(selected.plateId, "dirtyMeta");
-    // the feature set decides which hexes have an anchor, so the roads that
-    // reach this hex are re-routed along with the icon
+    // repaint the plate so the icon and its label redraw at once
     atlas.invalidate(selected.plateId);
     atlas.refresh();
     drawSelection();
@@ -1065,7 +1064,7 @@
     $("addCreate").disabled = !previewData;
   }
   /* the rolled candidate, drawn through the same mesh so the preview shows the
-   * coastlines you will actually get — an ocean candidate has no overrides at
+   * terrain exactly as the map will draw it — an ocean candidate has no overrides at
    * all, so this falls straight through to solid default_terrain colour */
   function drawPreview(data) {
     const svgEl = $("addPreview");

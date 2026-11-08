@@ -440,8 +440,8 @@ is the world as it was before anyone walked on it.
   reads elevation as one of its inputs. Because both are sampled from one continuous
   field, seam subhexes agree by construction.
 - **Terrain** ← the biome matrix (§VII-G), all 1,296 plates / 187,197 subhexes.
-- **Water** ← the land–sea mask. Ocean plates use the compact form (§4-B). The existing
-  shoreline smoothing and sector-blend rules apply unchanged at coast.
+- **Water** ← the land–sea mask. Ocean plates use the compact form (§4-B). Every subhex,
+  coastal or not, renders as a plain hexagon in its own terrain colour.
 - **Rivers and streams** ← the river graph (§VII-E). These are the **only** line features
   G1 may write. Classify by Strahler order from the drainage computation: order 1–2 is
   `stream`, order 3+ is `river`, and every reach carries its navigability and low-water

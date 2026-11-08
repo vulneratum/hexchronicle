@@ -3,8 +3,8 @@
  *
  * ONE CONTINUOUS MAP, no plate to choose. Drawing is done by the shared atlas
  * (shared/plate-draw.js — PlateDraw.createAtlas), exactly as in the editor, so
- * the two can never drift: merged-path terrain, smoothed shorelines, the
- * atlas-wide line network, feature anchors, seam ownership and viewport culling
+ * the two can never drift: merged-path terrain, the atlas-wide line network,
+ * feature icons, seam ownership and viewport culling
  * all come from that one module. This file adds pan/zoom, tap-to-open-card, the
  * legend, and deep links.
  *
