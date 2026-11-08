@@ -1,0 +1,10 @@
+# Subhex 2993-021 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+# KR1 area W7
+
+address: "2993-021"
+visibility: gm-only   # public | gm-only (README §4)
+name: "Spider Cove"
+feature:
+  type: lair
+  name: "Spider Cove"

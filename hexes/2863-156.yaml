@@ -1,0 +1,9 @@
+# Subhex 2863-156 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+
+address: "2863-156"
+visibility: public          # public | gm-only (README §4)
+name: "Gannet Islet"
+feature:
+  type: landmark
+  name: "Gannet Islet"

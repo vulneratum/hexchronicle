@@ -1,0 +1,10 @@
+# Subhex 2863-129 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+# KR1 area W1
+
+address: "2863-129"
+visibility: gm-only   # public | gm-only (README §4)
+name: "Hob's Crag"
+feature:
+  type: landmark
+  name: "Hob's Crag"

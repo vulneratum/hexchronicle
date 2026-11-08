@@ -1,8 +1,9 @@
 # Subhex 2863-149 — content file (README §4). Terrain comes from the
 # plate grid; this file carries features, names, and chronicle.
+# KR1 area W9 (the Kingslight, Lighthouse Isle)
 
 address: "2863-149"
-visibility: public          # public | gm-only (README §4)
+visibility: public    # public | gm-only (README §4)
 name: "Kingsreach Lighthouse"
 feature:
   type: landmark

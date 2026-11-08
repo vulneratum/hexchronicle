@@ -1,0 +1,10 @@
+# Subhex 2863-104 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+# KR1 area W6 (lizard men)
+
+address: "2863-104"
+visibility: public    # public | gm-only (README §4)
+name: "The Teeth"
+feature:
+  type: landmark
+  name: "The Teeth"

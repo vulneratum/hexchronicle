@@ -1,8 +1,6 @@
 # Subhex 2863-139 — content file (README §4). Terrain comes from the
 # plate grid; this file carries features, names, and chronicle.
+# KR1 home hex (areas 1-30)
 
 address: "2863-139"
-visibility: public          # public | gm-only (README §4)
-feature:
-  type: town
-  name: "Kingsreach"
+visibility: public    # public | gm-only (README §4)

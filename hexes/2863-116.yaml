@@ -1,0 +1,5 @@
+# Subhex 2863-116 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+
+address: "2863-116"
+visibility: gm-only          # public | gm-only (README §4)

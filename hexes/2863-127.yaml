@@ -1,0 +1,9 @@
+# Subhex 2863-127 — content file (README §4). Terrain comes from the
+# plate grid; this file carries features, names, and chronicle.
+
+address: "2863-127"
+visibility: public          # public | gm-only (README §4)
+name: "Kingsreach"
+feature:
+  type: town
+  name: "Kingsreach"

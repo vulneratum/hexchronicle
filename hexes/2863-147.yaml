@@ -1,7 +1,6 @@
 # Subhex 2863-147 — content file (README §4). Terrain comes from the
 # plate grid; this file carries features, names, and chronicle.
+# KR1 area W8
 
 address: "2863-147"
-visibility: public          # public | gm-only (README §4)
-feature:
-  type: ruin
+visibility: public    # public | gm-only (README §4)
